@@ -10,8 +10,12 @@ import {
 
 interface Props {
     redes: Record<string, string>;
-    /** `pastilla` en el pie; `circulo` cuando va suelto. */
-    forma?: 'pastilla' | 'circulo';
+    /**
+     * `pastilla` con el nombre al lado, `circulo` solo el icono sobre relleno,
+     * e `icono` a pelo: el simbolo toma el color de su red al pasar el raton,
+     * sin fondo que compita. Es la forma que usa el pie.
+     */
+    forma?: 'pastilla' | 'circulo' | 'icono';
 }
 
 const { redes, forma = 'pastilla' } = Astro.props;
@@ -22,17 +26,43 @@ const { redes, forma = 'pastilla' } = Astro.props;
 // reconozca antes de leer nada.
 const catalogo: Record<
     string,
-    { icono: typeof faFacebookF; nombre: string; fondo: string }
+    { icono: typeof faFacebookF; nombre: string; fondo: string; color: string }
 > = {
-    facebook: { icono: faFacebookF, nombre: 'Facebook', fondo: 'from-[#1877F2] to-[#0C63D4]' },
+    facebook: {
+        icono: faFacebookF,
+        nombre: 'Facebook',
+        fondo: 'from-[#1877F2] to-[#0C63D4]',
+        color: '#1877F2',
+    },
     instagram: {
         icono: faInstagram,
         nombre: 'Instagram',
         fondo: 'from-[#F58529] via-[#DD2A7B] to-[#8134AF]',
+        // Su identidad es un degradado, que en un relleno se puede pintar; sobre
+        // el trazo de un icono no, asi que aqui va el rosa con el que la propia
+        // Instagram representa la marca en plano.
+        color: '#E1306C',
     },
-    tiktok: { icono: faTiktok, nombre: 'TikTok', fondo: 'from-[#25F4EE] via-[#000000] to-[#FE2C55]' },
-    youtube: { icono: faYoutube, nombre: 'YouTube', fondo: 'from-[#FF0000] to-[#C4302B]' },
-    linkedin: { icono: faLinkedinIn, nombre: 'LinkedIn', fondo: 'from-[#0A66C2] to-[#004182]' },
+    tiktok: {
+        icono: faTiktok,
+        nombre: 'TikTok',
+        fondo: 'from-[#25F4EE] via-[#000000] to-[#FE2C55]',
+        // El negro de TikTok desaparece sobre el pie oscuro: se usa el cian de
+        // su paleta, que es suyo y ademas se lee.
+        color: '#25F4EE',
+    },
+    youtube: {
+        icono: faYoutube,
+        nombre: 'YouTube',
+        fondo: 'from-[#FF0000] to-[#C4302B]',
+        color: '#FF0000',
+    },
+    linkedin: {
+        icono: faLinkedinIn,
+        nombre: 'LinkedIn',
+        fondo: 'from-[#0A66C2] to-[#004182]',
+        color: '#0A66C2',
+    },
 };
 
 const enlaces = Object.entries(redes)
@@ -50,23 +80,31 @@ const enlaces = Object.entries(redes)
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`${red.nombre} del CERSEU (se abre en una pestaña nueva)`}
+                        style={`--color-red: ${red.color}`}
                         class:list={[
-                            'group relative isolate flex items-center gap-2 overflow-hidden border border-white/20 font-medium transition duration-300 hover:border-transparent hover:text-white',
-                            forma === 'circulo'
-                                ? 'h-11 w-11 justify-center rounded-full'
-                                : 'rounded-lg px-4 py-2 text-xs',
+                            'group relative isolate flex items-center gap-2 overflow-hidden font-medium transition duration-300',
+                            forma === 'icono'
+                                ? 'red-icono h-10 w-10 justify-center rounded-xl border border-white/15'
+                                : 'border border-white/20 hover:border-transparent hover:text-white',
+                            forma === 'circulo' && 'h-11 w-11 justify-center rounded-full',
+                            forma === 'pastilla' && 'rounded-lg px-4 py-2 text-xs',
                         ]}
                     >
                         {/* El degradado entra por opacidad, no por cambio de fondo:
                             así la transición es suave y no un parpadeo. */}
-                        <span
-                            aria-hidden="true"
-                            class:list={[
-                                'absolute inset-0 -z-10 bg-linear-to-br opacity-0 transition-opacity duration-300 group-hover:opacity-100',
-                                red.fondo,
-                            ]}
+                        {forma !== 'icono' && (
+                            <span
+                                aria-hidden="true"
+                                class:list={[
+                                    'absolute inset-0 -z-10 bg-linear-to-br opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+                                    red.fondo,
+                                ]}
+                            />
+                        )}
+                        <Icono
+                            icono={red.icono}
+                            clase="h-4 w-4 transition-transform duration-300 group-hover:scale-110"
                         />
-                        <Icono icono={red.icono} clase="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
                         {forma === 'pastilla' && <span>{red.nombre}</span>}
                     </a>
                 </li>
@@ -74,3 +112,36 @@ const enlaces = Object.entries(redes)
         </ul>
     )
 }
+
+<style>
+    /*
+     * El simbolo toma el color de su red al pasar el raton, y el recuadro lo
+     * acompana con un velo del mismo color y un filo teñido. El color llega por
+     * `--color-red`, puesta en el propio enlace: asi la regla es una sola y no
+     * una por red.
+     */
+    .red-icono {
+        color: rgb(255 255 255 / 0.75);
+        transition:
+            color 300ms ease,
+            border-color 300ms ease,
+            background-color 300ms ease,
+            transform 300ms ease;
+    }
+
+    .red-icono:hover,
+    .red-icono:focus-visible {
+        color: var(--color-red);
+        border-color: color-mix(in oklab, var(--color-red) 55%, transparent);
+        background-color: color-mix(in oklab, var(--color-red) 14%, transparent);
+        transform: translateY(-2px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .red-icono,
+        .red-icono:hover {
+            transition: none;
+            transform: none;
+        }
+    }
+</style>

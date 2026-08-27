@@ -57,6 +57,22 @@ const organizacion = {
 const telefono = [contacto.telefono, contacto.anexo && `Anexo ${contacto.anexo}`]
     .filter(Boolean)
     .join(' · ');
+
+// Destinos internos del menú, aplanados, para la columna de navegación del pie.
+//
+// Antes el pie filtraba los elementos de primer nivel que tuvieran `enlace`. Al
+// agrupar la oferta bajo «Formación» casi todos pasaron a ser desplegables sin
+// enlace propio, y la columna se quedó con una sola entrada. Aplanando se
+// listan los destinos de verdad, y además aguanta cualquier reorganización que
+// haga la Unidad desde el panel sin volver a vaciarse.
+const enlacesDelPie = [
+    ...new Map(
+        menu
+            .flatMap((item) => [item, ...item.hijos])
+            .filter((i) => i.enlace?.startsWith('/') && !i.nueva_pestana)
+            .map((i) => [i.enlace!, { etiqueta: i.etiqueta, enlace: i.enlace! }])
+    ).values(),
+];
 ---
 
 <!doctype html>
@@ -142,8 +158,10 @@ const telefono = [contacto.telefono, contacto.anexo && `Anexo ${contacto.anexo}`
             </div>
 
             <div class="mx-auto max-w-6xl px-6 py-16">
-                <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-                    <div class="lg:col-span-2">
+                <div class="grid gap-12 lg:grid-cols-12">
+                    {/* Quiénes somos: la marca, una línea de qué es esto, y las
+                        redes. */}
+                    <div class="lg:col-span-4">
                         {/* Sobre el azul del pie el logotipo se fuerza a blanco
                             con el mismo filtro que en la cabecera: servido tal
                             cual saldria oscuro sobre oscuro. */}
@@ -155,71 +173,118 @@ const telefono = [contacto.telefono, contacto.anexo && `Anexo ${contacto.anexo}`
                                 height="310"
                                 loading="lazy"
                                 decoding="async"
-                                class="h-14 w-auto brightness-0 invert"
+                                class="h-12 w-auto brightness-0 invert"
                             />
                         ) : (
                             <p class="font-serif text-lg font-bold text-white">{sitio.nombre}</p>
                         )}
                         {sitio.descripcion && (
-                            <p class="mt-3 max-w-md leading-relaxed">{sitio.descripcion}</p>
+                            <p class="mt-5 max-w-sm leading-relaxed text-slate-400">
+                                {sitio.descripcion}
+                            </p>
                         )}
 
-                        <div class="mt-6">
-                            <RedesSociales redes={sitio.redes} />
+                        <div class="mt-7">
+                            <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-white">
+                                Síguenos
+                            </h2>
+                            <div class="marca-degradado mt-2 h-0.5 w-8 rounded-full" aria-hidden="true"></div>
+                            <div class="mt-4">
+                                <RedesSociales redes={sitio.redes} forma="icono" />
+                            </div>
                         </div>
                     </div>
 
-                    <div>
+                    {/* Navegación: los destinos internos del menú, en dos
+                        columnas para que no salga una lista de doce de largo. */}
+                    <div class="lg:col-span-5 lg:pl-8">
+                        <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-white">
+                            Navegación
+                        </h2>
+                        <div class="marca-degradado mt-2 h-0.5 w-8 rounded-full" aria-hidden="true"></div>
+
+                        {/* `columns` y no `grid`: la rejilla reparte por filas,
+                            así que la primera columna quedaba con las entradas
+                            impares y la segunda con las pares, y ninguna de las
+                            dos se leía en el orden del menú. */}
+                        <ul class="mt-5 columns-2 gap-x-6 space-y-2.5">
+                            {enlacesDelPie.map((enlace) => (
+                                <li class="break-inside-avoid">
+                                    <a
+                                        href={enlace.enlace}
+                                        class="enlace-pie inline-block transition hover:translate-x-1 hover:text-white"
+                                    >
+                                        {enlace.etiqueta}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Contacto con cada dato etiquetado: en una lista corrida,
+                        un teléfono y un anexo sueltos no dicen cuál es cuál. */}
+                    <div class="lg:col-span-3">
                         <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-white">
                             Contacto
                         </h2>
                         <div class="marca-degradado mt-2 h-0.5 w-8 rounded-full" aria-hidden="true"></div>
-                        <ul class="mt-4 space-y-2">
-                            {contacto.direccion && <li>{contacto.direccion}</li>}
-                            {contacto.email && (
-                                <li>
-                                    <a href={`mailto:${contacto.email}`} class="hover:text-white">
-                                        {contacto.email}
-                                    </a>
-                                </li>
-                            )}
-                            {telefono && (
-                                <li>
-                                    {contacto.whatsapp ? (
-                                        <a href={contacto.whatsapp} class="hover:text-white">{telefono}</a>
-                                    ) : (
-                                        telefono
-                                    )}
-                                </li>
-                            )}
-                            {contacto.horario && <li class="text-slate-400">{contacto.horario}</li>}
-                        </ul>
-                    </div>
 
-                    <div>
-                        <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-white">
-                            Enlaces
-                        </h2>
-                        <div class="marca-degradado mt-2 h-0.5 w-8 rounded-full" aria-hidden="true"></div>
-                        <ul class="mt-4 space-y-2">
-                            {menu
-                                .filter((i) => i.enlace && !i.nueva_pestana)
-                                .slice(0, 6)
-                                .map((i) => (
-                                    <li>
+                        <dl class="mt-5 space-y-4">
+                            {contacto.direccion && (
+                                <div>
+                                    <dt class="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                                        Dirección
+                                    </dt>
+                                    <dd class="mt-1 leading-relaxed">{contacto.direccion}</dd>
+                                </div>
+                            )}
+
+                            {telefono && (
+                                <div>
+                                    <dt class="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                                        Teléfono
+                                    </dt>
+                                    <dd class="mt-1">
+                                        {contacto.whatsapp ? (
+                                            <a href={contacto.whatsapp} class="hover:text-white">
+                                                {telefono}
+                                            </a>
+                                        ) : (
+                                            telefono
+                                        )}
+                                    </dd>
+                                </div>
+                            )}
+
+                            {contacto.email && (
+                                <div>
+                                    <dt class="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                                        Correo
+                                    </dt>
+                                    <dd class="mt-1">
                                         <a
-                                            href={i.enlace!}
-                                            class="enlace-pie inline-block transition hover:translate-x-1 hover:text-white"
+                                            href={`mailto:${contacto.email}`}
+                                            class="break-all hover:text-white"
                                         >
-                                            {i.etiqueta}
+                                            {contacto.email}
                                         </a>
-                                    </li>
-                                ))}
-                        </ul>
+                                    </dd>
+                                </div>
+                            )}
+
+                            {contacto.horario && (
+                                <div>
+                                    <dt class="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                                        Horario
+                                    </dt>
+                                    <dd class="mt-1 text-slate-400">{contacto.horario}</dd>
+                                </div>
+                            )}
+                        </dl>
                     </div>
                 </div>
 
-                <p class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-400">
+                <p class="mt-14 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-400">
                     <span>
                         © {new Date().getFullYear()} {sitio.nombre} · Universidad Nacional Mayor de
                         San Marcos
