@@ -65,21 +65,26 @@ class MenuItemSeeder extends Seeder
                     ['etiqueta' => 'Cronograma Académico', 'route_name' => 'cronograma', 'icono' => 'fas-calendar-alt'],
                 ],
             ],
-            // La oferta del CERSEU, de la más corta a la más larga: talleres
-            // (horas académicas), cursos (sesiones y horas) y especializaciones
-            // (módulos y meses). Ninguno lleva desplegable porque cada uno es un
-            // solo destino.
+            // La oferta del CERSEU, agrupada bajo un solo desplegable y de la
+            // más corta a la más larga: talleres (horas académicas), cursos
+            // (sesiones y horas) y especializaciones (módulos y meses).
+            //
+            // Los tres colgaban de la cabecera como entradas sueltas, que son
+            // tres de las ocho posiciones de primer nivel gastadas en variantes
+            // de una misma cosa. Agrupados, la cabecera baja a seis entradas y
+            // la relación entre los tipos —que son la misma oferta a distinta
+            // escala— queda dicha por la propia estructura del menú.
+            //
+            // «Formación» no lleva enlace propio: no existe una página que
+            // reúna los tres tipos, y darle uno inventado llevaría a un destino
+            // que no está construido.
             [
-                'etiqueta' => 'Talleres', 'icono' => 'fas-certificate',
-                'route_name' => 'talleres.index',
-            ],
-            [
-                'etiqueta' => 'Cursos', 'icono' => 'fas-graduation-cap',
-                'route_name' => 'cursos.index',
-            ],
-            [
-                'etiqueta' => 'Especializaciones', 'icono' => 'fas-award',
-                'route_name' => 'especializaciones.index',
+                'etiqueta' => 'Formación', 'icono' => 'fas-graduation-cap',
+                'hijos' => [
+                    ['etiqueta' => 'Talleres', 'route_name' => 'talleres.index', 'icono' => 'fas-certificate'],
+                    ['etiqueta' => 'Cursos', 'route_name' => 'cursos.index', 'icono' => 'fas-graduation-cap'],
+                    ['etiqueta' => 'Especializaciones', 'route_name' => 'especializaciones.index', 'icono' => 'fas-award'],
+                ],
             ],
             [
                 // Sin desplegable: su única subentrada apuntaba a esta misma

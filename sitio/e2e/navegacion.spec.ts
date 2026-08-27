@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { abrirMenu } from './utiles';
+import { abrirApartado, abrirMenu } from './utiles';
 
 /**
  * El otro fallo: los enlaces internos de la cabecera apuntaban a la aplicación
@@ -31,8 +31,9 @@ test.describe('La navegación no saca del sitio', () => {
         await page.goto('/');
         const origen = new URL(page.url()).origin;
 
-        // En móvil el menú va en un panel; se abre como lo haría el visitante.
-        const navegacion = await abrirMenu(page);
+        // En móvil el menú va en un panel, y «Cursos» cuelga de «Formación»: se
+        // recorre el camino entero, como lo haría el visitante.
+        const navegacion = await abrirApartado(page, 'Formación');
 
         await navegacion.locator('a[href="/cursos"]').first().click();
         await page.waitForURL('**/cursos');

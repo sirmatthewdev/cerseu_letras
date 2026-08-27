@@ -36,3 +36,29 @@ export async function abrirBuscador(page: Page) {
 
     return page.locator('#buscador-q');
 }
+
+/**
+ * Despliega un apartado del menú y devuelve su lista.
+ *
+ * Los tipos de oferta cuelgan de «Formación», así que llegar a «Cursos» desde la
+ * cabecera son dos gestos y no uno. Las pruebas recorren el camino del visitante
+ * —abrir y luego pulsar—, que además es la única forma de comprobar que el
+ * desplegable abre de verdad.
+ */
+export async function abrirApartado(page: Page, etiqueta: string) {
+    const navegacion = await abrirMenu(page);
+
+    // En el panel estrecho el apartado es un <details>; en escritorio, un botón
+    // gobernado por Alpine.
+    const resumen = navegacion.locator('summary', { hasText: etiqueta });
+
+    if (await resumen.count()) {
+        const abierto = await resumen.evaluate((el) => el.closest('details')?.open === true);
+        if (!abierto) await resumen.click();
+        return navegacion;
+    }
+
+    const boton = navegacion.locator('button', { hasText: etiqueta }).first();
+    await boton.click();
+    return navegacion;
+}
