@@ -2,90 +2,95 @@
 import BarraSuperior from './BarraSuperior.astro';
 import Buscador from './Buscador.astro';
 import Icono from './Icono.astro';
-import { faMagnifyingGlass, faXmark, faBars } from '@fortawesome/free-solid-svg-icons';
+import { faMagnifyingGlass, faBars, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 import type { ConfiguracionSitio, ItemMenu } from '../lib/api';
 
 interface Props {
     sitio: ConfiguracionSitio;
     menu: ItemMenu[];
     /**
-     * La página abre con una imagen a sangre y la cabecera se monta encima,
-     * como en la portada. Sin esto la cabecera es una banda azul sólida, que es
-     * lo que necesitan las páginas que no empiezan con un hero.
+     * La página abre con una imagen a sangre, que ya reserva sitio para la
+     * cápsula. El resto recibe el separador que se pinta en Base.
      */
     sobreHero?: boolean;
 }
 
 const { sitio, menu, sobreHero = false } = Astro.props;
+
+// Para marcar el apartado en el que se está. Se compara la primera parte de la
+// ruta y no la ruta entera: dentro de `/cursos/redaccion-juridica` el apartado
+// que toca resaltar sigue siendo «Cursos».
+const rutaActual = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const mismaSeccion = (enlace?: string | null) => {
+    if (!enlace || !enlace.startsWith('/')) return false;
+    const destino = enlace.replace(/\/+$/, '') || '/';
+    return destino === '/'
+        ? rutaActual === '/'
+        : rutaActual === destino || rutaActual.startsWith(destino + '/');
+};
+const activo = (item: ItemMenu) =>
+    mismaSeccion(item.enlace) || item.hijos.some((h) => mismaSeccion(h.enlace));
 ---
 
-{/* `sticky` en las páginas normales y superpuesta en las que abren con imagen.
-    El comportamiento al bajar es el mismo en las dos: la barra de contacto se
-    pliega y la navegación pasa a blanco, para que sobre el contenido claro los
-    enlaces se sigan leyendo. */}
-<header
-    class:list={[
-        'cabecera z-50',
-        // `fixed` y no `absolute`: superpuesta al hero tiene que seguir ahi al
-        // bajar —para eso cambia a blanco—, y en absolute se iba con el scroll
-        // y dejaba la pagina sin navegacion.
-        sobreHero ? 'fixed inset-x-0 top-0' : 'sticky top-0 bg-unmsm-azul',
-    ]}
-    data-sobre-hero={sobreHero ? '1' : undefined}
->
+{/*
+    Cápsula flotante, en dos estados.
+
+    Arriba es ancha (1280) y se apoya sobre el hero; al bajar se comprime a 1040,
+    se encoge de alto y se vuelve cristal. La compresión es real —`max-width`,
+    `padding-inline` y `gap`— y no un `scaleX` del contenedor: escalar deformaría
+    el logotipo, el texto y el botón, que es justo lo que no se quiere.
+
+    La barra de contacto se pliega al bajar y la cápsula sube a ocupar su sitio,
+    de modo que las dos cosas se leen como un único movimiento.
+*/}
+<header class="cabecera fixed inset-x-0 top-0 z-50" data-sobre-hero={sobreHero ? '1' : undefined}>
     <BarraSuperior sitio={sitio} />
 
-    <div
-        id="barra-navegacion"
-        class:list={[
-            'relative transition-[background-color,box-shadow,padding] duration-300',
-            // El desenfoque va como utilidad y no escrito a mano en el CSS de
-            // abajo: alli el minificador dejaba solo `-webkit-backdrop-filter`
-            // y Firefox se quedaba con la barra translucida y sin desenfoque,
-            // con el texto de la navegacion sobre el contenido en movimiento.
-            // La utilidad de Tailwind emite las dos formas.
-            '[.bajada_&]:backdrop-blur-lg [.bajada_&]:backdrop-saturate-150',
-            sobreHero ? 'bg-transparent' : 'bg-unmsm-azul',
-        ]}
-    >
-        <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 lg:px-8">
+    <div class="contenedor-capsula px-4">
+        <div
+            id="barra-navegacion"
+            class="capsula relative mx-auto flex items-center rounded-full border [.bajada_&]:backdrop-blur-xl [.bajada_&]:backdrop-saturate-150"
+        >
             <a href="/" class="flex-none" aria-label={`${sitio.nombre} — ir al inicio`}>
                 {
                     sitio.logo ? (
-                        /* El logotipo es azul oscuro sobre transparente, así que
-                           sobre la cabecera oscura se fuerza a blanco con un
-                           filtro. Se hace igual en Blade, y funciona con
-                           cualquier logo que suba la Unidad sin exigirle una
-                           variante en blanco. */
+                        /* Sobre la cápsula clara el logotipo va tal cual, con su
+                           azul. Antes se forzaba a blanco con un filtro porque la
+                           cabecera era una banda oscura; ese filtro ya no hace
+                           falta y el logotipo deja de cambiar de color al bajar. */
                         <img
                             id="logo-cabecera"
                             src={sitio.logo}
                             alt={sitio.nombre ?? 'CERSEU'}
                             width="1234"
                             height="310"
-                            class="h-11 w-auto brightness-0 invert transition sm:h-14"
+                            class="logo-capsula w-auto"
                         />
                     ) : (
-                        <span class="block font-serif text-xl font-bold leading-tight text-white">
+                        <span class="block font-serif text-lg font-bold leading-tight text-unmsm-azul">
                             {sitio.nombre}
                         </span>
                     )
                 }
             </a>
 
+            {/* Centrado respecto a la capsula, no respecto al hueco que dejan
+                logotipo y acciones: como esos dos no miden lo mismo, repartir el
+                espacio sobrante dejaba el menu unos 48 px a la izquierda del
+                centro real. Sale del flujo y se ancla al 50 %, de modo que queda
+                centrado en los dos estados. */}
             <nav
-                class="ml-auto hidden items-center gap-x-6 text-sm font-medium lg:flex"
+                class="nav-capsula absolute left-1/2 hidden -translate-x-1/2 items-center lg:flex"
                 aria-label="Principal"
             >
                 {
                     menu.map((item) =>
                         item.hijos.length > 0 ? (
                             /* Abre al pasar el ratón —donde hay ratón— y no se
-                               queda abierto al irse, que es lo que hacía el
-                               <details> anterior. Con teclado funciona igual sin
-                               depender del ratón: Enter o flecha abajo abren,
-                               Escape cierra devolviendo el foco, y salir con el
-                               tabulador cierra solo. */
+                               queda abierto al irse. Con teclado funciona igual
+                               sin depender del ratón: Enter o flecha abajo
+                               abren, Escape cierra devolviendo el foco, y salir
+                               con el tabulador cierra solo. */
                             <div
                                 x-data="desplegable"
                                 x-on:mouseenter="entra()"
@@ -100,7 +105,11 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                                     x-on:click="alternar()"
                                     x-on:keydown.arrow-down.prevent="abierto = true"
                                     x-bind:aria-expanded="abierto ? 'true' : 'false'"
-                                    class="nav-item flex cursor-pointer items-center gap-1 text-white transition hover:text-unmsm-dorado-light"
+                                    x-bind:class="abierto ? 'esta-abierto' : ''"
+                                    class:list={[
+                                        'nav-item inline-flex items-center gap-1',
+                                        activo(item) && 'nav-item-activo',
+                                    ]}
                                 >
                                     {item.etiqueta}
                                     <span
@@ -113,9 +122,9 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                                 </button>
 
                                 {/* Puente invisible hasta el panel: sin él, el
-                                    hueco de 12 px entre el botón y la lista
-                                    dispara `mouseleave` al bajar el ratón y el
-                                    menú se cierra justo cuando ibas a usarlo. */}
+                                    hueco entre el botón y la lista dispara
+                                    `mouseleave` al bajar el ratón y el menú se
+                                    cierra justo cuando ibas a usarlo. */}
                                 <div
                                     x-show="abierto"
                                     x-cloak
@@ -132,7 +141,7 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                                     x-transition:leave="transition duration-100 ease-in"
                                     x-transition:leave-start="opacity-100"
                                     x-transition:leave-end="opacity-0"
-                                    class="absolute left-0 top-full z-20 mt-3 min-w-56 overflow-hidden rounded-xl bg-white py-2 text-slate-700 shadow-2xl ring-1 ring-black/5"
+                                    class="absolute left-0 top-full z-20 mt-3 min-w-56 overflow-hidden rounded-2xl border border-slate-200/80 bg-white py-2 text-slate-700 shadow-2xl"
                                 >
                                     {/* Filo dorado arriba: el mismo gesto de marca
                                         que separa las secciones. */}
@@ -148,7 +157,8 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                                                 target={hijo.nueva_pestana ? '_blank' : undefined}
                                                 rel={hijo.nueva_pestana ? 'noopener noreferrer' : undefined}
                                                 x-on:click="cerrar()"
-                                                class="block border-l-2 border-transparent px-4 py-2 text-sm transition hover:border-unmsm-dorado hover:bg-slate-50 hover:text-unmsm-azul"
+                                                aria-current={mismaSeccion(hijo.enlace) ? 'page' : undefined}
+                                                class="block border-l-2 border-transparent px-4 py-2 text-sm transition hover:border-unmsm-dorado hover:bg-slate-50 hover:text-unmsm-azul aria-[current]:border-unmsm-dorado aria-[current]:text-unmsm-azul"
                                             >
                                                 {hijo.etiqueta}
                                             </a>
@@ -161,7 +171,11 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                                 href={item.enlace ?? '#'}
                                 target={item.nueva_pestana ? '_blank' : undefined}
                                 rel={item.nueva_pestana ? 'noopener noreferrer' : undefined}
-                                class="nav-item text-white transition hover:text-unmsm-dorado-light"
+                                aria-current={activo(item) ? 'page' : undefined}
+                                class:list={[
+                                    'nav-item inline-flex items-center gap-1',
+                                    activo(item) && 'nav-item-activo',
+                                ]}
                             >
                                 {item.etiqueta}
                             </a>
@@ -170,166 +184,320 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                 }
             </nav>
 
-            <div class="ml-auto flex items-center gap-2 lg:ml-6">
-                <span aria-hidden="true" class="hidden h-6 w-px bg-white/25 lg:block"></span>
-
-                {/* La lupa abre el campo, como en el sitio anterior: una caja de
-                    búsqueda permanente le roba sitio al menú y al logotipo. */}
+            <div class="ml-auto flex items-center gap-1.5">
+                {/* La lupa abre el campo: una caja de búsqueda permanente le roba
+                    sitio al menú, y más aún con la cápsula comprimida. */}
                 <button
                     type="button"
                     id="abrir-buscador"
-                    class="nav-item rounded-md p-2 text-white transition hover:text-unmsm-dorado-light"
+                    class="nav-item nav-item-icono inline-flex"
                     aria-expanded="false"
                     aria-controls="caja-buscador"
                 >
-                    <Icono icono={faMagnifyingGlass} clase="h-5 w-5" etiqueta="Buscar en el sitio" />
+                    <Icono icono={faMagnifyingGlass} clase="h-4 w-4" etiqueta="Buscar en el sitio" />
                 </button>
+
+                {/* La acción principal, en el lugar donde la referencia pone
+                    «Sign up». No es un botón inventado para rellenar el hueco: es
+                    a donde lleva el hero y lo que este centro quiere que haga
+                    quien llega. */}
+                {/* Etiqueta corta por debajo de `xl`: con el menu centrado y
+                    seis apartados, «Cómo inscribirte» entera hacia que el menu
+                    y las acciones se solaparan a 1024 px. */}
+                <a href="/admision" class="cta-capsula hidden items-center gap-2 sm:inline-flex">
+                    <Icono icono={faUserPlus} clase="h-3.5 w-3.5" />
+                    <span class="hidden xl:inline">Cómo inscribirte</span>
+                    <span class="xl:hidden">Inscríbete</span>
+                </a>
 
                 <button
                     type="button"
                     id="abrir-menu"
-                    class="nav-item rounded-md p-2 text-white transition hover:text-unmsm-dorado-light lg:hidden"
+                    class="nav-item nav-item-icono inline-flex lg:hidden"
                     aria-expanded="false"
                     aria-controls="menu-movil"
                 >
-                    <Icono icono={faBars} clase="h-5 w-5" etiqueta="Abrir el menú" />
+                    <Icono icono={faBars} clase="h-4 w-4" etiqueta="Abrir el menú" />
                 </button>
             </div>
         </div>
 
-        {/* Fuera de la fila: al desplegarse ocupa el ancho completo y no
-            desplaza ni el logotipo ni el menú. */}
-        <div id="caja-buscador" class="hidden border-t border-white/10">
-            <div class="mx-auto max-w-7xl px-4 py-3 lg:px-8">
-                <Buscador />
-            </div>
+        {/* Los paneles cuelgan de la cápsula y siguen su ancho, para que se lean
+            como parte de ella y no como cajas sueltas pegadas debajo. */}
+        <div id="caja-buscador" class="panel-capsula mx-auto hidden">
+            <Buscador />
         </div>
-    </div>
 
-    {/* Menú en pantalla estrecha. Panel aparte y no el mismo marcado escondido:
-        el desplegable de escritorio se abre hacia abajo sobre el contenido, y
-        aquí tiene que empujar y poder recorrerse con el dedo. */}
-    <div id="menu-movil" class="hidden border-t border-white/10 bg-unmsm-azul lg:hidden">
-        <nav class="mx-auto max-w-7xl px-4 py-4" aria-label="Principal (móvil)">
-            <ul class="space-y-1">
-                {
-                    menu.map((item) => (
-                        <li>
-                            {item.hijos.length > 0 ? (
-                                <details class="group">
-                                    <summary class="flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/10 [&::-webkit-details-marker]:hidden">
+        <div id="menu-movil" class="panel-capsula mx-auto hidden lg:hidden">
+            <nav aria-label="Principal (móvil)">
+                <ul class="space-y-1">
+                    {
+                        menu.map((item) => (
+                            <li>
+                                {item.hijos.length > 0 ? (
+                                    <details class="group">
+                                        <summary class="flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+                                            {item.etiqueta}
+                                            <span
+                                                aria-hidden="true"
+                                                class="text-xs transition group-open:rotate-180"
+                                            >
+                                                ▾
+                                            </span>
+                                        </summary>
+                                        <ul class="mb-1 ml-3 border-l border-slate-200 pl-3">
+                                            {item.hijos.map((hijo) => (
+                                                <li>
+                                                    <a
+                                                        href={hijo.enlace ?? '#'}
+                                                        target={hijo.nueva_pestana ? '_blank' : undefined}
+                                                        rel={hijo.nueva_pestana ? 'noopener noreferrer' : undefined}
+                                                        aria-current={mismaSeccion(hijo.enlace) ? 'page' : undefined}
+                                                        class="block rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-unmsm-azul aria-[current]:font-semibold aria-[current]:text-unmsm-azul"
+                                                    >
+                                                        {hijo.etiqueta}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                ) : (
+                                    <a
+                                        href={item.enlace ?? '#'}
+                                        target={item.nueva_pestana ? '_blank' : undefined}
+                                        rel={item.nueva_pestana ? 'noopener noreferrer' : undefined}
+                                        aria-current={activo(item) ? 'page' : undefined}
+                                        class="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 aria-[current]:bg-slate-100 aria-[current]:text-unmsm-azul"
+                                    >
                                         {item.etiqueta}
-                                        <span
-                                            aria-hidden="true"
-                                            class="text-xs transition group-open:rotate-180"
-                                        >
-                                            ▾
-                                        </span>
-                                    </summary>
-                                    <ul class="mb-1 ml-3 border-l border-white/15 pl-3">
-                                        {item.hijos.map((hijo) => (
-                                            <li>
-                                                <a
-                                                    href={hijo.enlace ?? '#'}
-                                                    target={hijo.nueva_pestana ? '_blank' : undefined}
-                                                    rel={hijo.nueva_pestana ? 'noopener noreferrer' : undefined}
-                                                    class="block rounded-md px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
-                                                >
-                                                    {hijo.etiqueta}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </details>
-                            ) : (
-                                <a
-                                    href={item.enlace ?? '#'}
-                                    target={item.nueva_pestana ? '_blank' : undefined}
-                                    rel={item.nueva_pestana ? 'noopener noreferrer' : undefined}
-                                    class="block rounded-md px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
-                                >
-                                    {item.etiqueta}
-                                </a>
-                            )}
-                        </li>
-                    ))
-                }
-            </ul>
-        </nav>
+                                    </a>
+                                )}
+                            </li>
+                        ))
+                    }
+                </ul>
+
+                <a href="/admision" class="cta-capsula mt-4 flex w-full items-center justify-center gap-2 sm:hidden">
+                    <Icono icono={faUserPlus} clase="h-3.5 w-3.5" />
+                    <span>Cómo inscribirte</span>
+                </a>
+            </nav>
+        </div>
     </div>
 </header>
 
 <style is:global>
-    /* Al bajar, la navegación pasa a blanco y lo que iba en blanco tiene que
-       oscurecerse o desaparece. Se hace con una clase en el contenedor y no
-       tocando cada elemento desde JavaScript: así el estado vive en un solo
-       sitio y las transiciones las resuelve el CSS. */
+    /*
+     * Los dos estados viven en variables y no en reglas repetidas: el alto lo
+     * necesitan también el separador de Base y el hero de las páginas
+     * interiores, y con el número escrito a mano en tres sitios bastaba ajustar
+     * uno para que los otros quedaran descolgados.
+     */
+    .cabecera {
+        --capsula-ancho: 1280px;
+        --capsula-alto: 4rem;
+        /* Arriba no hay pastilla que rellenar: el logotipo se alinea con el
+           borde del contenido de la pagina. El relleno aparece con el cristal. */
+        --capsula-padding: 0rem;
+        --capsula-logo: 2.25rem;
+        --capsula-gap: 2rem;
+    }
+
+    .cabecera.bajada {
+        --capsula-ancho: 1040px;
+        --capsula-alto: 3.5rem;
+        --capsula-padding: 1.25rem;
+        --capsula-logo: 1.875rem;
+        --capsula-gap: 1.25rem;
+    }
+
+    /*
+     * Arriba la capsula no se dibuja: es transparente, sin filo ni sombra, y se
+     * lee como parte del hero. La pastilla de cristal aparece solo al bajar,
+     * cuando hace falta separar la navegacion del contenido que pasa por
+     * detras. Debajo siempre hay algo oscuro —el hero de la pagina o la banda
+     * del separador—, y de ahi que el texto vaya en blanco en este estado.
+     */
+    .capsula {
+        max-width: var(--capsula-ancho);
+        height: var(--capsula-alto);
+        padding-inline: var(--capsula-padding);
+        gap: var(--capsula-gap);
+        background-color: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        /*
+         * `max-width` y `height` no son propiedades compuestas, así que animarlas
+         * cuesta layout. Se acepta a conciencia: el navegador solo las recalcula
+         * durante los ~420 ms de la transición —el umbral se cruza una vez, no en
+         * cada evento de scroll—, y la alternativa, `transform: scaleX()`,
+         * deformaría el logotipo, el texto y el botón.
+         *
+         * La curva sale rápido y frena largo. Sin rebote: un rebote aquí
+         * convierte una cabecera en un juguete.
+         */
+        transition:
+            max-width 420ms cubic-bezier(0.32, 0.72, 0, 1),
+            height 420ms cubic-bezier(0.32, 0.72, 0, 1),
+            padding-inline 420ms cubic-bezier(0.32, 0.72, 0, 1),
+            gap 420ms cubic-bezier(0.32, 0.72, 0, 1),
+            background-color 300ms ease,
+            border-color 300ms ease,
+            box-shadow 300ms ease;
+    }
+
+    /* Al bajar: más translúcida para que el desenfoque tenga algo que hacer, con
+       el filo y la sombra algo más presentes. La separación del contenido la da
+       la sombra, no un salto de posición. El brillo interior de arriba es lo que
+       da el canto de cristal. */
+    .cabecera.bajada .capsula {
+        background-color: rgb(255 255 255 / 0.72);
+        border-color: rgb(15 43 72 / 0.1);
+        box-shadow:
+            inset 0 1px 0 0 rgb(255 255 255 / 0.5),
+            0 12px 32px -14px rgb(15 43 72 / 0.32);
+    }
+
+    /* Donde no hay `backdrop-filter`, el fondo translúcido dejaría el texto de la
+       navegación sobre el contenido que pasa por detrás: allí la cápsula se
+       vuelve opaca. Se comprueba solo la forma sin prefijo porque es la única que
+       emite la utilidad de Tailwind — así el Safari antiguo, que únicamente
+       entiende `-webkit-`, cae al fondo opaco en vez de quedarse translúcido y
+       sin desenfoque. */
+    @supports not (backdrop-filter: blur(1px)) {
+        .cabecera.bajada .capsula {
+            background-color: rgb(255 255 255 / 0.97);
+        }
+    }
+
+    /* El logotipo es azul oscuro sobre transparente: sobre el hero se fuerza a
+       blanco con un filtro, y recupera su color al llegar el cristal. Asi
+       funciona con cualquier logotipo que suba la Unidad, sin exigirle una
+       version en blanco. */
+    /*
+     * Al bajar, la barra de contacto se pliega y la capsula se quedaria pegada
+     * al borde de la ventana. Este hueco la despega y remata la sensacion de que
+     * flota; arriba no hace falta, porque ahi la capsula no se dibuja.
+     */
+    .contenedor-capsula {
+        padding-top: 0;
+        transition: padding-top 420ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .cabecera.bajada .contenedor-capsula {
+        padding-top: 1.25rem;
+    }
+
+    .logo-capsula {
+        height: var(--capsula-logo);
+        filter: brightness(0) invert(1);
+        transition:
+            height 420ms cubic-bezier(0.32, 0.72, 0, 1),
+            filter 300ms ease;
+    }
+
+    .cabecera.bajada .logo-capsula {
+        filter: none;
+    }
+
+    /* El menú se separa del logotipo con el mismo `gap` que se comprime, y entre
+       sus elementos con uno menor que también cede al bajar. */
+    .nav-capsula {
+        column-gap: calc(var(--capsula-gap) / 4);
+        transition: column-gap 420ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    /*
+     * Sobre la cápsula clara el texto va en azul en los dos estados. Antes
+     * pasaba de blanco a azul al bajar; ese cambio ya no hace falta, y con él se
+     * va el instante en que el texto quedaba entre dos colores.
+     */
+    /*
+     * Ojo con lo que se declara aqui: `.cabecera .nav-item` tiene mas
+     * especificidad que `.hidden` de Tailwind, asi que poner `display` en esta
+     * regla anulaba `lg:hidden` y `hidden sm:inline-flex`. El resultado fue la
+     * hamburguesa visible en escritorio y, en movil, el boton de inscripcion
+     * empujandola fuera de la pantalla: el movil se quedaba sin manera de abrir
+     * el menu. El `display` va en el marcado, como utilidad, y aqui solo lo que
+     * no compite con ella.
+     */
+    .cabecera .nav-item {
+        color: #fff;
+        border-radius: 9999px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+            background-color 200ms ease,
+            color 200ms ease;
+    }
+
+    .cabecera .nav-item-icono {
+        padding: 0.625rem;
+    }
+
+    /* Entre `lg` y `xl` la capsula apenas tiene holgura: el menu centrado llega
+       a tocar las acciones. Se le quita relleno a las pastillas antes que
+       descentrar el menu o quitar apartados. */
+    @media (max-width: 1279px) {
+        .cabecera .nav-item {
+            padding-inline: 0.5rem;
+        }
+    }
+
+    /* Al comprimirse la capsula, las pastillas ceden relleno con ella: si no,
+       el menu centrado llegaba a tocar el buscador tambien a 1440 px. */
+    .cabecera.bajada .nav-item {
+        padding-inline: 0.5rem;
+    }
+
+    .cabecera .nav-item:hover,
+    .cabecera .nav-item.esta-abierto {
+        background-color: rgb(255 255 255 / 0.14);
+    }
+
+    /* Sobre el cristal blanco, el mismo juego invertido. */
+    .cabecera.bajada .nav-item {
+        color: var(--color-unmsm-azul);
+    }
+
+    .cabecera.bajada .nav-item:hover,
+    .cabecera.bajada .nav-item.esta-abierto {
+        background-color: rgb(16 48 80 / 0.07);
+    }
+
+    /* El apartado en el que se está, en pastilla muy tenue: se distingue sin
+       competir con la acción principal. */
+    .cabecera .nav-item-activo {
+        background-color: rgb(255 255 255 / 0.16);
+        font-weight: 600;
+    }
+
+    .cabecera.bajada .nav-item-activo {
+        background-color: rgb(16 48 80 / 0.06);
+    }
+
+    /* La barra de contacto se pliega al bajar y la cápsula sube a su sitio. */
     .cabecera.bajada #barra-superior {
         height: 0;
         opacity: 0;
     }
 
-    /*
-     * Cristal al bajar. La opacidad estaba en 0.95, que es casi opaco: el
-     * `backdrop-filter` estaba puesto pero no se veía, porque no quedaba fondo
-     * que desenfocar. A 0.72 el desenfoque se lee y el contenido sigue pasando
-     * la barra sin competir con el texto de la navegación.
-     */
-    .cabecera.bajada #barra-navegacion {
-        background-color: rgb(255 255 255 / 0.72);
-        box-shadow:
-            0 1px 0 0 rgb(15 43 72 / 0.06),
-            0 10px 30px -12px rgb(15 43 72 / 0.25);
+    .panel-capsula {
+        max-width: var(--capsula-ancho);
+        margin-top: 0.5rem;
+        border-radius: 1.25rem;
+        border: 1px solid rgb(15 43 72 / 0.08);
+        background-color: rgb(255 255 255 / 0.98);
+        padding: 1rem;
+        box-shadow: 0 16px 40px -16px rgb(15 43 72 / 0.35);
+        transition: max-width 420ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
-    /* Donde no hay `backdrop-filter` el fondo translúcido dejaría el texto
-       ilegible sobre el contenido que pasa por detrás: allí se vuelve opaco.
-       Se comprueba solo la forma sin prefijo porque es la única que emite la
-       utilidad de Tailwind — así el Safari antiguo, que únicamente entiende
-       `-webkit-`, cae al fondo opaco en vez de quedarse sin desenfoque. */
-    @supports not (backdrop-filter: blur(1px)) {
-        .cabecera.bajada #barra-navegacion {
-            background-color: rgb(255 255 255 / 0.97);
-        }
-    }
-
-    /* Filo de marca bajo la barra al bajar: cierra el cristal con el mismo
-       gesto —azul a dorado— que separa las secciones. */
-    .cabecera.bajada #barra-navegacion::after {
-        content: "";
-        position: absolute;
-        inset-inline: 0;
-        bottom: 0;
-        height: 1px;
-        background: var(--degradado-marca);
-        opacity: 0.6;
-    }
-
-    .cabecera.bajada .nav-item,
-    .cabecera.bajada .nav-item:hover {
-        color: var(--color-unmsm-azul);
-    }
-
-    .cabecera.bajada #logo-cabecera {
-        filter: none;
-    }
-
-    .cabecera.bajada #caja-buscador,
-    .cabecera.bajada #menu-movil {
-        border-color: rgb(0 0 0 / 0.08);
-    }
-
-    .cabecera.bajada #menu-movil {
-        background-color: #fff;
-    }
-
-    .cabecera.bajada #menu-movil a,
-    .cabecera.bajada #menu-movil summary {
-        color: var(--color-unmsm-azul);
-    }
-
-    /* El campo de búsqueda es blanco sobre azul; sobre la barra clara necesita
-       lo contrario o el texto no se lee. */
+    /* El campo de búsqueda venía pensado para fondo azul; sobre el panel claro
+       necesita lo contrario o el texto no se lee. */
     .cabecera.bajada #buscador-q {
         background-color: #fff;
         border-color: rgb(148 163 184);
@@ -340,10 +508,60 @@ const { sitio, menu, sobreHero = false } = Astro.props;
         color: rgb(100 116 139);
     }
 
-    @media (prefers-reduced-motion: reduce) {
-        .cabecera *,
+    /*
+     * Acción principal. Usa el degradado de marca del proyecto —azul a dorado—
+     * en vez del morado de la referencia: el color aquí ya está decidido y es
+     * institucional.
+     */
+    /* Sin `display` por lo mismo que arriba: lo pone el marcado, que es quien
+       decide en que anchos se ve. */
+    .cta-capsula {
+        border-radius: 9999px;
+        padding: 0.55rem 1.1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        background-image: var(--degradado-marca);
+        box-shadow: 0 6px 18px -8px rgb(15 43 72 / 0.55);
+        transition:
+            transform 200ms ease,
+            box-shadow 200ms ease,
+            filter 200ms ease;
+    }
+
+    .cta-capsula:hover {
+        filter: saturate(1.12) brightness(1.04);
+        box-shadow: 0 10px 24px -10px rgb(15 43 72 / 0.65);
+        transform: translateY(-1px);
+    }
+
+    /* En pantalla estrecha la cápsula casi no comprime: no hay menú que ceda
+       sitio y el margen lateral ya es el mínimo. Lo único que cede es el alto. */
+    @media (max-width: 640px) {
         .cabecera {
+            --capsula-gap: 0.5rem;
+        }
+
+        .cabecera.bajada {
+            --capsula-padding: 0.875rem;
+            --capsula-gap: 0.5rem;
+        }
+
+        .cabecera.bajada {
+            --capsula-alto: 3.25rem;
+            --capsula-logo: 1.75rem;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .cabecera,
+        .cabecera * {
             transition: none !important;
+        }
+
+        .cta-capsula:hover {
+            transform: none;
         }
     }
 </style>
@@ -386,12 +604,12 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                     alternar(menu, abrirMenu);
                 });
 
-            // Escape cierra lo que esté abierto, empezando por el buscador.
+            // Escape cierra lo que este abierto, empezando por el buscador.
             document.addEventListener('keydown', function (e) {
                 if (e.key !== 'Escape') return;
                 if (caja && !caja.classList.contains('hidden')) {
-                    // Solo si el desplegable de sugerencias ya está cerrado: la
-                    // primera pulsación la usa el propio buscador.
+                    // Solo si el desplegable de sugerencias ya esta cerrado: la
+                    // primera pulsacion la usa el propio buscador.
                     var campo = document.getElementById('buscador-q');
                     if (campo && campo.getAttribute('aria-expanded') === 'true') return;
                     alternar(caja, abrirBuscador);
@@ -402,13 +620,16 @@ const { sitio, menu, sobreHero = false } = Astro.props;
                 }
             });
 
-            // Estado según el desplazamiento. `requestAnimationFrame` para no
-            // hacer trabajo en cada evento de scroll.
+            // Estado segun el desplazamiento. Un solo booleano y una sola clase:
+            // durante el scroll no se toca el DOM salvo en el fotograma en que se
+            // cruza el umbral, y el resto lo resuelve el CSS. El umbral esta en 24
+            // px para que el movimiento empiece en cuanto se rueda la rueda, sin
+            // que el gesto parezca llegar tarde.
             var bajada = false;
             var pendiente = false;
 
             function revisar() {
-                var ahora = window.scrollY > 50;
+                var ahora = window.scrollY > 24;
                 if (ahora !== bajada) {
                     bajada = ahora;
                     cabecera.classList.toggle('bajada', bajada);

@@ -35,6 +35,16 @@
        dorado, a 135°. Estaba escrito a mano en tres plantillas —los avatares
        de autoridades y de profesores— con los mismos valores repetidos; aquí
        se declara una vez y se usa por nombre. */
+    /*
+     * Alto que ocupa la cabecera flotante: barra de contacto (2.5rem) + hueco
+     * (1rem) + capsula en su estado ancho (4rem).
+     *
+     * Es un valor FIJO a proposito, aunque la capsula se encoja al bajar: el
+     * separador que reserva este hueco no debe encogerse con ella, o la pagina
+     * entera daria un salto de 0.5rem justo al empezar a rodar la rueda.
+     */
+    --alto-cabecera: 7.5rem;
+
     --degradado-marca: linear-gradient(135deg, var(--color-unmsm-azul-dark) 0%, var(--color-unmsm-dorado) 100%);
     --degradado-marca-suave: linear-gradient(
         135deg,
@@ -181,4 +191,42 @@
         opacity: 1;
         transform: none;
     }
+}
+
+/*
+ * Hueco de la cabecera flotante.
+ *
+ * La capsula es `fixed` y no ocupa sitio en el flujo, asi que las paginas que no
+ * abren con imagen a sangre necesitan que alguien les reserve ese alto. No se
+ * anima: si encogiera con la capsula, la pagina daria un salto al empezar a
+ * rodar la rueda.
+ */
+.separador-cabecera {
+    height: var(--alto-cabecera);
+    /*
+     * Banda oscura, no un hueco en blanco.
+     *
+     * Arriba la capsula es transparente y su texto va en blanco, asi que
+     * necesita algo oscuro detras. En las paginas con hero lo pone el hero, que
+     * sube a taparla; en las que no lo tienen —busqueda, 404, la ficha de un
+     * docente— este separador es lo unico que hay, y sin color la navegacion
+     * seria texto blanco sobre fondo blanco. Es la garantia de que ninguna
+     * pagina, ni las que se anadan despues, pueda quedarse sin cabecera legible.
+     */
+    background-color: var(--color-unmsm-azul-dark);
+}
+
+/*
+ * El hero de las paginas interiores se traga ese separador y se coloca debajo de
+ * la capsula, para que flote sobre la banda azul igual que sobre la portada.
+ *
+ * Se resuelve aqui, en el propio hero, y no pasando una bandera desde cada
+ * pagina: son diez paginas las que lo usan y todas lo ponen en primer lugar, asi
+ * que una bandera por pagina seria diez sitios donde olvidarla. El margen
+ * negativo sube la banda y el relleno devuelve el contenido a su posicion, de
+ * modo que la altura total del documento no cambia.
+ */
+.hero-pagina {
+    margin-top: calc(-1 * var(--alto-cabecera));
+    padding-top: var(--alto-cabecera);
 }

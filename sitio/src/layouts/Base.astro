@@ -98,6 +98,12 @@ const telefono = [contacto.telefono, contacto.anexo && `Anexo ${contacto.anexo}`
         </a>
         <Cabecera sitio={sitio} menu={menu} sobreHero={sobreHero} />
 
+        {/* La cabecera es una capsula flotante y no ocupa sitio en el flujo, asi
+            que sin este separador el contenido de la pagina arrancaria por
+            debajo de ella. En las paginas que abren con imagen a sangre el hero
+            ya reserva ese espacio, y la capsula flota encima. */}
+        {!sobreHero && <div class="separador-cabecera" aria-hidden="true" />}
+
         <main id="contenido" class="flex-1">
             <slot />
         </main>

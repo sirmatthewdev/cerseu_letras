@@ -100,3 +100,132 @@ test.describe('Desplegables de la cabecera', () => {
         expect(estilo.filtro).toContain('blur');
     });
 });
+
+/**
+ * La cápsula flotante y sus dos estados.
+ *
+ * Arriba es transparente y se apoya sobre el hero; al bajar se comprime y se
+ * vuelve cristal. La compresión es real —`max-width`, relleno y separación— y no
+ * un `scaleX`, que deformaría el logotipo y el texto: por eso lo que se mide es
+ * el ancho de la caja y no una escala.
+ */
+test.describe('La capsula se comprime al bajar', () => {
+    const medir = (page: import('@playwright/test').Page) =>
+        page.locator('#barra-navegacion').evaluate((el) => {
+            const r = el.getBoundingClientRect();
+            const c = getComputedStyle(el);
+            return {
+                ancho: Math.round(r.width),
+                alto: Math.round(r.height),
+                arriba: Math.round(r.top),
+                fondo: c.backgroundColor,
+                // Que no se haya conseguido escalando: un `scaleX` dejaria aqui
+                // una matriz distinta de la identidad.
+                transformacion: c.transform,
+            };
+        });
+
+    test('arriba es transparente y se apoya en el hero', async ({ page }) => {
+        await page.goto('/');
+        const inicial = await medir(page);
+
+        // Sin fondo propio: lo que se ve detras es el hero, no una banda.
+        expect(inicial.fondo).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+    });
+
+    test('al bajar encoge de verdad, sin escalar el contenido', async ({ page, isMobile }) => {
+        await page.goto('/');
+        const inicial = await medir(page);
+
+        await page.mouse.wheel(0, 600);
+        await expect(page.locator('header.cabecera')).toHaveClass(/bajada/);
+        // La transicion dura 420 ms: medir antes devuelve el valor de partida.
+        await page.waitForTimeout(700);
+
+        const final = await medir(page);
+
+        expect(final.alto).toBeLessThan(inicial.alto);
+        expect(final.transformacion).toMatch(/none|matrix\(1, 0, 0, 1, 0, 0\)/);
+
+        // El ancho solo puede encoger donde la ventana da holgura para 1280; por
+        // debajo, el limite lo pone la propia ventana y no hay nada que comprimir.
+        if (!isMobile && inicial.ancho >= 1280) {
+            expect(final.ancho).toBeLessThan(inicial.ancho);
+        }
+
+        // Despegada del borde: comprimida tiene que flotar, no pegarse arriba.
+        expect(final.arriba).toBeGreaterThan(8);
+    });
+});
+
+/**
+ * Lo que se ve en cada anchura.
+ *
+ * Esto guarda un fallo concreto: las reglas de la cabecera declaraban `display`,
+ * que tiene mas especificidad que las utilidades `hidden` y `lg:hidden`, y las
+ * anulaba. El resultado fue la hamburguesa visible en escritorio y, en movil, el
+ * boton de inscripcion empujandola fuera de la pantalla: el movil se quedaba sin
+ * manera de abrir el menu.
+ */
+test.describe('Cada anchura muestra lo que le toca', () => {
+    test('la hamburguesa y el menu no se pisan', async ({ page, isMobile }) => {
+        await page.goto('/');
+
+        const hamburguesa = page.locator('#abrir-menu');
+        const menuEscritorio = page.locator('nav[aria-label="Principal"]');
+        // El de la barra, no el que va dentro del panel movil.
+        const inscribirse = page.locator('.capsula .cta-capsula');
+
+        if (isMobile) {
+            await expect(hamburguesa).toBeVisible();
+            await expect(menuEscritorio).toBeHidden();
+
+            // En la barra estrecha no cabe: su sitio es el panel. Cuando se
+            // colaba aqui, empujaba a la hamburguesa fuera de la pantalla.
+            await expect(inscribirse).toBeHidden();
+
+            // Y dentro de la ventana, no empujada fuera por el boton de al lado.
+            const caja = await hamburguesa.boundingBox();
+            const ancho = page.viewportSize()?.width ?? 0;
+            expect(caja).not.toBeNull();
+            expect(caja!.x + caja!.width).toBeLessThanOrEqual(ancho);
+        } else {
+            await expect(hamburguesa).toBeHidden();
+            await expect(menuEscritorio).toBeVisible();
+            await expect(inscribirse).toBeVisible();
+        }
+    });
+
+    test('el menu queda centrado y no toca las acciones', async ({ page, isMobile }) => {
+        test.skip(Boolean(isMobile), 'En movil el menu va en un panel aparte.');
+        await page.goto('/');
+
+        for (const bajada of [false, true]) {
+            if (bajada) {
+                await page.mouse.wheel(0, 600);
+                await expect(page.locator('header.cabecera')).toHaveClass(/bajada/);
+                await page.waitForTimeout(700);
+            }
+
+            const medidas = await page.evaluate(() => {
+                const caja = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+                const nav = caja('nav[aria-label="Principal"]');
+                const logo = caja('.capsula > a');
+                const acciones = caja('.capsula > div:last-of-type');
+                return {
+                    desvio: Math.round(nav.left + nav.width / 2 - window.innerWidth / 2),
+                    izquierda: Math.round(nav.left - logo.right),
+                    derecha: Math.round(acciones.left - nav.right),
+                };
+            });
+
+            // Centrado respecto a la ventana, no al hueco entre logotipo y
+            // acciones: repartir el sobrante lo dejaba unos 48 px a la izquierda.
+            expect(Math.abs(medidas.desvio)).toBeLessThanOrEqual(2);
+
+            // Y sin solaparse con lo que tiene a los lados.
+            expect(medidas.izquierda).toBeGreaterThan(0);
+            expect(medidas.derecha).toBeGreaterThan(0);
+        }
+    });
+});
