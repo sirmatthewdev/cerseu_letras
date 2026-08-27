@@ -58,7 +58,18 @@ export async function abrirApartado(page: Page, etiqueta: string) {
         return navegacion;
     }
 
+    // Con ratón el gesto es pasar por encima, no pulsar. Y es importante que la
+    // prueba lo haga así: al pulsar, Playwright mueve antes el puntero sobre el
+    // botón, `mouseenter` abre el desplegable y el clic que viene detrás lo
+    // vuelve a cerrar. La prueba fallaba de forma intermitente según cuál de los
+    // dos llegara primero.
     const boton = navegacion.locator('button', { hasText: etiqueta }).first();
-    await boton.click();
+    await boton.hover();
+
+    // Donde no hay ratón que valga —un escritorio táctil—, queda el pulsar.
+    if ((await boton.getAttribute('aria-expanded')) !== 'true') {
+        await boton.click();
+    }
+
     return navegacion;
 }

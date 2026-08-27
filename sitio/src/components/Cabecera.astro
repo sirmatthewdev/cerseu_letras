@@ -490,22 +490,13 @@ const activo = (item: ItemMenu) =>
         margin-top: 0.5rem;
         border-radius: 1.25rem;
         border: 1px solid rgb(15 43 72 / 0.08);
-        background-color: rgb(255 255 255 / 0.98);
+        /* Opaco del todo: con un 2 % de transparencia el hero se colaba por
+           detrás del texto de las sugerencias y de las pistas de teclado. Aquí
+           no hay nada que ganar viendo lo de debajo. */
+        background-color: #fff;
         padding: 1rem;
         box-shadow: 0 16px 40px -16px rgb(15 43 72 / 0.35);
         transition: max-width 420ms cubic-bezier(0.32, 0.72, 0, 1);
-    }
-
-    /* El campo de búsqueda venía pensado para fondo azul; sobre el panel claro
-       necesita lo contrario o el texto no se lee. */
-    .cabecera.bajada #buscador-q {
-        background-color: #fff;
-        border-color: rgb(148 163 184);
-        color: rgb(30 41 59);
-    }
-
-    .cabecera.bajada #buscador-q::placeholder {
-        color: rgb(100 116 139);
     }
 
     /*

@@ -113,4 +113,60 @@ test.describe('Fichas de docentes', () => {
         await expect(page.locator('main')).toContainText('Dicta');
         await expect(page.locator('main a[href^="/cursos/"], main a[href^="/talleres/"]').first()).toBeVisible();
     });
+
+    /**
+     * El campo tiene que leerse.
+     *
+     * Sus colores estaban pensados para fondo azul —texto blanco sobre
+     * `bg-white/10`—, heredados de cuando la cabecera era una banda oscura. Al
+     * pasar el buscador a un panel blanco quedo blanco sobre blanco: se podia
+     * escribir y no se veia nada de lo escrito. Ni el build ni las pruebas
+     * decian una palabra, porque el campo seguia estando ahi y funcionando.
+     *
+     * No es una auditoria de contraste; es la guarda concreta de que el texto no
+     * se confunda con su propio fondo.
+     */
+    test('lo que se escribe se ve', async ({ page }) => {
+        await page.goto('/');
+        const campo = await abrirBuscador(page);
+        await campo.fill('redaccion');
+
+        const colores = await campo.evaluate((el) => {
+            const c = getComputedStyle(el);
+            return { texto: c.color, fondo: c.backgroundColor };
+        });
+
+        expect(colores.texto).not.toBe(colores.fondo);
+        // Y que el fondo sea de verdad un color, no el transparente que dejaria
+        // ver lo que haya debajo.
+        expect(colores.fondo).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+    });
+
+    test('resalta lo que coincide y ofrece ir a todos los resultados', async ({ page }) => {
+        await page.goto('/');
+        const campo = await abrirBuscador(page);
+        await campo.fill('redaccion');
+
+        const lista = page.locator('#buscador-sugerencias');
+        await expect(lista).toBeVisible();
+
+        // «redaccion» sin tilde tiene que resaltar «Redaccion» con ella: la
+        // comparacion va sobre el texto normalizado, pero el corte se hace sobre
+        // el original.
+        const marcas = lista.locator('mark');
+        expect(await marcas.count()).toBeGreaterThan(0);
+        expect((await marcas.first().textContent())?.toLowerCase()).toContain('redacc');
+
+        // Ultima fila: lo que no cabe en las sugerencias esta en /buscar.
+        await expect(lista.locator('li').last()).toContainText('Ver todos los resultados');
+    });
+
+    test('sin resultados lo dice a la vista, no solo al lector de pantalla', async ({ page }) => {
+        await page.goto('/');
+        const campo = await abrirBuscador(page);
+        await campo.fill('zzzzqqqq');
+
+        await expect(page.locator('#buscador-vacio')).toBeVisible();
+        await expect(page.locator('#buscador-sugerencias')).toBeHidden();
+    });
 });

@@ -13,44 +13,66 @@ import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
  * recorrer, Enter para abrir, Escape para cerrar, y los atributos ARIA que
  * hacen que un lector de pantalla anuncie cuántas opciones hay y cuál está
  * seleccionada.
+ *
+ * Los colores son los de fondo claro. Antes eran los de fondo azul —texto
+ * blanco sobre `bg-white/10`—, heredados de cuando la cabecera era una banda
+ * oscura; al pasar el buscador a un panel blanco quedaba blanco sobre blanco.
  */
 ---
 
-<form
-    class="buscador-cabecera relative w-full sm:w-64"
-    role="search"
-    action="/buscar"
-    method="get"
->
+<form class="buscador-cabecera relative w-full" role="search" action="/buscar" method="get">
     <label for="buscador-q" class="sr-only">Buscar en el sitio</label>
 
-    <span
-        aria-hidden="true"
-        class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/60"
-    >
-        <Icono icono={faMagnifyingGlass} clase="h-4 w-4" />
-    </span>
+    <div class="relative">
+        <span
+            aria-hidden="true"
+            class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+        >
+            <Icono icono={faMagnifyingGlass} clase="h-4 w-4" />
+        </span>
 
-    <input
-        id="buscador-q"
-        name="q"
-        type="search"
-        autocomplete="off"
-        placeholder="Buscar…"
-        role="combobox"
-        aria-expanded="false"
-        aria-controls="buscador-sugerencias"
-        aria-autocomplete="list"
-        class="w-full rounded-full border border-white/25 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/60 focus:border-unmsm-dorado focus:bg-white focus:text-slate-800 focus:outline-none focus:placeholder:text-slate-400"
-    />
+        <input
+            id="buscador-q"
+            name="q"
+            type="search"
+            autocomplete="off"
+            placeholder="Buscar cursos, docentes, trámites…"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="buscador-sugerencias"
+            aria-autocomplete="list"
+            class="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-unmsm-azul focus:outline-none focus:ring-4 focus:ring-unmsm-azul/10"
+        />
+
+    </div>
 
     <ul
         id="buscador-sugerencias"
         role="listbox"
         aria-label="Sugerencias"
-        class="absolute left-0 right-0 top-full z-20 mt-2 hidden max-h-80 overflow-y-auto rounded-lg bg-white py-1 text-slate-700 shadow-xl"
+        class="mt-2 hidden max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-slate-700 shadow-lg"
     >
     </ul>
+
+    {/* Estado vacío a la vista. Antes solo existía para lector de pantalla, así
+        que quien escribía algo sin resultados no recibía ninguna señal. */}
+    <p
+        id="buscador-vacio"
+        hidden
+        class="mt-2 rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500"
+    >
+    </p>
+
+    {/* Pistas de teclado. Van en una línea de texto y no en una insignia dentro
+        del campo: ahí chocaban con la cruz que Chrome añade a los
+        `type="search"`, y esa cruz vacía el campo —algo que Escape no hace—, así
+        que la que sobraba era la insignia. Para lector de pantalla no existen:
+        ahí lo que informa es el `role="status"` de abajo. */}
+    <p class="mt-2 hidden items-center gap-3 text-[11px] text-slate-500 sm:flex" aria-hidden="true">
+        <span><kbd class="font-sans font-semibold text-slate-600">↑</kbd> <kbd class="font-sans font-semibold text-slate-600">↓</kbd> para moverte</span>
+        <span><kbd class="font-sans font-semibold text-slate-600">Enter</kbd> para abrir</span>
+        <span><kbd class="font-sans font-semibold text-slate-600">Esc</kbd> para cerrar</span>
+    </p>
 
     {/* El resultado se anuncia aunque el foco siga en el campo: sin esto, con
         lector de pantalla el desplegable aparece en silencio. */}
@@ -58,7 +80,7 @@ import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 </form>
 
 <script>
-    import { buscar, cargarIndice, MINIMO } from '../lib/buscador';
+    import { buscar, cargarIndice, normalizar, MINIMO } from '../lib/buscador';
     import type { EntradaBuscador } from '../lib/api';
 
     const MAXIMO = 8;
@@ -70,10 +92,11 @@ import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
         const campo = form.querySelector<HTMLInputElement>('#buscador-q')!;
         const lista = form.querySelector<HTMLUListElement>('#buscador-sugerencias')!;
+        const vacio = form.querySelector<HTMLElement>('#buscador-vacio')!;
         const aviso = form.querySelector<HTMLElement>('[role="status"]')!;
 
         let indice: EntradaBuscador[] | null = null;
-        let opciones: { titulo: string; url: string }[] = [];
+        let opciones: { url: string }[] = [];
         let activa = -1;
 
         const escapar = (texto: string) =>
@@ -81,9 +104,65 @@ import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
                 ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!
             );
 
+        /**
+         * Resalta en el título los trozos que coinciden con lo escrito.
+         *
+         * No se puede buscar sobre el texto normalizado y usar esas posiciones
+         * en el original: `normalizar` descompone en NFD, así que «é» pasa a ser
+         * dos caracteres y a partir de ahí los índices van corridos. Se
+         * normaliza carácter a carácter guardando de cuál vino cada uno, y el
+         * corte se hace siempre sobre el original.
+         */
+        function resaltar(titulo: string, terminos: string[]): string {
+            if (terminos.length === 0) return escapar(titulo);
+
+            let plano = '';
+            const origen: number[] = [];
+
+            for (let i = 0; i < titulo.length; i++) {
+                const trozo = normalizar(titulo[i]!);
+                for (let j = 0; j < trozo.length; j++) origen.push(i);
+                plano += trozo;
+            }
+
+            // Se marca carácter a carácter del original: así dos términos que se
+            // solapan no producen etiquetas cruzadas.
+            const marcado = new Array(titulo.length).fill(false);
+
+            for (const termino of terminos) {
+                let desde = 0;
+                for (;;) {
+                    const encontrado = plano.indexOf(termino, desde);
+                    if (encontrado === -1) break;
+                    for (let k = encontrado; k < encontrado + termino.length; k++) {
+                        const pos = origen[k];
+                        if (pos !== undefined) marcado[pos] = true;
+                    }
+                    desde = encontrado + termino.length;
+                }
+            }
+
+            let html = '';
+            let dentro = false;
+
+            for (let i = 0; i < titulo.length; i++) {
+                if (marcado[i] && !dentro) {
+                    html += '<mark class="rounded bg-unmsm-dorado/25 text-inherit">';
+                    dentro = true;
+                } else if (!marcado[i] && dentro) {
+                    html += '</mark>';
+                    dentro = false;
+                }
+                html += escapar(titulo[i]!);
+            }
+
+            return dentro ? html + '</mark>' : html;
+        }
+
         function cerrar() {
             lista.classList.add('hidden');
             lista.innerHTML = '';
+            vacio.hidden = true;
             campo.setAttribute('aria-expanded', 'false');
             campo.removeAttribute('aria-activedescendant');
             opciones = [];
@@ -109,26 +188,48 @@ import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
         function sugerir() {
             if (!indice) return;
 
-            const resultados = buscar(indice, campo.value).slice(0, MAXIMO);
+            const consulta = campo.value.trim();
+            const resultados = buscar(indice, consulta).slice(0, MAXIMO);
 
             if (resultados.length === 0) {
                 cerrar();
-                aviso.textContent =
-                    campo.value.trim().length >= MINIMO ? 'Sin sugerencias.' : '';
+
+                if (consulta.length >= MINIMO) {
+                    vacio.textContent = `No encontramos nada para «${consulta}».`;
+                    vacio.hidden = false;
+                    aviso.textContent = 'Sin sugerencias.';
+                } else {
+                    aviso.textContent = '';
+                }
                 return;
             }
 
-            opciones = resultados.map((r) => ({ titulo: r.titulo, url: r.url }));
-            lista.innerHTML = resultados
-                .map(
-                    (r, i) => `
+            vacio.hidden = true;
+
+            const terminos = normalizar(consulta).split(/\s+/).filter(Boolean);
+
+            opciones = resultados.map((r) => ({ url: r.url }));
+            lista.innerHTML =
+                resultados
+                    .map(
+                        (r, i) => `
                     <li id="sugerencia-${i}" role="option" aria-selected="false"
-                        class="cursor-pointer px-4 py-2 text-sm hover:bg-slate-50">
-                        <span class="block font-medium text-slate-800">${escapar(r.titulo)}</span>
-                        <span class="block text-xs text-slate-500">${escapar(r.categoria)}</span>
+                        class="flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate font-medium text-slate-800">${resaltar(r.titulo, terminos)}</span>
+                        </span>
+                        <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">${escapar(r.categoria)}</span>
                     </li>`
-                )
-                .join('');
+                    )
+                    .join('') +
+                // Última fila: lleva a la página de resultados, que es donde
+                // están los que no caben en las ocho sugerencias.
+                `<li id="sugerencia-${resultados.length}" role="option" aria-selected="false"
+                     class="mt-1 flex cursor-pointer items-center gap-2 border-t border-slate-100 px-4 py-2.5 text-sm font-semibold text-unmsm-azul hover:bg-slate-50">
+                     Ver todos los resultados para «${escapar(consulta)}»
+                 </li>`;
+
+            opciones.push({ url: `/buscar?q=${encodeURIComponent(consulta)}` });
 
             lista.classList.remove('hidden');
             campo.setAttribute('aria-expanded', 'true');
