@@ -106,11 +106,25 @@
 
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end gap-3">
-                                    <a href="{{ $programa->url }}" target="_blank" rel="noopener noreferrer"
-                                       class="text-brand-navy hover:text-brand-gold transition-colors" title="Ver en sitio web"
-                                       aria-label="Ver «{{ $programa->nombre }}» en el sitio web">
-                                        <x-fas-eye class="text-lg" />
-                                    </a>
+                                    {{--
+                                        Un borrador no está en el sitio, así que
+                                        «ver en el sitio web» llevaba a un 404.
+                                        En su lugar va la vista previa, que lo
+                                        genera aparte sin publicarlo.
+                                    --}}
+                                    @if ($programa->estado === \App\Models\Programa::ESTADO_BORRADOR)
+                                        <a href="{{ route('admin.vista-previa.programa', $programa) }}"
+                                           class="text-amber-600 transition-colors hover:text-amber-800" title="Vista previa (sin publicar)"
+                                           aria-label="Vista previa de «{{ $programa->nombre }}», todavía sin publicar">
+                                            <x-fas-eye-slash class="text-lg" />
+                                        </a>
+                                    @else
+                                        <a href="{{ $programa->url }}" target="_blank" rel="noopener noreferrer"
+                                           class="text-brand-navy hover:text-brand-gold transition-colors" title="Ver en sitio web"
+                                           aria-label="Ver «{{ $programa->nombre }}» en el sitio web">
+                                            <x-fas-eye class="text-lg" />
+                                        </a>
+                                    @endif
 
                                     <a href="{{ route('admin.programas.edit', $programa) }}"
                                        class="text-blue-600 hover:text-blue-800 transition-colors" title="Editar"

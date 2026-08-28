@@ -50,6 +50,21 @@ Route::middleware(['auth', 'isAdmin'])->prefix('admin')->name('admin.')->group(f
         ->except(['show']);
     Route::post('programas/{programa}/toggle', [App\Http\Controllers\Admin\AdminProgramaController::class, 'toggleActive'])->name('programas.toggle');
 
+    // Vista previa de borradores.
+    //
+    // Dentro del grupo de admin, o sea detrás de la sesión: sirve contenido sin
+    // publicar y no puede quedar al alcance de una URL adivinada.
+    //
+    // `archivo` lleva `where` con un comodín porque una ruta de vista previa
+    // trae barras («_astro/algo.css»), y sin eso Laravel corta en la primera.
+    Route::get('vista-previa/programas/{programa}', [App\Http\Controllers\Admin\AdminVistaPreviaController::class, 'programa'])
+        ->name('vista-previa.programa');
+    Route::get('vista-previa/estado', [App\Http\Controllers\Admin\AdminVistaPreviaController::class, 'estado'])
+        ->name('vista-previa.estado');
+    Route::get('vista-previa/sitio/{ruta?}', [App\Http\Controllers\Admin\AdminVistaPreviaController::class, 'archivo'])
+        ->where('ruta', '.*')
+        ->name('vista-previa.archivo');
+
     // Docentes Management
     // Sin `show`, por lo mismo que programas.
     Route::resource('docentes', App\Http\Controllers\Admin\AdminDocenteController::class)

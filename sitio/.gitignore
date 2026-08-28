@@ -1,3 +1,6 @@
 node_modules/
 dist/
 .astro/
+
+# Render de vista previa: contenido sin publicar, se regenera a demanda.
+dist-vista-previa/

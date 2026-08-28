@@ -109,9 +109,24 @@ export type DocentePrograma = {
     denominacion: string | null;
 };
 
+/**
+ * Token de vista previa.
+ *
+ * Presente solo cuando el contenedor de build arranca un render de borrador. En
+ * el build normal está vacío, no se manda cabecera y la API responde lo de
+ * siempre: lo publicado. Nunca llega al HTML — se usa aquí, en el proceso de
+ * build, y ahí se queda.
+ */
+const VISTA_PREVIA = import.meta.env.CERSEU_VISTA_PREVIA_TOKEN ?? '';
+
+/** ¿Este build incluye borradores? Lo consultan las rutas al enumerar páginas. */
+export const enVistaPrevia = VISTA_PREVIA !== '';
+
 async function pedir<T>(ruta: string): Promise<T> {
     const url = `${BASE}${ruta}`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+        headers: enVistaPrevia ? { 'X-Vista-Previa': VISTA_PREVIA } : {},
+    });
 
     if (!res.ok) {
         // Falla el build en vez de generar una página vacía: un sitio estático

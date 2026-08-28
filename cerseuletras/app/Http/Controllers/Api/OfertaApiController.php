@@ -8,6 +8,7 @@ use App\Models\Programa;
 use App\Models\AdmisionSetting;
 use App\Models\SiteSetting;
 use App\Models\TipoOferta;
+use App\Support\VistaPrevia;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -19,8 +20,12 @@ use Illuminate\Support\Facades\DB;
  * mantener estable.
  *
  * Sin autenticación a propósito: publica lo que ya es público en el sitio, y
- * el filtro por `estado` es el mismo que aplica Blade. Si algún día expone
- * algo que no esté publicado, entonces sí hará falta Sanctum.
+ * el filtro por `estado` es el mismo que aplicaba Blade.
+ *
+ * La única excepción es la vista previa: una petición con el token correcto en
+ * la cabecera ve también los borradores, y su respuesta se marca `no-store`
+ * para que ningún intermediario la guarde y acabe sirviéndosela a quien no
+ * traía token. Ver `App\Support\VistaPrevia`.
  */
 class OfertaApiController extends Controller
 {
@@ -74,7 +79,11 @@ class OfertaApiController extends Controller
      */
     public function index(): JsonResponse
     {
-        $consulta = Programa::query()->visibles()->ordenPublicacion();
+        // En vista previa entran también los borradores; fuera de ella, esto
+        // es exactamente `visibles()` y no cambia nada.
+        $consulta = Programa::query()
+            ->when(VistaPrevia::activa(), fn ($q) => $q, fn ($q) => $q->visibles())
+            ->ordenPublicacion();
 
         $slug = request()->query('tipo');
         if ($slug) {
@@ -91,9 +100,27 @@ class OfertaApiController extends Controller
             $consulta->deTipo($tipo);
         }
 
-        return response()->json([
+        return $this->responder([
             'data' => ProgramaResource::collection($consulta->get())->resolve(),
         ]);
+    }
+
+    /**
+     * Respuesta JSON que no se guarda en ninguna caché si lleva borradores.
+     *
+     * Sin esto, una respuesta pedida con token podría quedarse en un proxy y
+     * servirse después a quien no lo trae — que es exactamente la forma de
+     * publicar un borrador sin querer.
+     */
+    private function responder(array $cuerpo, int $codigo = 200): JsonResponse
+    {
+        $respuesta = response()->json($cuerpo, $codigo);
+
+        if (VistaPrevia::activa()) {
+            $respuesta->header('Cache-Control', 'no-store, private');
+        }
+
+        return $respuesta;
     }
 
     /**
@@ -174,13 +201,17 @@ class OfertaApiController extends Controller
      */
     public function show(string $slug): JsonResponse
     {
-        $programa = Programa::query()->with('docentes')->visibles()->where('slug', $slug)->first();
+        $programa = Programa::query()
+            ->with('docentes')
+            ->when(VistaPrevia::activa(), fn ($q) => $q, fn ($q) => $q->visibles())
+            ->where('slug', $slug)
+            ->first();
 
         if (! $programa) {
             return response()->json(['message' => 'Programa no encontrado.'], 404);
         }
 
-        return response()->json([
+        return $this->responder([
             'data' => (new ProgramaResource($programa))->resolve(),
         ]);
     }

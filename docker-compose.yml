@@ -131,6 +131,9 @@ services:
       - CERSEU_API=http://web/api/v1
       - CERSEU_SITE=${CERSEU_SITE:-https://cerseuletras.unmsm.edu.pe}
       - CERSEU_BUILD_TOKEN=${CERSEU_BUILD_TOKEN:-token-de-desarrollo}
+      # Vista previa: sin este token el servicio la rechaza. Vacio la
+      # desactiva, que es lo que debe pasar en una instalacion sin configurar.
+      - CERSEU_VISTA_PREVIA_TOKEN=${CERSEU_VISTA_PREVIA_TOKEN:-}
       - PUERTO_BUILD=4322
     volumes:
       - ./sitio:/app
