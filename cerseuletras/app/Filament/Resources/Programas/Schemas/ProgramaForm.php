@@ -227,7 +227,7 @@ class ProgramaForm
             Section::make('Modalidades de pago')
                 ->schema([
                     Repeater::make('inversion_economica.modalidades')
-                        ->label('')
+                        ->hiddenLabel()
                         ->addActionLabel('Añadir modalidad')
                         ->itemLabel(fn (array $state): ?string => $state['nombre'] ?? null)
                         ->collapsible()
@@ -252,7 +252,7 @@ class ProgramaForm
             Section::make('Condiciones de pago')
                 ->schema([
                     Repeater::make('inversion_economica.condiciones')
-                        ->label('')
+                        ->hiddenLabel()
                         ->addActionLabel('Añadir condición')
                         ->defaultItems(0)
                         ->simple(
