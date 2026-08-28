@@ -32,6 +32,8 @@ class DocenteResource extends Resource
 
     protected static ?string $navigationLabel = 'Plana docente';
 
+    protected static \UnitEnum|string|null $navigationGroup = 'Oferta';
+
     protected static ?string $modelLabel = 'docente';
 
     protected static ?string $pluralModelLabel = 'docentes';

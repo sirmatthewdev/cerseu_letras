@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Widgets\ResumenDelSitio;
 use App\Models\Docente;
+use App\Models\Programa;
 use App\Models\User;
+use Livewire\Livewire;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -105,5 +108,78 @@ class PanelFilamentTest extends TestCase
         $this->actingAs($this->admin())
             ->get('/admin/programas')
             ->assertOk();
+    }
+
+    /**
+     * Todos los recursos abren, en listado y en creación.
+     *
+     * Parece poca cosa y no lo es: un campo mal declarado —un tipo de propiedad
+     * que no coincide con el de Filament, una relación que no existe, un enum
+     * mal escrito— no falla al arrancar la aplicación, sino al pintar esa
+     * pantalla concreta. Sin esta prueba, romper un recurso solo se nota cuando
+     * alguien de la Unidad entra a usarlo.
+     *
+     * El formulario de creación es el que más descubre: es donde se instancian
+     * todos los campos.
+     *
+     * @return list<array{string}>
+     */
+    public static function recursos(): array
+    {
+        return [
+            ['programas'],
+            ['docentes'],
+            ['testimonios'],
+            ['eventos'],
+            ['informativos'],
+            ['anuncios'],
+            ['documents'],
+            ['directorio-cerseus'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('recursos')]
+    public function test_cada_recurso_abre_su_listado_y_su_formulario(string $recurso): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get("/panel/{$recurso}")->assertOk();
+        $this->actingAs($admin)->get("/panel/{$recurso}/create")->assertOk();
+    }
+
+    /**
+     * El escritorio resume el estado del sitio.
+     *
+     * Se comprueba sobre el componente y no sobre el HTML de `/panel`: los
+     * widgets de Filament se pintan por Livewire después de la respuesta
+     * inicial, así que un `assertSee` contra esa respuesta busca un texto que
+     * todavía no existe — y falla aunque el escritorio funcione, que es
+     * justo lo que pasó al escribir esta prueba.
+     */
+    public function test_el_escritorio_resume_el_estado_del_sitio(): void
+    {
+        Programa::create([
+            'grado' => 'Curso',
+            'nombre' => 'Publicado',
+            'slug' => 'publicado',
+            'estado' => Programa::ESTADO_PUBLICADO,
+        ]);
+
+        Programa::create([
+            'grado' => 'Curso',
+            'nombre' => 'A medias',
+            'slug' => 'a-medias',
+            'estado' => Programa::ESTADO_BORRADOR,
+        ]);
+
+        $this->actingAs($this->admin());
+
+        Livewire::test(ResumenDelSitio::class)
+            ->assertSee('Programas publicados')
+            ->assertSee('Borradores')
+            // Y que las cifras sean las de verdad, no un cero de adorno.
+            ->assertSee('1');
+
+        $this->get('/panel')->assertOk();
     }
 }

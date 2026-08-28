@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 /**
- * Oferta academica: talleres, cursos y especializaciones.
+ * Oferta académica: talleres, cursos y especializaciones.
  *
  * El recurso mas usado del panel, y el que sustituye al controlador mas largo
  * (416 lineas). Se apoya en `TipoOferta` para los tipos y en los estados del
@@ -29,7 +29,9 @@ class ProgramaResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    protected static ?string $navigationLabel = 'Oferta academica';
+    protected static ?string $navigationLabel = 'Oferta académica';
+
+    protected static \UnitEnum|string|null $navigationGroup = 'Oferta';
 
     protected static ?string $modelLabel = 'programa';
 
