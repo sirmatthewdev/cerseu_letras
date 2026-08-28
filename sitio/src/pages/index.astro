@@ -19,6 +19,7 @@ import BandaIndicadores from '../components/BandaIndicadores.astro';
 import PasosInscripcion from '../components/PasosInscripcion.astro';
 import OfertaDestacada from '../components/OfertaDestacada.astro';
 import Boton from '../components/Boton.astro';
+import FondoSeccion from '../components/FondoSeccion.astro';
 import { faArrowRight, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 
 // Se resuelve en el build: el HTML sale ya con estos datos dentro y el
@@ -121,8 +122,18 @@ const [eventos, informativos, testimonios] = await Promise.all([
         tiene que recorrer el catalogo entero para encontrar el camino. */}
     {inscripcion && <PasosInscripcion inscripcion={inscripcion} />}
 
-    <section class="bg-unmsm-azul py-16 text-white">
-        <div class="mx-auto flex max-w-6xl flex-col gap-6 px-6 md:flex-row md:items-center md:justify-between">
+    {/* Banda de marca. El azul plano de antes no era lo que tenía el sitio
+        anterior: iba en degradado de azul a dorado, y sin él la sección se lee
+        como un bloque de color puesto ahí. El degradado se desplaza al pasar
+        —`data-banda-degradado`—, así que el dorado recorre la banda en vez de
+        quedarse clavado en una esquina. */}
+    <section
+        data-banda-degradado
+        class="banda-marca relative isolate overflow-hidden py-16 text-white"
+    >
+        <FondoSeccion tono="oscuro" deriva={80} />
+
+        <div class="relative mx-auto flex max-w-6xl flex-col gap-6 px-6 md:flex-row md:items-center md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-unmsm-dorado-light">
                     {portada.kicker}
@@ -141,8 +152,10 @@ const [eventos, informativos, testimonios] = await Promise.all([
         </div>
     </section>
 
-    <section class="bg-slate-50 py-20">
-      <div class="mx-auto max-w-6xl px-6">
+    <section class="relative isolate overflow-hidden bg-slate-50 py-20">
+        <FondoSeccion />
+
+      <div class="relative mx-auto max-w-6xl px-6">
         <TituloSeccion
             titulo="Nuestra oferta"
             kicker="Formación abierta"
@@ -163,3 +176,10 @@ const [eventos, informativos, testimonios] = await Promise.all([
     <AnunciosPopup anuncios={anuncios} />
 </Base>
 
+<style>
+    .banda-marca {
+        background-image: var(--degradado-banda);
+        background-size: 200% 100%;
+        background-position: 0% 50%;
+    }
+</style>

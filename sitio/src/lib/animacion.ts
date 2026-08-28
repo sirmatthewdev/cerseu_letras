@@ -173,8 +173,83 @@ export async function contar(selector = '[data-contador]'): Promise<void> {
     });
 }
 
+/**
+ * Deriva de los fondos de sección al pasar.
+ *
+ * Lo que se mueve es la capa decorativa, nunca el contenido: son resplandores y
+ * una retícula dentro de un `div` vacío y `aria-hidden`. Por eso esta función se
+ * salta las tres reglas de arriba sin riesgo — no hay nada que pueda quedarse
+ * invisible, porque no hay nada dentro.
+ *
+ * El `scrub` ata el avance a la barra de desplazamiento en vez de lanzar una
+ * animación con duración propia: así el movimiento acompaña a la rueda, que es
+ * lo que hace que se lea como profundidad y no como un efecto.
+ */
+export async function fondos(selector = '[data-fondo-deriva]'): Promise<void> {
+    const capas = [...document.querySelectorAll<HTMLElement>(selector)];
+    if (capas.length === 0) return;
+
+    await cuandoEsteLista();
+
+    const modulos = await cargar();
+    if (!modulos) return;
+
+    const { gsap, ScrollTrigger } = modulos;
+
+    capas.forEach((capa) => {
+        const seccion = capa.parentElement;
+        if (!seccion) return;
+
+        const deriva = Number(capa.dataset.fondoDeriva) || 60;
+
+        gsap.fromTo(
+            capa,
+            { yPercent: 0, y: -deriva / 2 },
+            {
+                y: deriva / 2,
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: seccion,
+                    // De cuando la sección asoma por abajo a cuando se va por
+                    // arriba: el recorrido completo, no un tramo.
+                    start: 'top bottom',
+                    end: 'bottom top',
+                    scrub: 0.6,
+                    invalidateOnRefresh: true,
+                },
+            }
+        );
+    });
+
+    // Y el degradado de la banda, que se desplaza en sentido contrario: como su
+    // color va en diagonal, mover la posición del fondo hace que el dorado
+    // recorra la banda en vez de quedarse clavado en la esquina.
+    const bandas = [...document.querySelectorAll<HTMLElement>('[data-banda-degradado]')];
+
+    bandas.forEach((banda) => {
+        gsap.fromTo(
+            banda,
+            { backgroundPosition: '0% 50%' },
+            {
+                backgroundPosition: '100% 50%',
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: banda,
+                    start: 'top bottom',
+                    end: 'bottom top',
+                    scrub: 0.6,
+                    invalidateOnRefresh: true,
+                },
+            }
+        );
+    });
+
+    ScrollTrigger.refresh();
+}
+
 /** Arranca todo lo animado de la página. */
 export function iniciarAnimaciones(): void {
     revelar();
     contar();
+    fondos();
 }

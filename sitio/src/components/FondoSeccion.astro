@@ -1,0 +1,146 @@
+---
+interface Props {
+    /**
+     * Sobre qué se pinta. En `claro` los resplandores van en los colores de
+     * marca a muy baja opacidad; en `oscuro`, en dorado y azul claro, que son
+     * los que se leen sobre el azul institucional.
+     */
+    tono?: 'claro' | 'oscuro';
+    /** Cuánto se desplaza al pasar, en píxeles. 0 lo deja quieto. */
+    deriva?: number;
+}
+
+const { tono = 'claro', deriva = 60 } = Astro.props;
+---
+
+{/*
+    Fondo decorativo de una sección.
+
+    Es una capa aparte y no un `background` en la propia sección por dos
+    razones. La primera es que así puede moverse al pasar sin arrastrar el
+    contenido: lo que se anima es este `div`, con `transform`, y el texto no se
+    entera. La segunda es la regla de este proyecto sobre animaciones — aquí no
+    hay nada que perder si GSAP no carga, porque no hay contenido dentro: sin
+    JavaScript la capa se queda quieta y la sección se ve igual, solo que sin
+    deriva.
+
+    Va detrás del contenido con `-z-10`, así que la sección que lo use tiene que
+    ser `relative isolate`: sin `isolate`, un hijo con z negativo se cuela por
+    detrás del fondo de la propia sección y no se ve.
+*/}
+<div
+    class:list={['fondo-seccion', `fondo-${tono}`]}
+    aria-hidden="true"
+    data-fondo-deriva={deriva > 0 ? String(deriva) : undefined}
+>
+    <span class="resplandor resplandor-a"></span>
+    <span class="resplandor resplandor-b"></span>
+    <span class="trama"></span>
+</div>
+
+<style>
+    .fondo-seccion {
+        position: absolute;
+        inset: 0;
+        z-index: -10;
+        overflow: hidden;
+        pointer-events: none;
+
+        /*
+         * Costura: la capa se desvanece contra los bordes de arriba y abajo.
+         *
+         * El primer intento fue teñir el borde con un color, y estaba mal: hacía
+         * falta saber de qué color era la sección de al lado, es decir, acoplar
+         * cada sección a sus vecinas. Difuminando la propia capa no hace falta
+         * ningún color — el resplandor se apaga antes de llegar al borde y la
+         * unión entre secciones deja de ser una raya, sea cual sea el color de
+         * la de enfrente.
+         */
+        -webkit-mask-image: linear-gradient(
+            to bottom,
+            transparent 0,
+            #000 5rem,
+            #000 calc(100% - 5rem),
+            transparent 100%
+        );
+        mask-image: linear-gradient(
+            to bottom,
+            transparent 0,
+            #000 5rem,
+            #000 calc(100% - 5rem),
+            transparent 100%
+        );
+    }
+
+    .resplandor {
+        position: absolute;
+        display: block;
+        border-radius: 9999px;
+        /* El desenfoque es lo que convierte dos círculos en una luz. Sin él se
+           ven los bordes y parece un adorno pegado. */
+        filter: blur(80px);
+    }
+
+    /* Muy tenues: esto tiene que notarse sin que nadie sepa que está ahí. Por
+       encima de un 10 % ya compite con el contenido. */
+    .fondo-claro .resplandor-a {
+        top: -18%;
+        left: -8%;
+        width: 46%;
+        height: 70%;
+        background: color-mix(in oklab, var(--color-unmsm-azul) 16%, transparent);
+    }
+
+    .fondo-claro .resplandor-b {
+        right: -10%;
+        bottom: -22%;
+        width: 42%;
+        height: 65%;
+        background: color-mix(in oklab, var(--color-unmsm-dorado) 14%, transparent);
+    }
+
+    .fondo-oscuro .resplandor-a {
+        top: -25%;
+        right: -5%;
+        width: 45%;
+        height: 80%;
+        background: color-mix(in oklab, var(--color-unmsm-dorado) 22%, transparent);
+    }
+
+    .fondo-oscuro .resplandor-b {
+        bottom: -30%;
+        left: -8%;
+        width: 40%;
+        height: 75%;
+        background: color-mix(in oklab, var(--color-unmsm-azul-soft) 18%, transparent);
+    }
+
+    /* Retícula de puntos finísima: le quita el aire de plano liso al fondo sin
+       pedir ninguna imagen. */
+    .trama {
+        position: absolute;
+        inset: 0;
+        display: block;
+        background-image: radial-gradient(currentColor 1px, transparent 1px);
+        background-size: 28px 28px;
+    }
+
+    .fondo-claro .trama {
+        color: var(--color-unmsm-azul);
+        opacity: 0.05;
+    }
+
+    .fondo-oscuro .trama {
+        color: #fff;
+        opacity: 0.06;
+    }
+
+    /* Sin movimiento, la capa se queda donde está. La deriva la aplica GSAP, que
+       ya no se descarga siquiera cuando se pide menos movimiento; esto es el
+       cinturón por si algo la hubiera movido antes de la preferencia. */
+    @media (prefers-reduced-motion: reduce) {
+        .fondo-seccion {
+            transform: none !important;
+        }
+    }
+</style>

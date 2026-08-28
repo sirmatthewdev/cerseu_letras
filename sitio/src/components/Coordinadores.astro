@@ -1,5 +1,6 @@
 ---
 import TituloSeccion from './TituloSeccion.astro';
+import FondoSeccion from './FondoSeccion.astro';
 import type { Docente } from '../lib/api';
 
 interface Props {
@@ -27,8 +28,10 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
 
 {
     docentes.length > 0 && (
-        <section class="bg-white py-20" aria-labelledby="coordinadores">
-            <div class="mx-auto max-w-6xl px-6">
+        <section class="relative isolate overflow-hidden bg-white py-20" aria-labelledby="coordinadores">
+            <FondoSeccion deriva={50} />
+
+            <div class="relative mx-auto max-w-6xl px-6">
                 <TituloSeccion
                     id="coordinadores"
                     titulo="Coordinadores de programa"

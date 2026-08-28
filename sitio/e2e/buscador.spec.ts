@@ -95,24 +95,6 @@ test.describe('Buscador', () => {
         await expect(page.locator('#buscador-sugerencias')).toBeHidden();
         await expect(campo).toHaveAttribute('aria-expanded', 'false');
     });
-});
-
-test.describe('Fichas de docentes', () => {
-    test('la plana docente lleva a la ficha y la ficha a lo que dicta', async ({ page }) => {
-        await page.goto('/plana-docente');
-
-        const primero = page.locator('a[href^="/profesores/"]').first();
-        const nombre = (await primero.textContent())?.trim() ?? '';
-        await primero.click();
-
-        await expect(page.locator('main h1')).toContainText(nombre);
-
-        // La ficha existe para contar algo que el listado no cuenta. Hoy eso
-        // es lo que dicta: si desapareciera, la página repetiría el nombre y
-        // nada más.
-        await expect(page.locator('main')).toContainText('Dicta');
-        await expect(page.locator('main a[href^="/cursos/"], main a[href^="/talleres/"]').first()).toBeVisible();
-    });
 
     /**
      * El campo tiene que leerse.
@@ -168,5 +150,23 @@ test.describe('Fichas de docentes', () => {
 
         await expect(page.locator('#buscador-vacio')).toBeVisible();
         await expect(page.locator('#buscador-sugerencias')).toBeHidden();
+    });
+});
+
+test.describe('Fichas de docentes', () => {
+    test('la plana docente lleva a la ficha y la ficha a lo que dicta', async ({ page }) => {
+        await page.goto('/plana-docente');
+
+        const primero = page.locator('a[href^="/profesores/"]').first();
+        const nombre = (await primero.textContent())?.trim() ?? '';
+        await primero.click();
+
+        await expect(page.locator('main h1')).toContainText(nombre);
+
+        // La ficha existe para contar algo que el listado no cuenta. Hoy eso
+        // es lo que dicta: si desapareciera, la página repetiría el nombre y
+        // nada más.
+        await expect(page.locator('main')).toContainText('Dicta');
+        await expect(page.locator('main a[href^="/cursos/"], main a[href^="/talleres/"]').first()).toBeVisible();
     });
 });

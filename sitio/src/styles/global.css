@@ -45,6 +45,26 @@
      */
     --alto-cabecera: 7.5rem;
 
+    /*
+     * Degradado de la banda ancha: azul profundo a dorado, en diagonal.
+     *
+     * No es `--degradado-marca` porque ese termina en el dorado de marca
+     * (#B6A350), y sobre el dorado a plena luz el texto blanco se queda en un
+     * contraste de mesa camilla. Aqui el dorado esta rebajado y llega solo al
+     * ultimo tramo, que es donde no hay parrafo sino el boton. El degradado de
+     * marca sigue siendo el de los filos y los aros, donde no hay texto encima.
+     */
+    --degradado-banda: linear-gradient(
+        115deg,
+        var(--color-unmsm-azul-dark) 0%,
+        var(--color-unmsm-azul) 36%,
+        /* Un paso intermedio a propósito: interpolando en sRGB de azul a dorado
+           el centro sale gris sucio, y con este apoyo el paso se lee como una
+           transición y no como una mancha. */
+        #4A5545 70%,
+        #7A6730 100%
+    );
+
     --degradado-marca: linear-gradient(135deg, var(--color-unmsm-azul-dark) 0%, var(--color-unmsm-dorado) 100%);
     --degradado-marca-suave: linear-gradient(
         135deg,

@@ -1,5 +1,6 @@
 ---
 import TituloSeccion from './TituloSeccion.astro';
+import FondoSeccion from './FondoSeccion.astro';
 import Boton from './Boton.astro';
 import Icono from './Icono.astro';
 import { faArrowRight, faCalendarDay, faFilePdf, faQuoteLeft } from '@fortawesome/free-solid-svg-icons';
@@ -33,7 +34,8 @@ const fecha = (valor: string | null) =>
 
 {
     testimonios.length > 0 && (
-        <section class="bg-slate-50 py-20" aria-labelledby="testimonios">
+        <section class="relative isolate overflow-hidden bg-slate-50 py-20" aria-labelledby="testimonios">
+            <FondoSeccion deriva={50} />
             <div class="mx-auto max-w-7xl px-4 lg:px-8">
                 <TituloSeccion
                     id="testimonios"
@@ -76,7 +78,8 @@ const fecha = (valor: string | null) =>
 
 {
     eventos.length > 0 && (
-        <section class="py-20" aria-labelledby="eventos">
+        <section class="relative isolate overflow-hidden py-20" aria-labelledby="eventos">
+            <FondoSeccion deriva={50} />
             <div class="mx-auto max-w-7xl px-4 lg:px-8">
                 <TituloSeccion
                     id="eventos"
@@ -139,7 +142,8 @@ const fecha = (valor: string | null) =>
 
 {
     recursos.length > 0 && (
-        <section class="bg-slate-50 py-20" aria-labelledby="documentos">
+        <section class="relative isolate overflow-hidden bg-slate-50 py-20" aria-labelledby="documentos">
+            <FondoSeccion deriva={50} />
             <div class="mx-auto max-w-7xl px-4 lg:px-8">
                 <TituloSeccion
                     id="documentos"
