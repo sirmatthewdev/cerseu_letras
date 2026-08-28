@@ -28,3 +28,11 @@ Thumbs.db
 
 # Instalador de Composer descargado en local.
 /composer.phar
+
+# Assets que publica Filament (4,2 MB). No se versionan: `filament:upgrade` esta
+# enganchado a `post-autoload-dump`, asi que cualquier `composer install` —y todo
+# despliegue hace uno— los regenera. Versionarlos seria guardar binarios
+# reproducibles y comerse un conflicto en cada actualizacion del paquete.
+/public/css/filament
+/public/js/filament
+/public/fonts/filament
