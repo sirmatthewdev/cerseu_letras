@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import InversionPrograma from '../../components/InversionPrograma.astro';
 import TarjetaPrograma from '../../components/TarjetaPrograma.astro';
 import Boton from '../../components/Boton.astro';
+import ListaContenido from '../../components/ListaContenido.astro';
 import { faUserPlus } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import {
@@ -209,10 +210,7 @@ const iniciales = (nombre: string) =>
                                 Objetivos académicos
                             </h2>
                             <div class="mt-2 h-1 w-16 rounded-full bg-unmsm-dorado" aria-hidden="true" />
-                            <div
-                                class="prose prose-slate mt-5 max-w-none"
-                                set:html={programa.objetivos}
-                            />
+                            <ListaContenido valor={programa.objetivos} />
                         </section>
                     )
                 }
@@ -224,10 +222,7 @@ const iniciales = (nombre: string) =>
                                 Plan de estudios
                             </h2>
                             <div class="mt-2 h-1 w-16 rounded-full bg-unmsm-dorado" aria-hidden="true" />
-                            <div
-                                class="prose prose-slate mt-5 max-w-none"
-                                set:html={programa.plan_estudios}
-                            />
+                            <ListaContenido valor={programa.plan_estudios} />
                         </section>
                     )
                 }
@@ -242,18 +237,18 @@ const iniciales = (nombre: string) =>
                                 {programa.perfil_ingresante && (
                                     <div class="rounded-xl border border-slate-200 p-5">
                                         <h3 class="font-semibold text-slate-800">Del ingresante</h3>
-                                        <div
-                                            class="prose prose-slate prose-sm mt-2 max-w-none"
-                                            set:html={programa.perfil_ingresante}
+                                        <ListaContenido
+                                            valor={programa.perfil_ingresante}
+                                            clase="prose prose-slate prose-sm mt-2 max-w-none"
                                         />
                                     </div>
                                 )}
                                 {programa.perfil_graduado && (
                                     <div class="rounded-xl border border-slate-200 p-5">
                                         <h3 class="font-semibold text-slate-800">Al egresar</h3>
-                                        <div
-                                            class="prose prose-slate prose-sm mt-2 max-w-none"
-                                            set:html={programa.perfil_graduado}
+                                        <ListaContenido
+                                            valor={programa.perfil_graduado}
+                                            clase="prose prose-slate prose-sm mt-2 max-w-none"
                                         />
                                     </div>
                                 )}

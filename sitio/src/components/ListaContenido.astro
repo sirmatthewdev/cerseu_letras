@@ -1,0 +1,44 @@
+---
+interface Props {
+    /**
+     * Lo que venga de la API. Se acepta lista o texto porque el contrato
+     * discrepaba de la realidad y conviene no volver a romperse por eso.
+     */
+    valor: string[] | string | null | undefined;
+    /** Clases del contenedor, para ajustar el tamaño según dónde se use. */
+    clase?: string;
+}
+
+const { valor, clase = 'prose prose-slate mt-5 max-w-none' } = Astro.props;
+
+/*
+ * Los bloques largos de una ficha —objetivos, plan de estudios, perfiles— se
+ * guardan como LISTAS, no como HTML.
+ *
+ * El modelo los castea a `array`, el panel siempre los ha escrito así y la API
+ * los reenvía tal cual; pero el tipo declarado aquí decía `string | null` y la
+ * ficha los pintaba con `set:html`. El día que alguien rellenara uno, la página
+ * habría mostrado «[object Object]». No saltó nunca porque los 39 programas los
+ * tienen vacíos.
+ *
+ * Se admiten las dos formas a propósito: si en alguna instalación quedó texto
+ * guardado de antes, se sigue pintando en vez de desaparecer.
+ */
+const puntos = Array.isArray(valor)
+    ? valor.map((p) => String(p).trim()).filter(Boolean)
+    : [];
+
+const texto = !Array.isArray(valor) && typeof valor === 'string' ? valor.trim() : '';
+---
+
+{
+    puntos.length > 0 ? (
+        <ul class={clase}>
+            {puntos.map((punto) => (
+                <li>{punto}</li>
+            ))}
+        </ul>
+    ) : (
+        texto !== '' && <div class={clase} set:html={texto} />
+    )
+}

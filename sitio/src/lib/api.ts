@@ -79,11 +79,18 @@ export type Programa = {
      * Contenido largo de la ficha. Hoy los 39 programas lo tienen vacio, pero
      * el panel lo edita: la ficha oculta cada bloque que llegue vacio, asi que
      * aparecen solos el dia que se escriban.
+     *
+     * Son LISTAS, no HTML. El modelo las castea a `array` y el panel siempre las
+     * ha escrito asi; aqui estaban declaradas `string | null` y la ficha las
+     * pintaba con `set:html`, de modo que el dia que alguien rellenara una, la
+     * pagina habria mostrado «[object Object]». No salto nunca precisamente
+     * porque estan vacias. Se admite tambien texto por si en alguna instalacion
+     * quedo algo guardado con la forma anterior.
      */
-    objetivos: string | null;
-    plan_estudios: string | null;
-    perfil_ingresante: string | null;
-    perfil_graduado: string | null;
+    objetivos: string[] | string | null;
+    plan_estudios: string[] | string | null;
+    perfil_ingresante: string[] | string | null;
+    perfil_graduado: string[] | string | null;
     por_que: string | null;
     vacantes: string | number | null;
     duracion: string | number | null;

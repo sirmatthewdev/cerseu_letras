@@ -299,6 +299,22 @@
                 <span>Dashboard</span>
             </a>
 
+            {{--
+                Enlace al panel nuevo mientras dura la migración.
+
+                Los dos paneles escriben en la misma base, así que no hay riesgo
+                de que los datos se separen; lo que sí puede pasar es que alguien
+                no sepa cuál es cuál. Este enlace lo dice.
+
+                Se retira, junto con el resto de esta barra, cuando Filament
+                cubra los 18 recursos y pase a ocupar /admin.
+            --}}
+            <a href="/panel"
+                class="nav-link mt-6 flex items-center gap-3 rounded-lg border border-dashed border-[#d4a017] px-3 py-3 text-base font-medium text-gray-800 transition-all hover:bg-gray-50">
+                <x-fas-wand-magic-sparkles class="w-5 text-lg text-[#d4a017]" />
+                <span>Panel nuevo <span class="text-xs font-normal text-gray-500">(en migración)</span></span>
+            </a>
+
             <p class="text-xs font-bold uppercase tracking-wider text-[#d4a017] mb-2 ml-2 mt-6">Gestión Académica</p>
 
             <a href="{{ route('admin.programas.index') }}"
