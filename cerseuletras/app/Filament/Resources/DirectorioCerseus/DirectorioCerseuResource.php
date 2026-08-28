@@ -22,17 +22,17 @@ class DirectorioCerseuResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 
-    protected static ?string $navigationLabel = 'Directorio';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Institución';
+
+    protected static ?int $navigationSort = 80;
+
+    protected static ?string $navigationLabel = 'Directorio';
 
     protected static ?string $modelLabel = 'entrada del directorio';
 
     protected static ?string $pluralModelLabel = 'entradas del directorio';
 
     protected static ?string $recordTitleAttribute = 'nombre_persona';
-
-    protected static ?int $navigationSort = 80;
 
     public static function form(Schema $schema): Schema
     {

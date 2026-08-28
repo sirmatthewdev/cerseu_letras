@@ -22,17 +22,17 @@ class DocumentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolderOpen;
 
-    protected static ?string $navigationLabel = 'Archivos';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Contenido';
+
+    protected static ?int $navigationSort = 75;
+
+    protected static ?string $navigationLabel = 'Archivos';
 
     protected static ?string $modelLabel = 'archivo';
 
     protected static ?string $pluralModelLabel = 'archivos';
 
     protected static ?string $recordTitleAttribute = 'title';
-
-    protected static ?int $navigationSort = 70;
 
     public static function form(Schema $schema): Schema
     {

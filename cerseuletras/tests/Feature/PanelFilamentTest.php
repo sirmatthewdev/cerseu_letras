@@ -138,11 +138,14 @@ class PanelFilamentTest extends TestCase
             ['leads'],
             ['menu-items'],
             ['users'],
+            ['admision-settings'],
+            ['content-pages'],
+            ['cronogramas'],
         ];
     }
 
     /** Solicitudes es de solo lectura: no tiene formulario de creacion. */
-    private const SIN_CREACION = ['leads'];
+    private const SIN_CREACION = ['leads', 'admision-settings', 'content-pages'];
 
     #[\PHPUnit\Framework\Attributes\DataProvider('recursos')]
     public function test_cada_recurso_abre_su_listado_y_su_formulario(string $recurso): void
@@ -187,6 +190,48 @@ class PanelFilamentTest extends TestCase
      * todavía no existe — y falla aunque el escritorio funcione, que es
      * justo lo que pasó al escribir esta prueba.
      */
+    /**
+     * La pagina de ajustes tambien abre.
+     *
+     * No es un recurso —`site_settings` tiene una sola fila— sino una pagina
+     * propia, asi que se queda fuera del recorrido de arriba y necesita la suya.
+     */
+    public function test_la_configuracion_del_sitio_abre(): void
+    {
+        $this->actingAs($this->admin())
+            ->get('/panel/configuracion-del-sitio')
+            ->assertOk();
+    }
+
+    /**
+     * Y guarda de verdad.
+     *
+     * Que la pantalla abra no dice nada sobre si el formulario escribe: es una
+     * pagina propia, con su `mount()` y su `guardar()` a mano, y ahi es facil
+     * que el estado se llene de un sitio y se guarde en otro. Se comprueba el
+     * viaje entero, incluido un campo de Especializacion — que es justo el que
+     * `$fillable` descartaba en silencio.
+     */
+    public function test_la_configuracion_guarda_lo_que_se_escribe(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(\App\Filament\Pages\ConfiguracionDelSitio::class)
+            ->fillForm([
+                'site_name' => 'CERSEU de prueba',
+                'telefono' => '900 000 000',
+                'especializaciones_hero_titulo' => 'Especializaciones del CERSEU',
+            ])
+            ->call('guardar')
+            ->assertHasNoFormErrors();
+
+        $ajustes = \App\Models\SiteSetting::query()->first();
+
+        $this->assertSame('CERSEU de prueba', $ajustes->site_name);
+        $this->assertSame('900 000 000', $ajustes->telefono);
+        $this->assertSame('Especializaciones del CERSEU', $ajustes->especializaciones_hero_titulo);
+    }
+
     public function test_el_escritorio_resume_el_estado_del_sitio(): void
     {
         Programa::create([

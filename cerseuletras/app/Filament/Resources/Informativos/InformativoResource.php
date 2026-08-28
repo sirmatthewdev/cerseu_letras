@@ -22,17 +22,17 @@ class InformativoResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static ?string $navigationLabel = 'Documentos y recursos';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Contenido';
+
+    protected static ?int $navigationSort = 70;
+
+    protected static ?string $navigationLabel = 'Documentos y recursos';
 
     protected static ?string $modelLabel = 'recurso informativo';
 
     protected static ?string $pluralModelLabel = 'recursos informativos';
 
     protected static ?string $recordTitleAttribute = 'titulo';
-
-    protected static ?int $navigationSort = 50;
 
     public static function form(Schema $schema): Schema
     {

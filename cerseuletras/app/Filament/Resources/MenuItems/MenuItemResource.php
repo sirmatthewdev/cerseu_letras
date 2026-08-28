@@ -20,17 +20,17 @@ class MenuItemResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBars3;
 
-    protected static ?string $navigationLabel = 'Menú';
+    protected static \UnitEnum|string|null $navigationGroup = 'Ajustes';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Institución';
+    protected static ?int $navigationSort = 90;
+
+    protected static ?string $navigationLabel = 'Menú';
 
     protected static ?string $modelLabel = 'entrada del menú';
 
     protected static ?string $pluralModelLabel = 'entradas del menú';
 
     protected static ?string $recordTitleAttribute = 'etiqueta';
-
-    protected static ?int $navigationSort = 85;
 
     public static function form(Schema $schema): Schema
     {

@@ -28,15 +28,15 @@ class LeadResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInbox;
 
-    protected static ?string $navigationLabel = 'Solicitudes';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Institución';
+
+    protected static ?int $navigationSort = 85;
+
+    protected static ?string $navigationLabel = 'Solicitudes';
 
     protected static ?string $modelLabel = 'solicitud';
 
     protected static ?string $pluralModelLabel = 'solicitudes';
-
-    protected static ?int $navigationSort = 90;
 
     public static function canCreate(): bool
     {

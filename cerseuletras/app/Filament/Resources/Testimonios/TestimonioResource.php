@@ -22,17 +22,17 @@ class TestimonioResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
-    protected static ?string $navigationLabel = 'Testimonios';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Contenido';
+
+    protected static ?int $navigationSort = 65;
+
+    protected static ?string $navigationLabel = 'Testimonios';
 
     protected static ?string $modelLabel = 'testimonio';
 
     protected static ?string $pluralModelLabel = 'testimonios';
 
     protected static ?string $recordTitleAttribute = 'nombre';
-
-    protected static ?int $navigationSort = 30;
 
     public static function form(Schema $schema): Schema
     {

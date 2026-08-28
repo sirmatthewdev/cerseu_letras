@@ -29,17 +29,17 @@ class ProgramaResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    protected static ?string $navigationLabel = 'Oferta académica';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Oferta';
+
+    protected static ?int $navigationSort = 10;
+
+    protected static ?string $navigationLabel = 'Oferta académica';
 
     protected static ?string $modelLabel = 'programa';
 
     protected static ?string $pluralModelLabel = 'programas';
 
     protected static ?string $recordTitleAttribute = 'nombre';
-
-    protected static ?int $navigationSort = 10;
 
     public static function form(Schema $schema): Schema
     {

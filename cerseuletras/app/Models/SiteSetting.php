@@ -26,6 +26,17 @@ class SiteSetting extends Model
         'cursos_hero_claim',
         'talleres_hero_imagen',
         'cursos_hero_imagen',
+
+        // Especialización se añadió como tipo después (2026_08_24_140000) y sus
+        // cuatro columnas se crearon, pero nadie las trajo aquí. Sin estar en
+        // `$fillable`, `fill()` las descarta sin decir nada: el hero de
+        // /especializaciones no se podía editar desde ningún panel y ninguna
+        // pantalla se quejaba, porque guardar «funcionaba» — solo que sin
+        // guardar esos cuatro campos.
+        'especializaciones_hero_titulo',
+        'especializaciones_hero_texto',
+        'especializaciones_hero_claim',
+        'especializaciones_hero_imagen',
         'home_hero_kicker',
         'home_hero_titulo',
         'home_hero_texto',

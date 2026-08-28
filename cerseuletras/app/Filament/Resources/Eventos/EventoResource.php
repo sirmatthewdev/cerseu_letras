@@ -22,17 +22,17 @@ class EventoResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static ?string $navigationLabel = 'Eventos';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Contenido';
+
+    protected static ?int $navigationSort = 55;
+
+    protected static ?string $navigationLabel = 'Eventos';
 
     protected static ?string $modelLabel = 'evento';
 
     protected static ?string $pluralModelLabel = 'eventos';
 
     protected static ?string $recordTitleAttribute = 'titulo';
-
-    protected static ?int $navigationSort = 40;
 
     public static function form(Schema $schema): Schema
     {

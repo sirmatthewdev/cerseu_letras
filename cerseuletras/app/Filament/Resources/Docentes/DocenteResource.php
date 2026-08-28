@@ -30,17 +30,17 @@ class DocenteResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static ?string $navigationLabel = 'Plana docente';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Oferta';
+
+    protected static ?int $navigationSort = 20;
+
+    protected static ?string $navigationLabel = 'Plana docente';
 
     protected static ?string $modelLabel = 'docente';
 
     protected static ?string $pluralModelLabel = 'docentes';
 
     protected static ?string $recordTitleAttribute = 'apellidos';
-
-    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {

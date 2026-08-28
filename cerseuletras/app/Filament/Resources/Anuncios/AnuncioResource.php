@@ -22,17 +22,17 @@ class AnuncioResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
-    protected static ?string $navigationLabel = 'Anuncios';
-
     protected static \UnitEnum|string|null $navigationGroup = 'Contenido';
+
+    protected static ?int $navigationSort = 60;
+
+    protected static ?string $navigationLabel = 'Anuncios';
 
     protected static ?string $modelLabel = 'anuncio';
 
     protected static ?string $pluralModelLabel = 'anuncios';
 
     protected static ?string $recordTitleAttribute = 'titulo';
-
-    protected static ?int $navigationSort = 60;
 
     public static function form(Schema $schema): Schema
     {
