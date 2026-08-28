@@ -135,8 +135,14 @@ class PanelFilamentTest extends TestCase
             ['anuncios'],
             ['documents'],
             ['directorio-cerseus'],
+            ['leads'],
+            ['menu-items'],
+            ['users'],
         ];
     }
+
+    /** Solicitudes es de solo lectura: no tiene formulario de creacion. */
+    private const SIN_CREACION = ['leads'];
 
     #[\PHPUnit\Framework\Attributes\DataProvider('recursos')]
     public function test_cada_recurso_abre_su_listado_y_su_formulario(string $recurso): void
@@ -144,7 +150,32 @@ class PanelFilamentTest extends TestCase
         $admin = $this->admin();
 
         $this->actingAs($admin)->get("/panel/{$recurso}")->assertOk();
-        $this->actingAs($admin)->get("/panel/{$recurso}/create")->assertOk();
+
+        if (! in_array($recurso, self::SIN_CREACION, true)) {
+            $this->actingAs($admin)->get("/panel/{$recurso}/create")->assertOk();
+        }
+    }
+
+    /**
+     * Y que las solicitudes sigan siendo de solo lectura.
+     *
+     * Las crea el visitante desde el formulario del sitio; crearlas o editarlas
+     * desde el panel seria inventar o falsear lo que alguien pidio. Es una
+     * decision, no una pantalla a medias, asi que conviene que quede fijada.
+     */
+    public function test_las_solicitudes_no_se_crean_ni_se_editan(): void
+    {
+        $this->actingAs($this->admin())
+            ->get('/panel/leads/create')
+            ->assertNotFound();
+
+        // Y que tampoco se ofrezca el boton: `canCreate()` en false no basta
+        // —el `CreateAction` del generador se pintaba igual—, asi que el boton
+        // salia y llevaba al 404 de arriba.
+        $this->actingAs($this->admin())
+            ->get('/panel/leads')
+            ->assertOk()
+            ->assertDontSee('Crear solicitud');
     }
 
     /**
