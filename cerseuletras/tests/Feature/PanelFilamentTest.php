@@ -204,6 +204,22 @@ class PanelFilamentTest extends TestCase
     }
 
     /**
+     * Las tres paginas que no son recursos, en un solo sitio.
+     *
+     * Se quedan fuera del recorrido de los recursos porque no tienen listado ni
+     * formulario de creacion, y sin esto un fallo en cualquiera de ellas solo se
+     * nota al abrirla a mano.
+     */
+    public function test_las_paginas_propias_abren(): void
+    {
+        $admin = $this->admin();
+
+        foreach (['configuracion-del-sitio', 'cronograma-de-admision', 'papelera'] as $pagina) {
+            $this->actingAs($admin)->get("/panel/{$pagina}")->assertOk();
+        }
+    }
+
+    /**
      * Y guarda de verdad.
      *
      * Que la pantalla abra no dice nada sobre si el formulario escribe: es una
