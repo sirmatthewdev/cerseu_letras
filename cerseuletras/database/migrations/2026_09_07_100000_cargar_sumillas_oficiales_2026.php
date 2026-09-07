@@ -25,7 +25,9 @@ use Illuminate\Database\Migrations\Migration;
  * Un caso quedó sin resolver y NO se toca: «Normas APA», que el documento
  * atribuye a Rolando Rocha. En la base hay «Normas APA I» (que imparte Mamani
  * Quispe) y «Curso-taller: APA sin clichés» (que imparte Rocha): el título
- * apunta a una y el expositor a la otra. Lo decide la Unidad.
+ * apunta a una y el expositor a la otra. Lo decidió la Unidad después, a
+ * favor de la ficha de Rocha: lo resuelve la migración
+ * `2026_09_07_110000_sumilla_de_normas_apa_al_curso_de_rocha`.
  */
 return new class extends Migration
 {
