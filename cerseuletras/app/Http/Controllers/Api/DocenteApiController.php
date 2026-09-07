@@ -49,6 +49,17 @@ class DocenteApiController extends Controller
             'nombre_completo' => $docente->nombre_completo,
             'grado' => $docente->grado ?: null,
             'foto' => $docente->foto_url,
+
+            // Perfiles academicos publicos, tambien en el listado: la tarjeta de
+            // la plana docente los enseña como iconos, y sin ellos aqui habria
+            // que pedir las 20 fichas para pintar una rejilla. Son tres cadenas
+            // cortas por docente.
+            //
+            // El correo NO se expone, ni aqui ni en la ficha: publicarlo en HTML
+            // estatico es entregarselo a cualquier rastreador.
+            'orcid' => $docente->orcid ?: null,
+            'cti_vitae' => $docente->cti_vitae ?: null,
+            'linkedin' => $docente->linkedin ?: null,
         ];
 
         if (! $completo) {
@@ -58,11 +69,6 @@ class DocenteApiController extends Controller
         return $base + [
             'biografia' => $docente->biografia ?: null,
             'lineas_investigacion' => $docente->lineas_investigacion ?: null,
-            // Perfiles academicos publicos. El correo no se expone: publicarlo
-            // en HTML estatico es entregarselo a cualquier rastreador.
-            'orcid' => $docente->orcid ?: null,
-            'cti_vitae' => $docente->cti_vitae ?: null,
-            'linkedin' => $docente->linkedin ?: null,
             // Hoy es lo unico que la ficha tiene que contar: ninguno de los 20
             // docentes registrados tiene biografia ni lineas de investigacion,
             // pero todos dictan algo. Sin esta lista la ficha repetiria el

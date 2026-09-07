@@ -1,5 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Icono from '../../components/Icono.astro';
+import { faOrcid, faLinkedinIn } from '@fortawesome/free-brands-svg-icons';
+import { faIdCard } from '@fortawesome/free-solid-svg-icons';
+import { perfilesDe } from '../../lib/perfiles';
 import { obtenerDocentes, obtenerDocente, obtenerConfiguracion } from '../../lib/api';
 import type { Docente } from '../../lib/api';
 
@@ -31,11 +35,20 @@ const iniciales = docente.nombre
     .map((p) => p[0]?.toUpperCase() ?? '')
     .join('');
 
-const enlaces = [
-    { etiqueta: 'ORCID', url: docente.orcid },
-    { etiqueta: 'CTI Vitae', url: docente.cti_vitae },
-    { etiqueta: 'LinkedIn', url: docente.linkedin },
-].filter((e): e is { etiqueta: string; url: string } => Boolean(e.url));
+/*
+ * Antes se enlazaba el valor en crudo, y eso solo funciona si en el panel
+ * escribieron la direccion entera. ORCID se publica como
+ * «0000-0003-1753-7448», y ese `href` lo lee el navegador como una ruta del
+ * propio sitio: el enlace llevaba a un 404 en vez de al perfil. `perfilesDe`
+ * completa lo que falte.
+ */
+const iconoDe = {
+    ORCID: faOrcid,
+    'CTI Vitae': faIdCard,
+    LinkedIn: faLinkedinIn,
+} as const;
+
+const enlaces = perfilesDe(docente);
 
 // La descripción de la página cuenta lo que dicta, no una frase genérica: es
 // lo que se lee en el resultado de un buscador y lo único que distingue una
@@ -167,8 +180,12 @@ const datos = {
                                     href={enlace.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-unmsm-azul transition hover:border-unmsm-azul hover:bg-slate-50"
+                                    class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-unmsm-azul transition hover:border-unmsm-azul hover:bg-slate-50"
                                 >
+                                    {/* Icono Y texto: en la ficha hay sitio, y
+                                        «ORCID» escrito quita cualquier duda que
+                                        deje un icono suelto. */}
+                                    <Icono icono={iconoDe[enlace.etiqueta]} clase="h-4 w-4" />
                                     {enlace.etiqueta}
                                 </a>
                             </li>

@@ -30,6 +30,29 @@ const fecha = (valor: string | null) =>
               year: 'numeric',
           })
         : null;
+
+/*
+ * Retrato del testimonio, o sus iniciales.
+ *
+ * La API cae a `images/default-avatar.jpg` cuando no hay foto, y ese fichero NO
+ * existe en el repositorio: la tarjeta mostraba el icono de imagen rota. Habria
+ * salido en cuanto la Unidad cargara el primer testimonio sin retrato, que es lo
+ * normal — la gente manda su opinion, no su fotografia.
+ *
+ * Se resuelve como en la plana docente: iniciales sobre el degradado de marca.
+ * Ocupan el mismo circulo, asi que la tarjeta no cambia de forma segun quien
+ * tenga foto y quien no.
+ */
+const tieneRetrato = (url: string | null | undefined) =>
+    Boolean(url) && !String(url).includes('default-avatar');
+
+const inicialesDe = (nombre: string) =>
+    nombre
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0]?.toUpperCase() ?? '')
+        .join('');
 ---
 
 {
@@ -44,27 +67,50 @@ const fecha = (valor: string | null) =>
                     centrado
                 />
 
-                <ul class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {/* Marco blanco de 4 px sobre el panel gris, como en la
+                    referencia: separa la tarjeta del fondo sin dibujar un borde,
+                    y con la sección ya en gris el contraste sale solo.
+
+                    Sin puntuación de estrellas: `testimonios` no tiene ese
+                    campo, y pintar cinco estrellas fijas seria inventar una
+                    valoración que nadie ha dado. */}
+                <ul class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {testimonios.slice(0, 6).map((testimonio) => (
-                        <li class="flex flex-col rounded-2xl bg-white p-6 shadow-sm">
-                            <span aria-hidden="true" class="text-unmsm-dorado">
-                                <Icono icono={faQuoteLeft} clase="h-6 w-6" />
+                        <li class="tarjeta-testimonio group flex flex-col rounded-xl border-4 border-white bg-slate-100/70 p-6 transition duration-300">
+                            <span
+                                aria-hidden="true"
+                                class="text-unmsm-dorado transition-transform duration-300 group-hover:-rotate-6"
+                            >
+                                <Icono icono={faQuoteLeft} clase="h-7 w-7" />
                             </span>
-                            <blockquote class="mt-4 flex-1 leading-relaxed text-slate-700">
+
+                            <blockquote class="mt-4 flex-1 text-lg leading-relaxed text-slate-700">
                                 {testimonio.contenido}
                             </blockquote>
-                            <div class="mt-6 flex items-center gap-3 border-t border-slate-100 pt-4">
-                                <img
-                                    src={testimonio.foto}
-                                    alt=""
-                                    loading="lazy"
-                                    decoding="async"
-                                    class="h-11 w-11 rounded-full object-cover"
-                                />
-                                <div>
+
+                            <div class="mt-auto flex items-center gap-4 pt-6">
+                                {tieneRetrato(testimonio.foto) ? (
+                                    <img
+                                        src={testimonio.foto}
+                                        alt=""
+                                        width="48"
+                                        height="48"
+                                        loading="lazy"
+                                        decoding="async"
+                                        class="h-12 w-12 flex-none rounded-full object-cover ring-2 ring-white"
+                                    />
+                                ) : (
+                                    <span
+                                        aria-hidden="true"
+                                        class="marca-degradado flex h-12 w-12 flex-none items-center justify-center rounded-full text-sm font-bold text-white ring-2 ring-white"
+                                    >
+                                        {inicialesDe(testimonio.nombre)}
+                                    </span>
+                                )}
+                                <div class="min-w-0 flex-1">
                                     <p class="font-semibold text-unmsm-azul">{testimonio.nombre}</p>
                                     {testimonio.programa && (
-                                        <p class="text-xs text-slate-500">{testimonio.programa}</p>
+                                        <p class="text-sm text-slate-500">{testimonio.programa}</p>
                                     )}
                                 </div>
                             </div>
@@ -153,26 +199,41 @@ const fecha = (valor: string | null) =>
                     centrado
                 />
 
-                <ul class="mx-auto mt-12 max-w-3xl divide-y divide-slate-200 overflow-hidden rounded-2xl bg-white shadow-sm">
+                {/* Deja de ser una lista apilada y pasa a rejilla de
+                    tarjetas, como el resto de la portada. En una lista, seis
+                    documentos se leen como un indice; en tarjetas, como seis
+                    cosas que se pueden abrir — que es lo que son. */}
+                <ul data-revelar-grupo class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {recursos.slice(0, 6).map((recurso) => (
-                        <li>
+                        <li data-revelar>
                             <a
                                 href={recurso.url}
-                                class="flex items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
+                                class="tarjeta-recurso group relative flex h-full flex-col gap-4 rounded-2xl bg-linear-to-b from-slate-100 to-white p-5 transition duration-300"
                             >
-                                <span aria-hidden="true" class="flex-none text-unmsm-dorado">
+                                <span
+                                    aria-hidden="true"
+                                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-unmsm-dorado shadow-sm transition duration-300 group-hover:bg-unmsm-azul group-hover:text-white"
+                                >
                                     <Icono icono={faFilePdf} clase="h-5 w-5" />
                                 </span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block font-medium text-slate-800">
+
+                                <span class="block">
+                                    <span class="block font-semibold leading-snug text-slate-800 transition group-hover:text-unmsm-azul">
                                         {recurso.titulo}
                                     </span>
-                                    <span class="block text-xs text-slate-500">
-                                        {recurso.categoria}
-                                    </span>
+                                    {recurso.categoria && (
+                                        <span class="mt-1 block text-xs uppercase tracking-wide text-slate-500">
+                                            {recurso.categoria}
+                                        </span>
+                                    )}
                                 </span>
-                                <span aria-hidden="true" class="text-slate-400">
-                                    →
+
+                                <span
+                                    aria-hidden="true"
+                                    class="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-unmsm-azul"
+                                >
+                                    Abrir
+                                    <span class="transition-transform duration-300 group-hover:translate-x-1">→</span>
                                 </span>
                             </a>
                         </li>
@@ -188,3 +249,41 @@ const fecha = (valor: string | null) =>
         </section>
     )
 }
+
+<style>
+    /*
+     * El mismo gesto en las tres rejillas de la portada: al pasar, la tarjeta
+     * se levanta un poco y estrena un filo dorado. Repetirlo es deliberado —es
+     * lo que hace que la portada se lea como un sistema y no como cinco
+     * secciones diseñadas por separado.
+     */
+    .tarjeta-testimonio:hover,
+    .tarjeta-recurso:hover,
+    .tarjeta-recurso:focus-visible {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 32px -20px rgb(15 43 72 / 0.45);
+    }
+
+    .tarjeta-recurso {
+        border: 1px solid transparent;
+    }
+
+    .tarjeta-recurso:hover,
+    .tarjeta-recurso:focus-visible {
+        border-color: color-mix(in oklab, var(--color-unmsm-dorado) 55%, transparent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .tarjeta-testimonio,
+        .tarjeta-recurso,
+        .tarjeta-testimonio *,
+        .tarjeta-recurso * {
+            transition: none;
+        }
+
+        .tarjeta-testimonio:hover,
+        .tarjeta-recurso:hover {
+            transform: none;
+        }
+    }
+</style>

@@ -40,48 +40,62 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                     centrado
                 />
 
+                {/* Panel en degradado, del gris claro al blanco, con la
+                    fotografía enmarcada dentro. Antes era un aro circular sobre
+                    fondo blanco: el retrato queda mejor rectangular —es como se
+                    hacen las fotos institucionales— y el degradado da a la
+                    rejilla un peso que un aro suelto no tiene. */}
                 <ul
                     data-revelar-grupo
-                    class="mt-12 grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-6"
+                    class="mt-12 grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6"
                 >
                     {docentes.map((docente) => (
-                        <li data-revelar class="text-center">
-                            <a href={`/profesores/${docente.slug}`} class="group block">
-                                <span class="coordinador-marco mx-auto block h-24 w-24 rounded-full p-[3px] transition duration-500">
+                        <li data-revelar class="h-full">
+                            <a
+                                href={`/profesores/${docente.slug}`}
+                                class="ficha-coordinador group flex h-full flex-col gap-4 rounded-2xl bg-linear-to-b from-slate-100 to-white p-4 transition duration-300"
+                            >
+                                <span class="block overflow-hidden rounded-xl bg-white">
                                     {tieneFoto(docente.foto) ? (
                                         <img
                                             src={docente.foto}
                                             alt=""
-                                            width="96"
-                                            height="96"
+                                            width="274"
+                                            height="274"
                                             loading="lazy"
                                             decoding="async"
                                             /* En gris y a color al pasar, como en el sitio
                                                anterior: la rejilla se lee como un conjunto
                                                y no como seis fotos sueltas. */
-                                            class="h-full w-full rounded-full object-cover grayscale transition duration-500 group-hover:grayscale-0"
+                                            class="aspect-square w-full object-cover grayscale transition duration-500 group-hover:grayscale-0 group-hover:scale-105"
                                         />
                                     ) : (
+                                        /* Sin foto propia, las iniciales sobre el
+                                           degradado de marca. Ocupan el mismo cuadrado,
+                                           así que la rejilla no se descuadra el día que
+                                           la Unidad suba unas cuantas y otras no. */
                                         <span
                                             aria-hidden="true"
-                                            class="flex h-full w-full items-center justify-center rounded-full bg-white font-serif text-xl font-bold text-unmsm-azul"
+                                            class="marca-degradado flex aspect-square w-full items-center justify-center font-serif text-3xl font-bold text-white"
                                         >
                                             {iniciales(docente.nombre)}
                                         </span>
                                     )}
                                 </span>
 
-                                <span class="mt-4 block text-sm font-bold text-slate-800 transition group-hover:text-unmsm-azul">
-                                    {docente.nombre}
-                                </span>
-
-                                {docente.programas?.[0] && (
-                                    <span class="mt-1 block text-xs leading-snug text-slate-500">
-                                        {docente.programas.length === 1
-                                            ? docente.programas[0].nombre
-                                            : `${docente.programas.length} programas`}
+                                <span class="mt-auto block">
+                                    <span class="block text-sm font-bold leading-snug text-slate-800 transition group-hover:text-unmsm-azul">
+                                        {docente.nombre}
                                     </span>
-                                )}
+
+                                    {docente.programas?.[0] && (
+                                        <span class="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">
+                                            {docente.programas.length === 1
+                                                ? docente.programas[0].nombre
+                                                : `${docente.programas.length} programas`}
+                                        </span>
+                                    )}
+                                </span>
                             </a>
                         </li>
                     ))}
@@ -102,22 +116,27 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
 }
 
 <style>
-    /* El aro es el degradado de marca; el interior lo tapa el contenido. Es el
-       mismo gesto que el filo de las tarjetas, aquí en circular. */
-    .coordinador-marco {
-        background-image: var(--degradado-marca);
+    /* El panel se levanta y estrena filo de marca al pasar: el mismo gesto que
+       las tarjetas de programa, para que la portada se lea como un solo
+       sistema y no como seis diseños distintos. */
+    .ficha-coordinador {
+        border: 1px solid transparent;
     }
 
-    .group:hover .coordinador-marco {
-        transform: scale(1.06);
+    .ficha-coordinador:hover,
+    .ficha-coordinador:focus-visible {
+        transform: translateY(-4px);
+        border-color: color-mix(in oklab, var(--color-unmsm-dorado) 55%, transparent);
+        box-shadow: 0 16px 32px -20px rgb(15 43 72 / 0.45);
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .coordinador-marco {
+        .ficha-coordinador,
+        .ficha-coordinador img {
             transition: none;
         }
 
-        .group:hover .coordinador-marco {
+        .ficha-coordinador:hover {
             transform: none;
         }
     }

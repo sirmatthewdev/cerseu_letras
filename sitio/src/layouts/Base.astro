@@ -3,6 +3,7 @@ import '../styles/global.css';
 import { obtenerConfiguracion, obtenerMenu, enVistaPrevia } from '../lib/api';
 import BotonWhatsapp from '../components/BotonWhatsapp.astro';
 import RedesSociales from '../components/RedesSociales.astro';
+import VolverArriba from '../components/VolverArriba.astro';
 import Cabecera from '../components/Cabecera.astro';
 import { ClientRouter } from 'astro:transitions';
 
@@ -156,6 +157,8 @@ const enlacesDelPie = [
         {contacto.whatsapp && (
             <BotonWhatsapp url={contacto.whatsapp} telefono={contacto.telefono} />
         )}
+
+        <VolverArriba />
 
         {/* Degradado y no color plano, como en el sitio anterior: el pie
             desciende del casi negro con que termina la ultima seccion hasta el

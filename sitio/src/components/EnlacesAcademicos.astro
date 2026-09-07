@@ -1,0 +1,82 @@
+---
+import Icono from './Icono.astro';
+import { faOrcid, faLinkedinIn } from '@fortawesome/free-brands-svg-icons';
+import { faIdCard } from '@fortawesome/free-solid-svg-icons';
+import { perfilesDe } from '../lib/perfiles';
+
+interface Props {
+    orcid?: string | null;
+    ctiVitae?: string | null;
+    linkedin?: string | null;
+    /** `compacto` en las tarjetas; `normal` en la ficha. */
+    tamano?: 'compacto' | 'normal';
+    /**
+     * La tarjeta que lo contiene tiene un enlace que cubre toda su superficie.
+     * Sin esto, los iconos quedan por debajo de ese enlace y pulsarlos abre la
+     * ficha del docente en vez del perfil externo.
+     */
+    sobreEnlace?: boolean;
+}
+
+const { orcid, ctiVitae, linkedin, tamano = 'normal', sobreEnlace = false } = Astro.props;
+
+const iconos = {
+    ORCID: { icono: faOrcid, color: '#A6CE39' },
+    // Sin icono ni color de marca verificables para CTI Vitae: se usa una
+    // credencial genérica y el azul institucional, en vez de inventarle una
+    // identidad visual al CONCYTEC.
+    'CTI Vitae': { icono: faIdCard, color: 'var(--color-unmsm-azul)' },
+    LinkedIn: { icono: faLinkedinIn, color: '#0A66C2' },
+} as const;
+
+const enlaces = perfilesDe({ orcid, cti_vitae: ctiVitae, linkedin }).map((perfil) => ({
+    ...perfil,
+    ...iconos[perfil.etiqueta],
+}));
+
+const medida = tamano === 'compacto' ? 'h-7 w-7' : 'h-9 w-9';
+const iconoMedida = tamano === 'compacto' ? 'h-3.5 w-3.5' : 'h-4 w-4';
+---
+
+{
+    enlaces.length > 0 && (
+        <ul class:list={['flex flex-wrap items-center gap-2', sobreEnlace && 'relative z-10']}>
+            {enlaces.map((enlace) => (
+                <li>
+                    <a
+                        href={enlace.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={`--color-perfil: ${enlace.color}`}
+                        class:list={[
+                            'enlace-academico flex items-center justify-center rounded-lg border border-slate-200 bg-white transition duration-200',
+                            medida,
+                        ]}
+                        aria-label={`${enlace.etiqueta} (se abre en una pestaña nueva)`}
+                    >
+                        <Icono icono={enlace.icono} clase={iconoMedida} />
+                    </a>
+                </li>
+            ))}
+        </ul>
+    )
+}
+
+<style>
+    .enlace-academico {
+        color: var(--color-slate-500, #64748b);
+    }
+
+    .enlace-academico:hover,
+    .enlace-academico:focus-visible {
+        color: var(--color-perfil);
+        border-color: color-mix(in oklab, var(--color-perfil) 55%, transparent);
+        background-color: color-mix(in oklab, var(--color-perfil) 10%, white);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .enlace-academico {
+            transition: none;
+        }
+    }
+</style>

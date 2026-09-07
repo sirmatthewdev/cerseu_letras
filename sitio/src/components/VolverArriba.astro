@@ -1,0 +1,170 @@
+---
+/**
+ * Volver arriba, con anillo de progreso.
+ *
+ * El anillo no es adorno: en una ficha de programa o en la portada —que son
+ * largas— dice cuánto queda. Un botón de volver arriba sin esa señal solo dice
+ * «hay más arriba», que ya se sabe.
+ *
+ * Aparece a partir de 400 px. Antes de eso, subir es un gesto de rueda y un
+ * botón flotante solo tapa contenido.
+ */
+---
+
+<button
+    type="button"
+    id="volver-arriba"
+    class="volver-arriba"
+    aria-label="Volver al principio de la página"
+    hidden
+>
+    <svg class="anillo" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="anillo-fondo" cx="50" cy="50" r="45" fill="none" stroke-width="6"></circle>
+        <circle
+            class="anillo-progreso"
+            cx="50"
+            cy="50"
+            r="45"
+            fill="none"
+            stroke-width="6"
+            stroke-linecap="round"
+            stroke-dasharray="283"
+            stroke-dashoffset="283"
+        ></circle>
+    </svg>
+
+    <svg
+        class="flecha"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+    >
+        <path d="m18 15-6-6-6 6"></path>
+    </svg>
+</button>
+
+<style>
+    .volver-arriba {
+        position: fixed;
+        right: 1.5rem;
+        /* Por encima del botón de WhatsApp, que ocupa la esquina inferior
+           izquierda: en móvil los dos a la vez taparían media pantalla. */
+        bottom: 1.5rem;
+        z-index: 40;
+        display: flex;
+        height: 3rem;
+        width: 3rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background-color: #fff;
+        color: var(--color-unmsm-azul);
+        box-shadow: 0 10px 28px -12px rgb(15 43 72 / 0.55);
+        opacity: 0;
+        transform: translateY(0.5rem);
+        transition:
+            opacity 300ms ease,
+            transform 300ms ease;
+    }
+
+    .volver-arriba[hidden] {
+        display: none;
+    }
+
+    .volver-arriba.se-ve {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .volver-arriba:hover {
+        color: #fff;
+        background-color: var(--color-unmsm-azul);
+    }
+
+    .anillo {
+        position: absolute;
+        inset: 0;
+        height: 100%;
+        width: 100%;
+        /* Para que el progreso empiece arriba y no a las tres en punto. */
+        transform: rotate(-90deg);
+    }
+
+    .anillo-fondo {
+        stroke: color-mix(in oklab, var(--color-unmsm-azul) 12%, transparent);
+    }
+
+    .anillo-progreso {
+        stroke: var(--color-unmsm-dorado);
+        transition: stroke-dashoffset 150ms linear;
+    }
+
+    .flecha {
+        position: relative;
+        height: 1.1rem;
+        width: 1.1rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .volver-arriba,
+        .anillo-progreso {
+            transition: none;
+        }
+    }
+</style>
+
+<script is:inline>
+    (function () {
+        function iniciar() {
+            var boton = document.getElementById('volver-arriba');
+
+            // Con las transiciones de vista el script vuelve a ejecutarse: sin
+            // esta marca cada navegación añadiría otro oyente de scroll.
+            if (!boton || boton.dataset.listo === '1') return;
+            boton.dataset.listo = '1';
+            boton.hidden = false;
+
+            var anillo = boton.querySelector('.anillo-progreso');
+            var VUELTA = 283; // 2·π·45, el perímetro del círculo del SVG
+            var pendiente = false;
+
+            function revisar() {
+                var alto = document.documentElement.scrollHeight - window.innerHeight;
+                // Una página que no llega a llenar la ventana no tiene
+                // progreso que medir, y dividir por cero pinta un anillo raro.
+                var avance = alto > 0 ? Math.min(Math.max(window.scrollY / alto, 0), 1) : 0;
+
+                anillo.style.strokeDashoffset = String(VUELTA - avance * VUELTA);
+                boton.classList.toggle('se-ve', window.scrollY > 400);
+
+                pendiente = false;
+            }
+
+            revisar();
+            window.addEventListener(
+                'scroll',
+                function () {
+                    if (pendiente) return;
+                    pendiente = true;
+                    window.requestAnimationFrame(revisar);
+                },
+                { passive: true }
+            );
+
+            boton.addEventListener('click', function () {
+                // `smooth` salvo que se haya pedido menos movimiento: un salto
+                // largo y animado marea a quien lo ha pedido.
+                var suave = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                window.scrollTo({ top: 0, behavior: suave ? 'smooth' : 'auto' });
+            });
+        }
+
+        iniciar();
+        document.addEventListener('astro:page-load', iniciar);
+    })();
+</script>
