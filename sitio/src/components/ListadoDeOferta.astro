@@ -1,0 +1,173 @@
+---
+import TarjetaPrograma from './TarjetaPrograma.astro';
+import Boton from './Boton.astro';
+import TituloSeccion from './TituloSeccion.astro';
+import FormularioSolicitud from './FormularioSolicitud.astro';
+import Paginacion from './Paginacion.astro';
+import { faUserPlus, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import type { Programa, TipoOferta } from '../lib/api';
+
+interface Props {
+    tipo: TipoOferta;
+    /** Los de ESTA página, ya recortados. */
+    programas: Programa[];
+    /**
+     * Todos, sin recortar. Los necesita el desplegable del formulario: quien
+     * pide información tiene que poder elegir cualquier programa, no solo los
+     * doce que le tocaron en la página que está mirando.
+     */
+    todos: Programa[];
+    paginaActual: number;
+    totalPaginas: number;
+}
+
+const { tipo, programas, todos, paginaActual, totalPaginas } = Astro.props;
+
+const totalProgramas = todos.length;
+
+// La API que ve el navegador. Relativa porque Nginx sirve el sitio y la API
+// bajo el mismo dominio; solo el servidor de desarrollo, en otro puerto,
+// necesita la absoluta.
+const apiPublica = import.meta.env.CERSEU_API_PUBLICA ?? '/api/v1';
+
+/*
+ * Las páginas siguientes cuelgan de `/pagina/N` y no de `/N`.
+ *
+ * `/cursos/2` chocaría con `/cursos/{slug}`, que es la ficha de un programa: un
+ * curso cuyo slug fuera un número —o el día que alguien lo ponga— dejaría dos
+ * rutas compitiendo por la misma URL. Con un segmento intermedio no hay
+ * ambigüedad posible.
+ */
+const urlDe = (pagina: number) =>
+    pagina === 1 ? `/${tipo.slug}` : `/${tipo.slug}/pagina/${pagina}`;
+---
+
+{/* Hero con foto y los textos del panel, como el listado de Blade. Antes era
+    un titulo suelto sobre fondo blanco. */}
+<section class="relative isolate overflow-hidden text-white">
+    <img
+        src={tipo.hero.imagen}
+        alt=""
+        fetchpriority="high"
+        decoding="async"
+        class="absolute inset-0 -z-10 h-full w-full object-cover"
+    />
+    <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10 bg-linear-to-r from-unmsm-azul-dark/95 via-unmsm-azul/80 to-unmsm-azul/45"
+    >
+    </div>
+
+    <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 lg:grid-cols-2 lg:px-8">
+        <div>
+            <nav class="text-sm text-unmsm-azul-soft" aria-label="Ruta de navegación">
+                <a href="/" class="hover:text-white">Inicio</a>
+                <span aria-hidden="true"> / </span>
+                {paginaActual === 1 ? (
+                    <span class="text-white">{tipo.plural}</span>
+                ) : (
+                    <>
+                        <a href={`/${tipo.slug}`} class="hover:text-white">{tipo.plural}</a>
+                        <span aria-hidden="true"> / </span>
+                        <span class="text-white">Página {paginaActual}</span>
+                    </>
+                )}
+            </nav>
+
+            <p class="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-unmsm-dorado-light">
+                Oferta académica
+            </p>
+
+            <h1 class="mt-2 font-serif text-4xl font-bold sm:text-5xl">{tipo.hero.titulo}</h1>
+
+            {tipo.hero.texto && (
+                <p class="mt-5 max-w-2xl text-lg leading-relaxed text-slate-100">
+                    {tipo.hero.texto}
+                </p>
+            )}
+
+            {tipo.hero.claim && (
+                <p class="mt-4 max-w-xl font-semibold text-unmsm-dorado-light">
+                    {tipo.hero.claim}
+                </p>
+            )}
+
+            {/* La cifra es la de TODOS los programas, no la de esta página: si
+                dijera «12 programas» en la página 2 de 39, estaría mintiendo
+                sobre el tamaño de la oferta. */}
+            <p class="mt-6 inline-block rounded-full bg-white/10 px-4 py-1.5 text-sm ring-1 ring-white/20">
+                {totalProgramas > 0
+                    ? `${totalProgramas} ${totalProgramas === 1 ? 'programa' : 'programas'} · se miden en ${tipo.medidas.join(' y ')}`
+                    : `Se miden en ${tipo.medidas.join(' y ')}`}
+            </p>
+
+            <div class="mt-8 flex flex-wrap gap-4">
+                <Boton href={`/${tipo.slug}/admision`} icono={faUserPlus}>
+                    Cómo inscribirte
+                </Boton>
+                <Boton href="#oferta" variante="contorno-claro" icono={faArrowRight} iconoAlFinal>
+                    Ver la oferta
+                </Boton>
+            </div>
+        </div>
+
+        {/* El formulario, en el hero y no solo en /admision: es donde lo tenia
+            el sitio anterior, y es la razon por la que alguien entra a esta
+            pagina. Sin oferta publicada no se pide nada —no habria que elegir—
+            y se ofrece el correo. */}
+        {totalProgramas > 0 && (
+            <div class="rounded-2xl bg-white p-6 text-slate-800 shadow-2xl sm:p-8">
+                <h2 class="font-serif text-2xl font-bold text-unmsm-azul">
+                    ¡Solicita información!
+                </h2>
+                <p class="mt-1 text-sm text-slate-600">
+                    Déjanos tus datos y nos pondremos en contacto contigo.
+                </p>
+
+                <div class="mt-6">
+                    <FormularioSolicitud
+                        tipo={tipo.slug}
+                        programas={todos}
+                        apiPublica={apiPublica}
+                    />
+                </div>
+            </div>
+        )}
+    </div>
+</section>
+
+<section id="oferta" class="mx-auto max-w-7xl px-4 py-16 pb-24 lg:px-8">
+    <TituloSeccion
+        titulo={`Nuestros ${tipo.plural}`}
+        kicker="Oferta vigente"
+        bajada={`Conoce la oferta completa de ${tipo.plural.toLowerCase()} del CERSEU.`}
+        centrado
+    />
+
+    {
+        totalProgramas === 0 ? (
+            <div class="mt-16 rounded-xl border border-dashed border-slate-300 px-6 py-16 text-center">
+                <p class="text-lg font-semibold text-slate-700">Próximamente</p>
+                <p class="mt-2 text-slate-500">
+                    Muy pronto anunciaremos nuestra oferta de {tipo.plural.toLowerCase()}.
+                </p>
+            </div>
+        ) : (
+            <>
+                <div data-revelar-grupo class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {programas.map((programa) => (
+                        <TarjetaPrograma programa={programa} />
+                    ))}
+                </div>
+
+                <Paginacion
+                    actual={paginaActual}
+                    total={totalPaginas}
+                    urlDe={urlDe}
+                    etiqueta={tipo.plural.toLowerCase()}
+                    elementos={totalProgramas}
+                />
+            </>
+        )
+    }
+</section>

@@ -1,0 +1,171 @@
+---
+interface Props {
+    /** Página actual, empezando en 1. */
+    actual: number;
+    /** Cuántas hay en total. */
+    total: number;
+    /** Devuelve la URL de una página. */
+    urlDe: (pagina: number) => string;
+    /** Qué se está paginando, para el texto del resumen. */
+    etiqueta?: string;
+    /** Cuántos elementos hay en total, si se quiere decir. */
+    elementos?: number;
+}
+
+const { actual, total, urlDe, etiqueta = 'resultados', elementos } = Astro.props;
+
+/*
+ * Qué números se enseñan.
+ *
+ * Con cuatro páginas caben todas; con cuarenta, no. Se muestran la primera, la
+ * última y una ventana alrededor de la actual, con puntos suspensivos en los
+ * saltos. Enseñarlas todas obligaría a leer una fila de cuarenta números para
+ * encontrar la siguiente.
+ */
+function numeros(actual: number, total: number): (number | '…')[] {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    const cerca = [actual - 1, actual, actual + 1].filter((n) => n > 1 && n < total);
+    const lista: (number | '…')[] = [1];
+
+    if (cerca[0] !== undefined && cerca[0] > 2) lista.push('…');
+    lista.push(...cerca);
+    if (cerca[cerca.length - 1] !== undefined && cerca[cerca.length - 1]! < total - 1) lista.push('…');
+
+    lista.push(total);
+
+    return lista;
+}
+
+const paginas = numeros(actual, total);
+const anterior = actual > 1 ? urlDe(actual - 1) : null;
+const siguiente = actual < total ? urlDe(actual + 1) : null;
+---
+
+{
+    total > 1 && (
+        /*
+         * `<nav>` con nombre y no un puñado de enlaces sueltos: con lector de
+         * pantalla, «navegación de páginas» es lo que permite saltar aquí
+         * directamente en vez de recorrer las tarjetas una a una.
+         */
+        <nav class="mt-12 flex flex-col items-center gap-4" aria-label="Paginación">
+            <ol class="flex flex-wrap items-center justify-center gap-2">
+                <li>
+                    {anterior ? (
+                        <a
+                            href={anterior}
+                            rel="prev"
+                            class="pagina-enlace"
+                            aria-label="Página anterior"
+                        >
+                            <span aria-hidden="true">←</span>
+                        </a>
+                    ) : (
+                        /* Deshabilitado con `aria-disabled` y sin `href`: un
+                           enlace que no lleva a ninguna parte confunde al
+                           teclado y al lector de pantalla. */
+                        <span class="pagina-enlace pagina-inerte" aria-disabled="true">
+                            <span aria-hidden="true">←</span>
+                        </span>
+                    )}
+                </li>
+
+                {paginas.map((pagina) =>
+                    pagina === '…' ? (
+                        <li aria-hidden="true" class="px-1 text-slate-400">
+                            …
+                        </li>
+                    ) : (
+                        <li>
+                            {pagina === actual ? (
+                                <span
+                                    class="pagina-enlace pagina-actual"
+                                    aria-current="page"
+                                    aria-label={`Página ${pagina}, actual`}
+                                >
+                                    {pagina}
+                                </span>
+                            ) : (
+                                <a
+                                    href={urlDe(pagina)}
+                                    class="pagina-enlace"
+                                    aria-label={`Página ${pagina}`}
+                                >
+                                    {pagina}
+                                </a>
+                            )}
+                        </li>
+                    )
+                )}
+
+                <li>
+                    {siguiente ? (
+                        <a
+                            href={siguiente}
+                            rel="next"
+                            class="pagina-enlace"
+                            aria-label="Página siguiente"
+                        >
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    ) : (
+                        <span class="pagina-enlace pagina-inerte" aria-disabled="true">
+                            <span aria-hidden="true">→</span>
+                        </span>
+                    )}
+                </li>
+            </ol>
+
+            <p class="text-sm text-slate-500">
+                Página {actual} de {total}
+                {elementos !== undefined && ` · ${elementos} ${etiqueta}`}
+            </p>
+        </nav>
+    )
+}
+
+<style>
+    .pagina-enlace {
+        display: inline-flex;
+        min-width: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.75rem;
+        border: 1px solid var(--color-slate-200, #e2e8f0);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--color-unmsm-azul);
+        transition:
+            border-color 200ms ease,
+            background-color 200ms ease,
+            color 200ms ease;
+    }
+
+    a.pagina-enlace:hover {
+        border-color: var(--color-unmsm-azul);
+        background-color: color-mix(in oklab, var(--color-unmsm-azul) 6%, transparent);
+    }
+
+    .pagina-actual {
+        background-image: var(--degradado-marca);
+        border-color: transparent;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    /* Las flechas de los extremos cuando no hay a dónde ir. */
+    .pagina-inerte {
+        color: var(--color-slate-300, #cbd5e1);
+        cursor: default;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pagina-enlace {
+            transition: none;
+        }
+    }
+</style>

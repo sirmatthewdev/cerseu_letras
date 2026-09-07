@@ -1,10 +1,17 @@
 ---
-import Base from '../layouts/Base.astro';
-import HeroPagina from '../components/HeroPagina.astro';
-import { obtenerDocentes, obtenerConfiguracion } from '../lib/api';
+import Paginacion from './Paginacion.astro';
+import type { Docente } from '../lib/api';
 
-const docentes = await obtenerDocentes();
-const sitio = await obtenerConfiguracion();
+interface Props {
+    /** Los de ESTA pagina. */
+    docentes: Docente[];
+    /** Cuantos hay en total, para el resumen y el estado vacio. */
+    total: number;
+    paginaActual: number;
+    totalPaginas: number;
+}
+
+const { docentes, total, paginaActual, totalPaginas } = Astro.props;
 
 // Ninguno tiene foto propia todavía, así que todos comparten el marcador por
 // defecto. Veinte veces la misma silueta se lee como un fallo; unas iniciales
@@ -19,23 +26,17 @@ const iniciales = (nombre: string) =>
         .join('');
 
 const tieneFotoPropia = (url: string) => !url.includes('profesor-default');
----
 
-<Base
-    titulo="Plana docente"
-    descripcion="Docentes del CERSEU de la Facultad de Letras y Ciencias Humanas de la UNMSM."
->
-    <HeroPagina
-        titulo="Plana docente"
-        kicker="Quiénes enseñan"
-        bajada={`${docentes.length} docentes a cargo de la oferta formativa del CERSEU.`}
-        imagen={sitio.portada.imagenes[2]}
-        migas={[{ texto: "Inicio", url: "/" }, { texto: "Plana docente" }]}
-    />
+/* Como en la oferta: `/pagina/N` y no `/N`, para no competir con ninguna ruta
+   de ficha. Aqui no habria choque hoy, pero el esquema unico evita tener dos
+   convenciones que explicar. */
+const urlDe = (pagina: number) =>
+    pagina === 1 ? '/plana-docente' : `/plana-docente/pagina/${pagina}`;
+---
 
     <section class="mx-auto max-w-6xl px-6 py-14 pb-24">
         {
-            docentes.length === 0 ? (
+            total === 0 ? (
                 <p class="py-16 text-center text-slate-500">
                     La plana docente se publicará próximamente.
                 </p>
@@ -82,5 +83,12 @@ const tieneFotoPropia = (url: string) => !url.includes('profesor-default');
                 </ul>
             )
         }
+
+        <Paginacion
+            actual={paginaActual}
+            total={totalPaginas}
+            urlDe={urlDe}
+            etiqueta="docentes"
+            elementos={total}
+        />
     </section>
-</Base>

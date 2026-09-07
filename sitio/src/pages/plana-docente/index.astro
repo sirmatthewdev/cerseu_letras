@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import HeroPagina from '../../components/HeroPagina.astro';
+import ListadoDeDocentes from '../../components/ListadoDeDocentes.astro';
+import { obtenerDocentes, obtenerConfiguracion, POR_PAGINA } from '../../lib/api';
+
+const todos = await obtenerDocentes();
+const sitio = await obtenerConfiguracion();
+
+const totalPaginas = Math.max(1, Math.ceil(todos.length / POR_PAGINA));
+---
+
+<Base
+    titulo="Plana docente"
+    descripcion="Docentes del CERSEU de la Facultad de Letras y Ciencias Humanas de la UNMSM."
+>
+    <HeroPagina
+        titulo="Plana docente"
+        kicker="Quiénes enseñan"
+        bajada={`${todos.length} docentes a cargo de la oferta formativa del CERSEU.`}
+        imagen={sitio.portada.imagenes[2]}
+        migas={[{ texto: "Inicio", url: "/" }, { texto: "Plana docente" }]}
+    />
+
+    <ListadoDeDocentes
+        docentes={todos.slice(0, POR_PAGINA)}
+        total={todos.length}
+        paginaActual={1}
+        totalPaginas={totalPaginas}
+    />
+</Base>

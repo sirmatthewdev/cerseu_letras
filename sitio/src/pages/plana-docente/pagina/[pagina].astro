@@ -1,0 +1,56 @@
+---
+import Base from '../../../layouts/Base.astro';
+import HeroPagina from '../../../components/HeroPagina.astro';
+import ListadoDeDocentes from '../../../components/ListadoDeDocentes.astro';
+import { obtenerDocentes, obtenerConfiguracion, POR_PAGINA } from '../../../lib/api';
+
+/* Paginas 2 en adelante de la plana docente. La primera vive en `index.astro`,
+   para que `/plana-docente` sea la canonica y no una redireccion. */
+export async function getStaticPaths() {
+    const todos = await obtenerDocentes();
+    const totalPaginas = Math.max(1, Math.ceil(todos.length / POR_PAGINA));
+    const rutas = [];
+
+    for (let pagina = 2; pagina <= totalPaginas; pagina++) {
+        rutas.push({
+            params: { pagina: String(pagina) },
+            props: {
+                todos,
+                docentes: todos.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA),
+                paginaActual: pagina,
+                totalPaginas,
+            },
+        });
+    }
+
+    return rutas;
+}
+
+const { todos, docentes, paginaActual, totalPaginas } = Astro.props;
+const sitio = await obtenerConfiguracion();
+---
+
+<Base
+    titulo={`Plana docente · página ${paginaActual}`}
+    descripcion="Docentes del CERSEU de la Facultad de Letras y Ciencias Humanas de la UNMSM."
+    sinIndexar
+>
+    <HeroPagina
+        titulo="Plana docente"
+        kicker="Quiénes enseñan"
+        bajada={`${todos.length} docentes a cargo de la oferta formativa del CERSEU.`}
+        imagen={sitio.portada.imagenes[2]}
+        migas={[
+            { texto: "Inicio", url: "/" },
+            { texto: "Plana docente", url: "/plana-docente" },
+            { texto: `Página ${paginaActual}` },
+        ]}
+    />
+
+    <ListadoDeDocentes
+        docentes={docentes}
+        total={todos.length}
+        paginaActual={paginaActual}
+        totalPaginas={totalPaginas}
+    />
+</Base>

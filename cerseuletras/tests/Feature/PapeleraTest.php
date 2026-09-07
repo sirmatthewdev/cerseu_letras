@@ -2,14 +2,22 @@
 
 namespace Tests\Feature;
 
-use App\Models\Evento;
+use App\Filament\Pages\Papelera;
+use App\Models\Docente;
 use App\Models\Programa;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Filament\Actions\Testing\TestAction;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Papelera única del panel.
+ * La papelera del panel.
+ *
+ * Lo que hay que comprobar de una papelera no es que pinte una lista: es que lo
+ * borrado siga ahí y se pueda devolver. Una papelera que enseña bien y no
+ * restaura es peor que no tenerla, porque nadie descubre que no funciona hasta
+ * el día que la necesita.
  */
 class PapeleraTest extends TestCase
 {
@@ -17,100 +25,99 @@ class PapeleraTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        return User::factory()->create(['role' => 'admin']);
     }
 
-    private function programa(array $extra = []): Programa
+    private function programa(string $nombre = 'Curso borrado'): Programa
     {
-        return Programa::create($extra + [
-            'nombre' => 'Maestría en Lingüística',
-            'slug' => 'maestria-en-linguistica',
+        return Programa::create([
             'grado' => 'Curso',
-            'is_active' => true,
+            'nombre' => $nombre,
+            'slug' => \Illuminate\Support\Str::slug($nombre),
+            'estado' => Programa::ESTADO_PUBLICADO,
         ]);
     }
 
-    public function test_borrar_un_programa_lo_saca_del_sitio_pero_no_lo_pierde(): void
+    public function test_recoge_lo_borrado_de_varios_modelos(): void
     {
-        $programa = $this->programa();
+        $this->programa('Curso que se borró')->delete();
 
-        $this->actingAs($this->admin())->delete("/admin/programas/{$programa->id}");
+        Docente::create(['nombres' => 'Ada', 'apellidos' => 'Lovelace', 'estado' => 1])->delete();
+
+        $this->actingAs($this->admin());
+
+        Livewire::test(Papelera::class)
+            ->assertSee('Curso que se borró')
+            ->assertSee('Ada Lovelace')
+            ->assertSee('Programa')
+            ->assertSee('Docente');
+    }
+
+    public function test_lo_que_no_esta_borrado_no_sale(): void
+    {
+        $this->programa('Curso vivo');
+
+        $this->actingAs($this->admin());
+
+        Livewire::test(Papelera::class)->assertDontSee('Curso vivo');
+    }
+
+    /** Lo que de verdad importa: que devuelva el registro al sitio. */
+    public function test_restaura_y_el_registro_vuelve(): void
+    {
+        $programa = $this->programa('Curso recuperable');
+        $programa->delete();
 
         $this->assertSoftDeleted($programa);
-        // Fuera del sitio quiere decir fuera de lo que la API publica: es de
-        // ahi de donde se genera, y una ficha borrada no debe volver a
-        // aparecer en la siguiente reconstruccion.
-        $this->getJson('/api/v1/programas')->assertOk()
-            ->assertJsonMissing(['nombre' => 'Maestría en Lingüística']);
+
+        $this->actingAs($this->admin());
+
+        Livewire::test(Papelera::class)
+            // `TestAction::table($clave)` y no `callAction(..., record:)`:
+            // en una accion de fila la clave va por ahi, y el parametro con
+            // nombre no existe en esta version.
+            ->callAction(TestAction::make('restaurar')->table('programas-' . $programa->id));
+
+        $this->assertNotSoftDeleted($programa);
+
+        // Y que vuelva a estar publicado de verdad, no solo sin marca de
+        // borrado: es lo que espera quien pulsa «restaurar».
+        $this->getJson('/api/v1/programas/curso-recuperable')->assertOk();
     }
 
-    public function test_lo_borrado_aparece_en_la_papelera(): void
+    /**
+     * Dos modelos distintos pueden tener el mismo id. Si la clave de la tabla
+     * fuera solo el id, uno taparía al otro y restaurar devolvería el que no
+     * era — el fallo más silencioso que puede tener una papelera.
+     */
+    public function test_dos_registros_con_el_mismo_id_no_se_tapan(): void
     {
-        $programa = $this->programa();
+        $programa = $this->programa('Programa numero uno');
+        $docente = Docente::create(['nombres' => 'Grace', 'apellidos' => 'Hopper', 'estado' => 1]);
+
         $programa->delete();
+        $docente->delete();
 
-        $this->actingAs($this->admin())
-            ->get('/admin/papelera')
-            ->assertOk()
-            ->assertSee('Maestría en Lingüística');
+        $this->actingAs($this->admin());
+
+        Livewire::test(Papelera::class)
+            ->assertSee('Programa numero uno')
+            ->assertSee('Grace Hopper');
+
+        // Se restaura solo el docente; el programa tiene que seguir borrado.
+        Livewire::test(Papelera::class)
+            ->callAction(TestAction::make('restaurar')->table('docentes-' . $docente->id));
+
+        $this->assertNotSoftDeleted($docente);
+        $this->assertSoftDeleted($programa);
     }
 
-    public function test_restaurar_lo_devuelve_al_sitio(): void
+    public function test_la_papelera_exige_ser_administrador(): void
     {
-        $programa = $this->programa();
-        $programa->delete();
+        $this->get('/panel/papelera')->assertRedirect('/login');
 
-        $this->actingAs($this->admin())
-            ->post("/admin/papelera/programas/{$programa->id}/restaurar")
-            ->assertRedirect(route('admin.papelera.index'));
-
-        $this->assertNull($programa->fresh()->deleted_at);
-        $this->getJson('/api/v1/programas')->assertOk()
-            ->assertJsonFragment(['nombre' => 'Maestría en Lingüística']);
-    }
-
-    public function test_la_papelera_junta_lo_borrado_de_varias_secciones(): void
-    {
-        $this->programa()->delete();
-        Evento::create(['titulo' => 'Coloquio de Letras', 'fecha_inicio' => now()->addWeek(), 'activo' => true])->delete();
-
-        $this->actingAs($this->admin())
-            ->get('/admin/papelera')
-            ->assertOk()
-            ->assertSee('Maestría en Lingüística')
-            ->assertSee('Coloquio de Letras');
-    }
-
-    public function test_se_puede_filtrar_por_tipo(): void
-    {
-        $this->programa()->delete();
-        Evento::create(['titulo' => 'Coloquio de Letras', 'fecha_inicio' => now()->addWeek(), 'activo' => true])->delete();
-
-        $this->actingAs($this->admin())
-            ->get('/admin/papelera?tipo=eventos')
-            ->assertOk()
-            ->assertSee('Coloquio de Letras')
-            ->assertDontSee('Maestría en Lingüística');
-    }
-
-    public function test_un_tipo_inventado_devuelve_404(): void
-    {
-        $this->actingAs($this->admin())
-            ->post('/admin/papelera/inventado/1/restaurar')
-            ->assertNotFound();
-    }
-
-    public function test_no_deja_restaurar_algo_que_no_esta_borrado(): void
-    {
-        $programa = $this->programa();
-
-        $this->actingAs($this->admin())
-            ->post("/admin/papelera/programas/{$programa->id}/restaurar")
-            ->assertNotFound();
-    }
-
-    public function test_la_papelera_exige_sesion_de_administrador(): void
-    {
-        $this->get('/admin/papelera')->assertRedirect();
+        $this->actingAs(User::factory()->create(['role' => 'user']))
+            ->get('/panel/papelera')
+            ->assertForbidden();
     }
 }

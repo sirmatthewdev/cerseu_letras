@@ -1,0 +1,61 @@
+---
+import Base from '../../../layouts/Base.astro';
+import ListadoDeOferta from '../../../components/ListadoDeOferta.astro';
+import { obtenerTipos, obtenerProgramas, POR_PAGINA } from '../../../lib/api';
+
+/*
+ * Páginas 2 en adelante del listado de un tipo.
+ *
+ * Cuelgan de `/pagina/N` y no de `/N` a propósito: `/cursos/2` chocaría con
+ * `/cursos/{slug}`, que es la ficha de un programa. Hoy ningún slug es un
+ * número, pero eso no lo garantiza nada —los genera `Str::slug` del nombre— y
+ * un choque de rutas se manifiesta como una ficha que deja de existir.
+ *
+ * La página 1 no se genera aquí: vive en `index.astro`, para que la URL limpia
+ * `/cursos` sea la canónica y no una redirección.
+ */
+export async function getStaticPaths() {
+    const tipos = await obtenerTipos();
+    const rutas = [];
+
+    for (const tipo of tipos) {
+        const todos = await obtenerProgramas(tipo.slug);
+        const totalPaginas = Math.max(1, Math.ceil(todos.length / POR_PAGINA));
+
+        for (let pagina = 2; pagina <= totalPaginas; pagina++) {
+            rutas.push({
+                params: { tipo: tipo.slug, pagina: String(pagina) },
+                props: {
+                    tipo,
+                    todos,
+                    programas: todos.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA),
+                    paginaActual: pagina,
+                    totalPaginas,
+                },
+            });
+        }
+    }
+
+    return rutas;
+}
+
+const { tipo, todos, programas, paginaActual, totalPaginas } = Astro.props;
+---
+
+<Base
+    titulo={`${tipo.hero.titulo} · página ${paginaActual}`}
+    descripcion={tipo.hero.texto ?? `Oferta de ${tipo.plural.toLowerCase()} del CERSEU.`}
+    imagen={tipo.hero.imagen}
+    {/* Las páginas 2 en adelante no se indexan: compiten con la primera por el
+        mismo contenido y no aportan nada distinto a un buscador. `follow` sí,
+        para que los enlaces a las fichas se sigan recorriendo. */}
+    sinIndexar
+>
+    <ListadoDeOferta
+        tipo={tipo}
+        programas={programas}
+        todos={todos}
+        paginaActual={paginaActual}
+        totalPaginas={totalPaginas}
+    />
+</Base>

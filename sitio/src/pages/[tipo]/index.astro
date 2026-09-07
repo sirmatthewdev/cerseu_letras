@@ -1,33 +1,37 @@
 ---
 import Base from '../../layouts/Base.astro';
-import TarjetaPrograma from '../../components/TarjetaPrograma.astro';
-import Boton from '../../components/Boton.astro';
-import TituloSeccion from '../../components/TituloSeccion.astro';
-import FormularioSolicitud from '../../components/FormularioSolicitud.astro';
-import { faUserPlus, faArrowRight } from '@fortawesome/free-solid-svg-icons';
-import { obtenerTipos, obtenerProgramas } from '../../lib/api';
+import ListadoDeOferta from '../../components/ListadoDeOferta.astro';
+import { obtenerTipos, obtenerProgramas, POR_PAGINA } from '../../lib/api';
 
-// Una sola plantilla para talleres, cursos y especializaciones: las rutas
-// salen de la API, que a su vez las saca del enum TipoOferta. Añadir un cuarto
-// tipo en Laravel lo publica aquí sin tocar este fichero — la misma propiedad
-// que tiene el sitio en Blade, conservada al cruzar de stack.
+// Una sola plantilla para talleres, cursos y especializaciones: las rutas salen
+// de la API, que a su vez las saca del enum TipoOferta. Añadir un cuarto tipo en
+// Laravel lo publica aquí sin tocar este fichero — la misma propiedad que tenía
+// el sitio en Blade, conservada al cruzar de stack.
+//
+// Esta ruta es la primera página. Las siguientes viven en `pagina/[pagina]`, y
+// las dos pintan el mismo componente: el hero, el formulario y la rejilla son
+// idénticos, y tenerlos en dos ficheros era garantizar que acabaran divergiendo.
 export async function getStaticPaths() {
     const tipos = await obtenerTipos();
 
     return Promise.all(
-        tipos.map(async (tipo) => ({
-            params: { tipo: tipo.slug },
-            props: { tipo, programas: await obtenerProgramas(tipo.slug) },
-        }))
+        tipos.map(async (tipo) => {
+            const todos = await obtenerProgramas(tipo.slug);
+
+            return {
+                params: { tipo: tipo.slug },
+                props: {
+                    tipo,
+                    todos,
+                    programas: todos.slice(0, POR_PAGINA),
+                    totalPaginas: Math.max(1, Math.ceil(todos.length / POR_PAGINA)),
+                },
+            };
+        })
     );
 }
 
-const { tipo, programas } = Astro.props;
-
-// La API que ve el navegador. Relativa porque Nginx sirve el sitio y la API
-// bajo el mismo dominio; solo el servidor de desarrollo, en otro puerto,
-// necesita la absoluta.
-const apiPublica = import.meta.env.CERSEU_API_PUBLICA ?? '/api/v1';
+const { tipo, todos, programas, totalPaginas } = Astro.props;
 ---
 
 <Base
@@ -35,112 +39,11 @@ const apiPublica = import.meta.env.CERSEU_API_PUBLICA ?? '/api/v1';
     descripcion={tipo.hero.texto ?? `Oferta de ${tipo.plural.toLowerCase()} del CERSEU.`}
     imagen={tipo.hero.imagen}
 >
-    {/* Hero con foto y los textos del panel, como el listado de Blade. Antes
-        era un titulo suelto sobre fondo blanco. */}
-    <section class="relative isolate overflow-hidden text-white">
-        <img
-            src={tipo.hero.imagen}
-            alt=""
-            fetchpriority="high"
-            decoding="async"
-            class="absolute inset-0 -z-10 h-full w-full object-cover"
-        />
-        <div
-            aria-hidden="true"
-            class="absolute inset-0 -z-10 bg-linear-to-r from-unmsm-azul-dark/95 via-unmsm-azul/80 to-unmsm-azul/45"
-        >
-        </div>
-
-        <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 lg:grid-cols-2 lg:px-8">
-            <div>
-                <nav class="text-sm text-unmsm-azul-soft" aria-label="Ruta de navegación">
-                    <a href="/" class="hover:text-white">Inicio</a>
-                    <span aria-hidden="true"> / </span>
-                    <span class="text-white">{tipo.plural}</span>
-                </nav>
-
-                <p class="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-unmsm-dorado-light">
-                    Oferta académica
-                </p>
-
-                <h1 class="mt-2 font-serif text-4xl font-bold sm:text-5xl">{tipo.hero.titulo}</h1>
-
-                {tipo.hero.texto && (
-                    <p class="mt-5 max-w-2xl text-lg leading-relaxed text-slate-100">
-                        {tipo.hero.texto}
-                    </p>
-                )}
-
-                {tipo.hero.claim && (
-                    <p class="mt-4 max-w-xl font-semibold text-unmsm-dorado-light">
-                        {tipo.hero.claim}
-                    </p>
-                )}
-
-                <p class="mt-6 inline-block rounded-full bg-white/10 px-4 py-1.5 text-sm ring-1 ring-white/20">
-                    {programas.length > 0
-                        ? `${programas.length} ${programas.length === 1 ? "programa" : "programas"} · se miden en ${tipo.medidas.join(" y ")}`
-                        : `Se miden en ${tipo.medidas.join(" y ")}`}
-                </p>
-
-                <div class="mt-8 flex flex-wrap gap-4">
-                    <Boton href={`/${tipo.slug}/admision`} icono={faUserPlus}>
-                        Cómo inscribirte
-                    </Boton>
-                    <Boton href="#oferta" variante="contorno-claro" icono={faArrowRight} iconoAlFinal>
-                        Ver la oferta
-                    </Boton>
-                </div>
-            </div>
-
-            {/* El formulario, en el hero y no solo en /admision: es donde lo
-                tenia el sitio anterior, y es la razon por la que alguien entra
-                a esta pagina. Sin oferta publicada no se pide nada —no habria
-                que elegir— y se ofrece el correo. */}
-            {programas.length > 0 && (
-                <div class="rounded-2xl bg-white p-6 text-slate-800 shadow-2xl sm:p-8">
-                    <h2 class="font-serif text-2xl font-bold text-unmsm-azul">
-                        ¡Solicita información!
-                    </h2>
-                    <p class="mt-1 text-sm text-slate-600">
-                        Déjanos tus datos y nos pondremos en contacto contigo.
-                    </p>
-
-                    <div class="mt-6">
-                        <FormularioSolicitud
-                            tipo={tipo.slug}
-                            programas={programas}
-                            apiPublica={apiPublica}
-                        />
-                    </div>
-                </div>
-            )}
-        </div>
-    </section>
-
-    <section id="oferta" class="mx-auto max-w-7xl px-4 py-16 pb-24 lg:px-8">
-        <TituloSeccion
-            titulo={`Nuestros ${tipo.plural}`}
-            kicker="Oferta vigente"
-            bajada={`Conoce la oferta completa de ${tipo.plural.toLowerCase()} del CERSEU.`}
-            centrado
-        />
-
-        {
-            programas.length === 0 ? (
-                <div class="mt-16 rounded-xl border border-dashed border-slate-300 px-6 py-16 text-center">
-                    <p class="text-lg font-semibold text-slate-700">Próximamente</p>
-                    <p class="mt-2 text-slate-500">
-                        Muy pronto anunciaremos nuestra oferta de {tipo.plural.toLowerCase()}.
-                    </p>
-                </div>
-            ) : (
-                <div data-revelar-grupo class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {programas.map((programa) => (
-                        <TarjetaPrograma programa={programa} />
-                    ))}
-                </div>
-            )
-        }
-    </section>
+    <ListadoDeOferta
+        tipo={tipo}
+        programas={programas}
+        todos={todos}
+        paginaActual={1}
+        totalPaginas={totalPaginas}
+    />
 </Base>

@@ -145,6 +145,19 @@ async function pedir<T>(ruta: string): Promise<T> {
     return cuerpo.data as T;
 }
 
+/**
+ * Cuantas tarjetas caben en una pagina de listado.
+ *
+ * Doce y no un numero redondo cualquiera: la rejilla es de tres columnas en
+ * escritorio y dos en tableta, asi que 12 llena filas completas en los dos
+ * casos y no deja una fila coja al final.
+ *
+ * Antes no habia paginacion: /cursos servia las 39 fichas de golpe, 145 kB de
+ * HTML, y cada tarjeta con su imagen. En movil eso es la pagina entera antes de
+ * poder leer la primera.
+ */
+export const POR_PAGINA = 12;
+
 export const obtenerTipos = () => pedir<TipoOferta[]>('/tipos-oferta');
 
 export const obtenerProgramas = (tipo?: string) =>
