@@ -37,6 +37,10 @@ class PanelListadosTest extends TestCase
 
     public function test_el_listado_de_docentes_pagina_en_vez_de_traerlo_todo(): void
     {
+        // El total no se fija a mano: las migraciones cargan plana docente
+        // oficial, y cada expositor que incorpora la Unidad rompia la prueba
+        // sin que la paginacion —que es lo que aqui se vigila— hubiera cambiado.
+        $antes = Docente::count();
         $this->docentes(30);
 
         $respuesta = $this->actingAs($this->admin())->get('/admin/docentes')->assertOk();
@@ -44,7 +48,7 @@ class PanelListadosTest extends TestCase
         $docentes = $respuesta->viewData('docentes');
         $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $docentes);
         $this->assertCount(25, $docentes->items());
-        $this->assertSame(30, $docentes->total());
+        $this->assertSame($antes + 30, $docentes->total());
     }
 
     public function test_la_busqueda_sobrevive_al_cambio_de_pagina(): void
