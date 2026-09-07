@@ -52,11 +52,8 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                 >
                     {docentes.map((docente) => (
                         <li data-revelar class="h-full">
-                            <a
-                                href={`/profesores/${docente.slug}`}
-                                class="ficha-coordinador group flex h-full flex-col gap-4 rounded-2xl bg-linear-to-b from-slate-100 to-white p-4 transition duration-300"
-                            >
-                                <span class="block overflow-hidden rounded-xl bg-white">
+                            <div class="ficha-coordinador group relative flex h-full flex-col gap-4 rounded-2xl bg-linear-to-b from-slate-100 to-white p-4 transition duration-300">
+                                <span class="relative block overflow-hidden rounded-xl bg-white">
                                     {tieneFoto(docente.foto) ? (
                                         <img
                                             src={docente.foto}
@@ -82,12 +79,37 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                                             {iniciales(docente.nombre)}
                                         </span>
                                     )}
+
+                                    {/* Sobre la esquina inferior derecha de la
+                                        foto: en una tarjeta de seis columnas no
+                                        sobra alto, y debajo del nombre los tres
+                                        iconos empujaban la rejilla. `z-10` los
+                                        saca por encima del area pulsable, que
+                                        cubre la tarjeta entera.
+
+                                        El panel claro de detras no es adorno:
+                                        sin el, un icono apagado sobre una foto
+                                        —o sobre el degradado de las iniciales—
+                                        se pierde, y el hueco deja de leerse
+                                        como hueco. */}
+                                    <span class="absolute bottom-2 right-2 z-10 rounded-xl bg-white/85 p-1 backdrop-blur-sm">
+                                        <EnlacesAcademicos
+                                            orcid={docente.orcid}
+                                            ctiVitae={docente.cti_vitae}
+                                            linkedin={docente.linkedin}
+                                            tamano="compacto"
+                                            conHuecos
+                                        />
+                                    </span>
                                 </span>
 
                                 <span class="mt-auto block">
-                                    <span class="block text-sm font-bold leading-snug text-slate-800 transition group-hover:text-unmsm-azul">
+                                    <a
+                                        href={`/profesores/${docente.slug}`}
+                                        class="block text-sm font-bold leading-snug text-slate-800 transition after:absolute after:inset-0 after:rounded-2xl group-hover:text-unmsm-azul"
+                                    >
                                         {docente.nombre}
-                                    </span>
+                                    </a>
 
                                     {docente.programas?.[0] && (
                                         <span class="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">
@@ -97,20 +119,6 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                                         </span>
                                     )}
                                 </span>
-                            </a>
-
-                            {/* Fuera del enlace y no dentro: anidar enlaces es
-                                HTML invalido, y el navegador lo desarma de
-                                formas que ni el teclado ni el lector de pantalla
-                                recorren bien. */}
-                            <div class="mt-3 px-4 pb-4">
-                                <EnlacesAcademicos
-                                    orcid={docente.orcid}
-                                    ctiVitae={docente.cti_vitae}
-                                    linkedin={docente.linkedin}
-                                    tamano="compacto"
-                                    conHuecos
-                                />
                             </div>
                         </li>
                     ))}

@@ -44,7 +44,7 @@ const urlDe = (pagina: number) =>
             ) : (
                 <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {docentes.map((docente) => (
-                        <li class="relative flex items-center gap-4 rounded-xl border border-slate-200 p-5 shadow-sm transition hover:border-unmsm-azul/40 hover:shadow-md focus-within:border-unmsm-azul">
+                        <li data-ficha-docente class="relative flex items-center gap-4 rounded-xl border border-slate-200 p-5 shadow-sm transition hover:border-unmsm-azul/40 hover:shadow-md focus-within:border-unmsm-azul">
                             {/* La tarjeta entera es el area pulsable, pero el
                                 enlace es uno solo y esta en el nombre: repetir
                                 el enlace en la foto haria que un lector de
