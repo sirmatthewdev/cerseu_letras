@@ -1,6 +1,7 @@
 ---
 import TituloSeccion from './TituloSeccion.astro';
 import FondoSeccion from './FondoSeccion.astro';
+import EnlacesAcademicos from './EnlacesAcademicos.astro';
 import type { Docente } from '../lib/api';
 
 interface Props {
@@ -97,6 +98,20 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                                     )}
                                 </span>
                             </a>
+
+                            {/* Fuera del enlace y no dentro: anidar enlaces es
+                                HTML invalido, y el navegador lo desarma de
+                                formas que ni el teclado ni el lector de pantalla
+                                recorren bien. */}
+                            <div class="mt-3 px-4 pb-4">
+                                <EnlacesAcademicos
+                                    orcid={docente.orcid}
+                                    ctiVitae={docente.cti_vitae}
+                                    linkedin={docente.linkedin}
+                                    tamano="compacto"
+                                    conHuecos
+                                />
+                            </div>
                         </li>
                     ))}
                 </ul>

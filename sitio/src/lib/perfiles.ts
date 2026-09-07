@@ -54,3 +54,28 @@ export function perfilesDe(docente: FuentePerfiles): PerfilAcademico[] {
         { etiqueta: 'LinkedIn' as const, url: normalizar(docente.linkedin) },
     ].filter((p): p is PerfilAcademico => Boolean(p.url));
 }
+
+/**
+ * Los tres perfiles, existan o no.
+ *
+ * `perfilesDe` devuelve solo los cargados, que es lo que necesita quien quiere
+ * enlazarlos. Esta devuelve siempre los tres, con la direccion en `null` cuando
+ * falta, porque la plana docente los enseña todos: los que hay en color y los
+ * que faltan apagados.
+ *
+ * La razon es de gestion, no de diseño. Con los huecos a la vista se ve de un
+ * vistazo a que docentes les falta ORCID o CTI Vitae; ocultandolos, una ficha
+ * incompleta se ve igual de terminada que una completa, y nadie la completa
+ * nunca.
+ */
+export function perfilesConHuecos(docente: FuentePerfiles): {
+    etiqueta: PerfilAcademico['etiqueta'];
+    url: string | null;
+}[] {
+    const cargados = new Map(perfilesDe(docente).map((p) => [p.etiqueta, p.url]));
+
+    return (['ORCID', 'CTI Vitae', 'LinkedIn'] as const).map((etiqueta) => ({
+        etiqueta,
+        url: cargados.get(etiqueta) ?? null,
+    }));
+}

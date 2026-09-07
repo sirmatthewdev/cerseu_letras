@@ -2,7 +2,7 @@
 import Icono from './Icono.astro';
 import { faOrcid, faLinkedinIn } from '@fortawesome/free-brands-svg-icons';
 import { faIdCard } from '@fortawesome/free-solid-svg-icons';
-import { perfilesDe } from '../lib/perfiles';
+import { perfilesConHuecos, perfilesDe } from '../lib/perfiles';
 
 interface Props {
     orcid?: string | null;
@@ -16,9 +16,23 @@ interface Props {
      * ficha del docente en vez del perfil externo.
      */
     sobreEnlace?: boolean;
+    /**
+     * Enseña también los que faltan, apagados. Es lo que hace la plana docente:
+     * con los huecos a la vista se ve de un vistazo qué fichas están
+     * incompletas. En la ficha del docente no: allí un icono apagado no le dice
+     * nada a quien viene a leer sobre esa persona.
+     */
+    conHuecos?: boolean;
 }
 
-const { orcid, ctiVitae, linkedin, tamano = 'normal', sobreEnlace = false } = Astro.props;
+const {
+    orcid,
+    ctiVitae,
+    linkedin,
+    tamano = 'normal',
+    sobreEnlace = false,
+    conHuecos = false,
+} = Astro.props;
 
 const iconos = {
     ORCID: { icono: faOrcid, color: '#A6CE39' },
@@ -29,7 +43,9 @@ const iconos = {
     LinkedIn: { icono: faLinkedinIn, color: '#0A66C2' },
 } as const;
 
-const enlaces = perfilesDe({ orcid, cti_vitae: ctiVitae, linkedin }).map((perfil) => ({
+const fuente = { orcid, cti_vitae: ctiVitae, linkedin };
+
+const enlaces = (conHuecos ? perfilesConHuecos(fuente) : perfilesDe(fuente)).map((perfil) => ({
     ...perfil,
     ...iconos[perfil.etiqueta],
 }));
@@ -41,37 +57,72 @@ const iconoMedida = tamano === 'compacto' ? 'h-3.5 w-3.5' : 'h-4 w-4';
 {
     enlaces.length > 0 && (
         <ul class:list={['flex flex-wrap items-center gap-2', sobreEnlace && 'relative z-10']}>
-            {enlaces.map((enlace) => (
-                <li>
-                    <a
-                        href={enlace.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={`--color-perfil: ${enlace.color}`}
-                        class:list={[
-                            'enlace-academico flex items-center justify-center rounded-lg border border-slate-200 bg-white transition duration-200',
-                            medida,
-                        ]}
-                        aria-label={`${enlace.etiqueta} (se abre en una pestaña nueva)`}
-                    >
-                        <Icono icono={enlace.icono} clase={iconoMedida} />
-                    </a>
-                </li>
-            ))}
+            {enlaces.map((enlace) =>
+                enlace.url ? (
+                    <li>
+                        <a
+                            href={enlace.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={`--color-perfil: ${enlace.color}`}
+                            class:list={[
+                                'enlace-academico perfil-cargado flex items-center justify-center rounded-lg border transition duration-200',
+                                medida,
+                            ]}
+                            aria-label={`${enlace.etiqueta} (se abre en una pestaña nueva)`}
+                        >
+                            <Icono icono={enlace.icono} clase={iconoMedida} />
+                        </a>
+                    </li>
+                ) : (
+                    /* Un hueco no es un enlace: no lleva a ninguna parte, así
+                       que no se anuncia como tal ni recibe el foco. Se oculta
+                       al lector de pantalla —tres «vacíos» seguidos no le
+                       dicen nada a quien no ve la rejilla— y se explica con
+                       `title` a quien pasa el ratón. */
+                    <li aria-hidden="true">
+                        <span
+                            title={`Sin ${enlace.etiqueta} registrado`}
+                            class:list={[
+                                'enlace-academico perfil-vacio flex items-center justify-center rounded-lg border border-dashed',
+                                medida,
+                            ]}
+                        >
+                            <Icono icono={enlace.icono} clase={iconoMedida} />
+                        </span>
+                    </li>
+                )
+            )}
         </ul>
     )
 }
 
 <style>
-    .enlace-academico {
-        color: var(--color-slate-500, #64748b);
+    /*
+     * Cargado: el icono en su color de marca sobre un fondo del mismo color muy
+     * rebajado. Vacio: gris, borde punteado y sin relleno.
+     *
+     * La diferencia es deliberadamente grande. Si un hueco se pareciera a un
+     * perfil cargado, la rejilla dejaria de servir para lo que sirve — ver de un
+     * vistazo que fichas estan a medias.
+     */
+    .perfil-cargado {
+        color: var(--color-perfil);
+        border-color: color-mix(in oklab, var(--color-perfil) 35%, transparent);
+        background-color: color-mix(in oklab, var(--color-perfil) 12%, white);
     }
 
-    .enlace-academico:hover,
-    .enlace-academico:focus-visible {
-        color: var(--color-perfil);
-        border-color: color-mix(in oklab, var(--color-perfil) 55%, transparent);
-        background-color: color-mix(in oklab, var(--color-perfil) 10%, white);
+    .perfil-cargado:hover,
+    .perfil-cargado:focus-visible {
+        border-color: var(--color-perfil);
+        background-color: color-mix(in oklab, var(--color-perfil) 22%, white);
+    }
+
+    .perfil-vacio {
+        color: var(--color-slate-300, #cbd5e1);
+        border-color: var(--color-slate-300, #cbd5e1);
+        background-color: transparent;
+        cursor: default;
     }
 
     @media (prefers-reduced-motion: reduce) {

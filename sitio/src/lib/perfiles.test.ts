@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { perfilesDe } from './perfiles';
+import { perfilesConHuecos, perfilesDe } from './perfiles';
 
 /**
  * Perfiles académicos de un docente.
@@ -75,5 +75,34 @@ describe('perfilesDe', () => {
             const [perfil] = perfilesDe({ orcid });
             expect(perfil.url).toMatch(/^https?:\/\//);
         }
+    });
+});
+
+/**
+ * Los huecos son la señal de gestion: la plana docente enseña los tres, y los
+ * que faltan salen apagados para que se vea de un vistazo que ficha esta a
+ * medias. Si esta funcion dejara de devolver siempre tres, esa señal
+ * desapareceria sin que nada fallara.
+ */
+describe('perfilesConHuecos', () => {
+    it('devuelve siempre los tres, en el mismo orden', () => {
+        expect(perfilesConHuecos({}).map((p) => p.etiqueta)).toEqual([
+            'ORCID',
+            'CTI Vitae',
+            'LinkedIn',
+        ]);
+
+        expect(perfilesConHuecos({ linkedin: 'https://linkedin.com/in/x' })).toHaveLength(3);
+    });
+
+    it('deja en null los que faltan y completa los que hay', () => {
+        const perfiles = perfilesConHuecos({ orcid: '0000-0003-1753-7448' });
+
+        expect(perfiles[0]).toEqual({
+            etiqueta: 'ORCID',
+            url: 'https://orcid.org/0000-0003-1753-7448',
+        });
+        expect(perfiles[1].url).toBeNull();
+        expect(perfiles[2].url).toBeNull();
     });
 });
