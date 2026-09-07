@@ -248,6 +248,78 @@ class PanelFilamentTest extends TestCase
         $this->assertSame('Especializaciones del CERSEU', $ajustes->especializaciones_hero_titulo);
     }
 
+    /**
+     * Todo campo del formulario apunta a algo que se puede guardar.
+     *
+     * Es la guarda contra el fallo mas silencioso que tiene un panel generado:
+     * un campo que apunta a un ACCESOR en vez de a una columna. El formulario lo
+     * pinta, quien edita lo rellena, el panel dice «guardado» y el valor no va a
+     * ninguna parte. Paso con `imagen` —que se llamaba `imagen_url`, que es un
+     * accesor— y antes con los heros de Especializacion, que no estaban en
+     * `$fillable`.
+     *
+     * Se comprueba sobre `Programa`, que es el formulario con mas campos.
+     */
+    public function test_los_campos_del_programa_se_pueden_guardar(): void
+    {
+        $modelo = new Programa();
+        $columnas = \Illuminate\Support\Facades\Schema::getColumnListing($modelo->getTable());
+        $asignables = $modelo->getFillable();
+
+        $esquema = \App\Filament\Resources\Programas\Schemas\ProgramaForm::configure(
+            \Filament\Schemas\Schema::make(\Livewire\Livewire::test(
+                \App\Filament\Resources\Programas\Pages\CreatePrograma::class
+            )->instance())
+        );
+
+        foreach ($this->camposDe($esquema) as $campo) {
+            // Los anidados (`inversion_economica.costo_total`) apuntan dentro de
+            // un JSON: basta con que la columna raiz exista y sea asignable.
+            $raiz = explode('.', $campo)[0];
+
+            // Las relaciones no son columnas y se guardan por su cuenta.
+            if (in_array($raiz, ['docentes'], true)) {
+                continue;
+            }
+
+            $this->assertContains($raiz, $columnas, "El campo «{$campo}» no es una columna de programas.");
+            $this->assertContains($raiz, $asignables, "El campo «{$campo}» no esta en \$fillable: se descartaria en silencio.");
+        }
+    }
+
+    /**
+     * Los nombres de todos los campos de un esquema, recorriendo pestanas,
+     * secciones y repetidores.
+     *
+     * @return list<string>
+     */
+    private function camposDe(\Filament\Schemas\Schema $esquema): array
+    {
+        $nombres = [];
+
+        $recorrer = function ($componentes) use (&$recorrer, &$nombres): void {
+            foreach ($componentes as $componente) {
+                if ($componente instanceof \Filament\Forms\Components\Field) {
+                    $nombres[] = $componente->getName();
+
+                    // Dentro de un repetidor los campos son claves del JSON del
+                    // propio repetidor, no columnas: no se descienden.
+                    if ($componente instanceof \Filament\Forms\Components\Repeater) {
+                        continue;
+                    }
+                }
+
+                if (method_exists($componente, 'getDefaultChildComponents')) {
+                    $recorrer($componente->getDefaultChildComponents());
+                }
+            }
+        };
+
+        $recorrer($esquema->getComponents());
+
+        return array_values(array_unique($nombres));
+    }
+
     public function test_el_escritorio_resume_el_estado_del_sitio(): void
     {
         Programa::create([

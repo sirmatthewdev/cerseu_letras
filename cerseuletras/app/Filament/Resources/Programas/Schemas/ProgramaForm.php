@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Programas\Schemas;
 
 use App\Models\Programa;
+use App\Filament\Componentes\ImagenOptimizada;
 use App\Models\TipoOferta;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -117,7 +118,17 @@ class ProgramaForm
                         ->label('Fecha límite de inscripción')
                         ->maxLength(255)
                         ->helperText('Texto libre: la Unidad la escribe como la publica.'),
-                    TextInput::make('imagen_url')->label('Imagen')->maxLength(255),
+                    /*
+                     * A la columna `imagen`, no a `imagen_url`.
+                     *
+                     * `imagen_url` es un ACCESOR, no una columna: resuelve la
+                     * ruta guardada y cae a una foto del campus si no hay
+                     * ninguna. Un campo escribiendo ahi no guarda nada y no se
+                     * queja — la ficha seguia con la imagen por defecto y el
+                     * panel decia «guardado».
+                     */
+                    ImagenOptimizada::make('imagen', 'programas', 1200, 'Imagen de la ficha')
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Docentes')
