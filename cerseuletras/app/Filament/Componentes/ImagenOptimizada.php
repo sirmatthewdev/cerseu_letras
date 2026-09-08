@@ -4,7 +4,7 @@ namespace App\Filament\Componentes;
 
 use App\Support\OptimizadorImagen;
 use Filament\Forms\Components\FileUpload;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Campo de imagen que pasa por el optimizador del proyecto.
@@ -40,9 +40,23 @@ class ImagenOptimizada
                     ? "Se convierte a WebP y se reduce a {$anchoMaximo} px de ancho."
                     : 'Se convierte a WebP.'
             )
+            /*
+             * El parametro se llama `$file` obligatoriamente.
+             *
+             * Filament invoca este cierre con `evaluate($callback, ['file' =>
+             * $file])`, que empareja POR NOMBRE. Se llamaba `$archivo`, no
+             * casaba con nada, y Filament caia al respaldo: resolverlo por tipo
+             * desde el contenedor. El contenedor no sabe construir un fichero
+             * subido, asi que cada subida moria con BindingResolutionException
+             * —o sea, TODA imagen que se intentara cargar desde el panel—.
+             *
+             * No lo vio nadie porque ninguna prueba llegaba a subir un fichero
+             * de verdad: el formulario se abria bien, y el fallo solo aparecia
+             * al guardar con una imagen elegida.
+             */
             ->saveUploadedFileUsing(
-                fn (TemporaryUploadedFile $archivo): string => OptimizadorImagen::guardar(
-                    $archivo,
+                fn (UploadedFile $file): string => OptimizadorImagen::guardar(
+                    $file,
                     $carpeta,
                     'public',
                     $anchoMaximo

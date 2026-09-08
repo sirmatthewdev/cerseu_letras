@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Leads\Tables;
 
 use App\Models\Lead;
 use App\Models\TipoOferta;
-use App\Support\AvisoDeSolicitud;
+use App\Services\AvisoDeSolicitud;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -47,9 +47,19 @@ class LeadsTable
 
                 TextColumn::make('telefono')->label('Teléfono')->copyable()->placeholder('—'),
 
+                /*
+                 * El estado llega ya como enum: el modelo castea `tipo` a
+                 * TipoOferta. Se forzaba a cadena —`(string) $state`— y eso
+                 * revienta con «Object of class TipoOferta could not be
+                 * converted to string», asi que el listado entero caia en
+                 * cuanto una solicitud tenia tipo. Con la tabla vacia no se
+                 * notaba: la columna no llega a pintarse.
+                 */
                 TextColumn::make('tipo')
                     ->badge()
-                    ->formatStateUsing(fn ($state): string => TipoOferta::desdeSlug((string) $state)?->singular() ?? (string) $state)
+                    ->formatStateUsing(fn ($state): string => $state instanceof TipoOferta
+                        ? $state->singular()
+                        : (TipoOferta::desdeSlug((string) $state)?->singular() ?? (string) $state))
                     ->placeholder('—'),
 
                 TextColumn::make('programa.nombre')
@@ -104,7 +114,7 @@ class LeadsTable
                     ->label('Exportar CSV')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
-                    ->url(fn (): string => route('admin.leads.export'))
+                    ->url(fn (): string => route('gestion.solicitudes.exportar'))
                     ->openUrlInNewTab(),
             ])
             ->recordActions([

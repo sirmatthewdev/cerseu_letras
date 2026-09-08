@@ -2,21 +2,31 @@
 
 namespace Tests\Feature;
 
-use App\Models\TipoOferta;
 use App\Models\User;
+use Filament\Facades\Filament;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * Prueba de humo del panel: recorre TODAS sus pantallas GET con un admin
- * autenticado y comprueba que ninguna revienta.
+ * Prueba de humo del panel: abre TODAS sus pantallas con un admin autenticado y
+ * comprueba que ninguna revienta.
  *
- * No sustituye a las pruebas de comportamiento; sirve para detectar lo que
- * esas no ven: una vista que dejó de compilar, un controlador que quedó
- * pasando una variable que la plantilla ya no usa, o una ruta que se quedó
- * apuntando a un método borrado.
+ * Recorría el panel Blade, que ya no existe. Se reapunta al de Filament en vez
+ * de borrarse, porque lo que detecta no lo ve ninguna otra: un campo mal
+ * declarado, un enum donde se espera una cadena o una relación que no existe no
+ * fallan al arrancar la aplicación, sino al pintar esa pantalla concreta.
+ *
+ * **La edición es la parte que importa.** Ya había una prueba que abría listado
+ * y creación de cada recurso, y aun así la pantalla de edición de la admisión
+ * llevaba tiempo reventando con un TypeError: su título salía de un atributo
+ * casteado a enum y Filament exige una cadena. Listado y creación no lo tocaban
+ * —no hay registro que titular— así que nada lo veía. De ahí que aquí se abra
+ * con un registro de verdad.
+ *
+ * Los recursos se enumeran preguntándole al panel, no a mano: uno nuevo entra
+ * en el recorrido sin que nadie se acuerde de añadirlo.
  */
 class PanelHumoTest extends TestCase
 {
@@ -27,88 +37,70 @@ class PanelHumoTest extends TestCase
         Artisan::call('db:seed');
 
         $admin = User::factory()->create(['role' => 'admin']);
-
-        // Un id real por cada recurso con parámetro; si la tabla está vacía se
-        // omite esa ruta en lugar de inventar un id que daría un 404 legítimo.
-        $ids = [
-            'anuncio' => \App\Models\Anuncio::query()->value('id'),
-            'directorio' => \DB::table('directorio_cerseu')->value('id'),
-            'docente' => \App\Models\Docente::query()->value('id'),
-            'document' => \App\Models\Document::query()->value('id'),
-            'evento' => \DB::table('eventos')->value('id'),
-            'informativo' => \DB::table('informativos')->value('id'),
-            'programa' => \App\Models\Programa::query()->value('id'),
-            'testimonio' => \DB::table('testimonios')->value('id'),
-            'user' => $admin->id,
-            'tipoOferta' => TipoOferta::Taller->slug(),
-            'slug' => 'tramites',
-        ];
+        $this->actingAs($admin);
 
         $revisadas = 0;
         $fallos = [];
 
-        foreach (Route::getRoutes() as $ruta) {
-            if (! in_array('GET', $ruta->methods(), true)) {
-                continue;
-            }
+        foreach (Filament::getPanel('admin')->getResources() as $recurso) {
+            $paginas = $recurso::getPages();
+            $modelo = $recurso::getModel();
 
-            $uri = $ruta->uri();
-            if (! str_starts_with($uri, 'admin')) {
-                continue;
-            }
-
-            // Exportar solicitudes devuelve un CSV; se comprueba aparte.
-            if (str_contains($uri, 'leads/export')) {
-                continue;
-            }
-
-            $destino = $uri;
-            $omitir = false;
-
-            foreach ($ruta->parameterNames() as $parametro) {
-                $valor = $ids[$parametro] ?? null;
-                if ($valor === null) {
-                    $omitir = true;
-                    break;
+            foreach (['index', 'create'] as $pagina) {
+                if (! isset($paginas[$pagina])) {
+                    continue;
                 }
-                $destino = preg_replace('/\{' . $parametro . '\??\}/', (string) $valor, $destino);
+
+                $revisadas++;
+                $fallos = array_merge($fallos, $this->revisar($recurso::getUrl($pagina)));
             }
 
-            if ($omitir) {
+            if (! isset($paginas['edit'])) {
                 continue;
             }
 
-            $respuesta = $this->actingAs($admin)->get('/' . $destino);
-            $revisadas++;
+            // Con un registro real, no con un id inventado: un 404 legítimo no
+            // prueba nada. Si la tabla está vacía tras el seeder, se omite.
+            $registro = $modelo::query()->first();
 
-            if ($respuesta->status() >= 400) {
-                $fallos[] = $destino . ' → ' . $respuesta->status() . ' :: '
-                    . ($respuesta->exception?->getMessage() ?? '(sin excepcion)')
-                    . ' @ ' . basename($respuesta->exception?->getFile() ?? '?') . ':' . ($respuesta->exception?->getLine() ?? '?');
+            if (! $registro instanceof Model) {
+                continue;
             }
+
+            $revisadas++;
+            $fallos = array_merge($fallos, $this->revisar($recurso::getUrl('edit', ['record' => $registro])));
         }
 
-        $this->assertGreaterThan(20, $revisadas, 'Se recorrieron muy pocas pantallas; la deteccion de rutas falla.');
+        // Las páginas propias no son recursos y no salen del recorrido anterior.
+        foreach (Filament::getPanel('admin')->getPages() as $pagina) {
+            $revisadas++;
+            $fallos = array_merge($fallos, $this->revisar($pagina::getUrl()));
+        }
+
+        $this->assertGreaterThan(20, $revisadas, 'Se recorrieron muy pocas pantallas; la deteccion de recursos falla.');
         $this->assertSame([], $fallos, "Pantallas del panel que no responden:\n" . implode("\n", $fallos));
     }
 
-    public function test_la_admision_de_cada_tipo_tiene_su_pantalla(): void
+    /** @return list<string> */
+    private function revisar(string $url): array
     {
-        Artisan::call('db:seed');
-        $admin = User::factory()->create(['role' => 'admin']);
+        $respuesta = $this->get($url);
 
-        foreach (TipoOferta::cases() as $tipo) {
-            $this->actingAs($admin)
-                ->get('/admin/admision/' . $tipo->slug())
-                ->assertOk();
+        if ($respuesta->status() < 400) {
+            return [];
         }
+
+        return [
+            $url . ' → ' . $respuesta->status() . ' :: '
+                . ($respuesta->exception?->getMessage() ?? '(sin excepcion)'),
+        ];
     }
 
     public function test_la_exportacion_de_solicitudes_devuelve_un_csv(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $respuesta = $this->actingAs($admin)->get('/admin/leads/export');
+        $respuesta = $this->actingAs($admin)->get('/gestion/solicitudes/exportar');
 
         $respuesta->assertOk();
         $this->assertStringContainsString('csv', strtolower((string) $respuesta->headers->get('content-type')));

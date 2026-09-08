@@ -2,8 +2,7 @@
 
 namespace App\Filament\Resources\Docentes\Schemas;
 
-use App\Support\OptimizadorImagen;
-use Filament\Forms\Components\FileUpload;
+use App\Filament\Componentes\ImagenOptimizada;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
@@ -11,7 +10,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
  * Formulario de docente.
@@ -56,25 +54,15 @@ class DocenteForm
 
                 Section::make('Fotografía')
                     ->schema([
-                        FileUpload::make('foto')
-                            ->label('Foto')
-                            ->image()
-                            ->imagePreviewHeight('160')
-                            ->disk('public')
-                            ->directory('docentes')
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-                            ->maxSize(5120)
-                            ->helperText('Se convierte a WebP y se reduce a 800 px de ancho.')
-                            /*
-                             * Pasa por el optimizador del proyecto en vez de por
-                             * el guardado de serie de Filament. No es un adorno:
-                             * las fotos que suben llegan a 4 MB, y sin esta
-                             * conversión el listado de docentes se descargaba
-                             * entero a tamaño original.
-                             */
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $archivo): string {
-                                return OptimizadorImagen::guardar($archivo, 'docentes', 'public', 800);
-                            }),
+                        /*
+                         * El mismo componente que el resto de imagenes del
+                         * panel. Estaba copiado a mano aqui, y la copia se
+                         * quedo con el fallo que la original ya no tiene: el
+                         * cierre de guardado nombraba su parametro `$archivo`,
+                         * y Filament lo empareja por nombre —espera `$file`—,
+                         * asi que subir la foto de un docente moria al guardar.
+                         */
+                        ImagenOptimizada::make('foto', 'docentes', 800, 'Foto'),
                     ]),
 
                 Section::make('Trayectoria')

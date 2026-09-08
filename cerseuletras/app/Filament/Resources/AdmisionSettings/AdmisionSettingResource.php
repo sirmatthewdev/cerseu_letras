@@ -30,7 +30,18 @@ class AdmisionSettingResource extends Resource
 
     protected static ?string $pluralModelLabel = 'procesos de admisión';
 
-    protected static ?string $recordTitleAttribute = 'tipo';
+    /*
+     * Sin `$recordTitleAttribute`, y con el titulo resuelto a mano.
+     *
+     * Apuntaba a `tipo`, que el modelo castea al enum TipoOferta. Filament
+     * exige que el titulo de un registro sea una cadena, asi que devolvia el
+     * enum y la pantalla de edicion reventaba con un TypeError: la admision de
+     * talleres y la de cursos no se podian abrir desde el panel.
+     */
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): ?string
+    {
+        return $record?->tipo?->plural();
+    }
 
     public static function form(Schema $schema): Schema
     {
