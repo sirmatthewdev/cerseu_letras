@@ -99,7 +99,7 @@ class ProgramasTable
                     ->icon('heroicon-o-eye-slash')
                     ->color('warning')
                     ->visible(fn (Programa $r): bool => $r->estado === Programa::ESTADO_BORRADOR)
-                    ->url(fn (Programa $r): string => route('admin.vista-previa.programa', $r)),
+                    ->url(fn (Programa $r): string => route('gestion.vista-previa.programa', $r)),
 
                 Action::make('ver')
                     ->label('Ver en el sitio')
@@ -108,6 +108,32 @@ class ProgramasTable
                     ->visible(fn (Programa $r): bool => $r->estado !== Programa::ESTADO_BORRADOR)
                     ->url(fn (Programa $r): ?string => $r->url)
                     ->openUrlInNewTab(),
+
+                /*
+                 * Publicar y despublicar de un clic, como en el panel anterior.
+                 * `estado` se puede cambiar entrando a la ficha, pero con 39
+                 * programas esto es lo que se hace a diario: obligar a abrir el
+                 * formulario entero para mover un interruptor es la clase de
+                 * roce que acaba con fichas sin publicar.
+                 */
+                Action::make('publicar')
+                    ->label(fn (Programa $r): string => $r->estado === Programa::ESTADO_PUBLICADO
+                        ? 'Pasar a borrador'
+                        : 'Publicar')
+                    ->icon(fn (Programa $r): string => $r->estado === Programa::ESTADO_PUBLICADO
+                        ? 'heroicon-o-arrow-uturn-left'
+                        : 'heroicon-o-check-circle')
+                    ->color(fn (Programa $r): string => $r->estado === Programa::ESTADO_PUBLICADO
+                        ? 'gray'
+                        : 'success')
+                    ->requiresConfirmation()
+                    ->action(function (Programa $r): void {
+                        $r->update([
+                            'estado' => $r->estado === Programa::ESTADO_PUBLICADO
+                                ? Programa::ESTADO_BORRADOR
+                                : Programa::ESTADO_PUBLICADO,
+                        ]);
+                    }),
 
                 EditAction::make(),
             ])

@@ -19,9 +19,7 @@ use Tests\TestCase;
  * está: un panel abierto en desarrollo no lo nota nadie hasta que alguien
  * levanta el entorno con otra bandera.
  *
- * También se comprueba que el panel de siempre sigue en pie: los dos conviven
- * mientras dura la migración, y romper `/admin` mientras se construye `/panel`
- * dejaría a la Unidad sin herramienta.
+ * Es el unico panel: `/admin` se retiro cuando este alcanzo paridad.
  */
 class PanelFilamentTest extends TestCase
 {
@@ -85,29 +83,23 @@ class PanelFilamentTest extends TestCase
     }
 
     /**
-     * El criterio es uno solo: el mismo `role === 'admin'` que el middleware
-     * `isAdmin` aplica a las rutas del panel de siempre. Si algún día divergen,
-     * habría gente que entra por una puerta y no por la otra.
+     * Son dos condiciones, no una: administrador Y cuenta activa. Comprobaba
+     * solo el rol, y el middleware del panel Blade —que era el que de verdad
+     * guardaba la puerta— exigia ademas que la cuenta estuviera activa. Con los
+     * dos paneles conviviendo, desactivar a alguien le cerraba `/admin` y le
+     * dejaba `/panel` abierto: la baja no daba de baja.
      */
-    public function test_el_criterio_de_acceso_es_el_mismo_en_los_dos_paneles(): void
+    public function test_solo_entra_quien_es_admin_y_tiene_la_cuenta_activa(): void
     {
         $admin = $this->admin();
         $normal = User::factory()->create(['role' => 'user']);
+        $desactivado = User::factory()->create(['role' => 'admin', 'is_active' => false]);
 
         $panel = app(\Filament\Panel::class);
 
         $this->assertTrue($admin->canAccessPanel($panel));
-        $this->assertTrue($admin->isAdmin());
-
         $this->assertFalse($normal->canAccessPanel($panel));
-        $this->assertFalse($normal->isAdmin());
-    }
-
-    public function test_el_panel_de_siempre_sigue_funcionando(): void
-    {
-        $this->actingAs($this->admin())
-            ->get('/admin/programas')
-            ->assertOk();
+        $this->assertFalse($desactivado->canAccessPanel($panel), 'Una cuenta dada de baja no debe entrar.');
     }
 
     /**

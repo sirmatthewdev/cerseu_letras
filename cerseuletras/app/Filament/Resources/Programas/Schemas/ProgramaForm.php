@@ -131,15 +131,15 @@ class ProgramaForm
                         ->columnSpanFull(),
                 ]),
 
-            Section::make('Docentes')
-                ->schema([
-                    Select::make('docentes')
-                        ->relationship('docentes', 'apellidos')
-                        ->multiple()
-                        ->preload()
-                        ->searchable()
-                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->apellidos}, {$record->nombres}"),
-                ]),
+            /*
+             * Los docentes se gestionan en su propia pestaña (el relation
+             * manager `DocentesRelationManager`), no aquí.
+             *
+             * La relación lleva datos propios —quién coordina, con qué
+             * denominación, con qué rol y en qué orden— y un selector múltiple
+             * solo sabe enganchar: con él, decir quién coordina un programa era
+             * imposible desde este panel, aunque la ficha lo publique.
+             */
         ];
     }
 

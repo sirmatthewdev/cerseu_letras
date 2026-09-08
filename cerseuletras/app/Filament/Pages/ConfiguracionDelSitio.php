@@ -10,6 +10,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -131,7 +132,13 @@ class ConfiguracionDelSitio extends Page
 
                     TextInput::make('popup_retardo_ms')
                         ->label('Retardo del anuncio (ms)')
-                        ->integer(),
+                        ->integer()
+                        ->minValue(0)
+                        // Pasados unos veinte segundos ya no queda nadie
+                        // esperando: un retardo mayor equivale a apagar el
+                        // anuncio, pero sin que se note que esta apagado.
+                        ->maxValue(20000)
+                        ->helperText('Entre 0 y 20000 (20 segundos).'),
 
                     Select::make('popup_frecuencia')
                         ->label('Cada cuánto se muestra')
@@ -142,10 +149,17 @@ class ConfiguracionDelSitio extends Page
                             'dia' => 'Una vez al día',
                         ]),
 
-                    TextInput::make('popup_auto_avance')
-                        ->label('Auto-avance (ms)')
-                        ->integer()
-                        ->helperText('0 lo desactiva.'),
+                    /*
+                     * Interruptor, no milisegundos. La columna es `tinyint(1)`
+                     * y la API la sirve como booleano; el sitio rota las
+                     * laminas cada 4 segundos fijos cuando esta activo. Pintado
+                     * como campo de milisegundos, escribir «3000» aqui no
+                     * cambiaba el ritmo —solo lo encendia— y cualquier valor
+                     * por encima de 127 no cabe en la columna.
+                     */
+                    Toggle::make('popup_auto_avance')
+                        ->label('Pasar las láminas solo')
+                        ->helperText('Cambia de anuncio cada 4 segundos. Solo aplica si hay más de uno.'),
                 ]),
         ];
     }

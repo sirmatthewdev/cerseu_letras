@@ -71,7 +71,14 @@ class ContentPageForm
                                     ->maxLength(20)
                                     ->placeholder('1.1'),
 
-                                TextInput::make('titulo')->label('Título')->maxLength(255),
+                                // Obligatorio, como en el panel anterior: una
+                                // seccion sin titulo se pinta en el sitio como un
+                                // bloque de texto suelto, sin encabezado y sin
+                                // ancla a la que enlazar desde el indice.
+                                TextInput::make('titulo')
+                                    ->label('Título')
+                                    ->required()
+                                    ->maxLength(255),
 
                                 TextInput::make('grupo')
                                     ->label('Grupo')

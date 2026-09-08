@@ -90,11 +90,16 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Quién puede entrar al panel de Filament.
+     * Quién puede entrar al panel: administrador Y cuenta activa.
      *
-     * Es el mismo criterio que aplica el middleware `isAdmin` a las rutas del
-     * panel de siempre: un solo sitio decide, y los dos paneles coinciden
-     * mientras conviven.
+     * Las dos condiciones, no solo la primera. Comprobaba unicamente el rol, y
+     * el middleware del panel anterior —que era el que de verdad guardaba la
+     * puerta— exigia ademas que la cuenta estuviera activa. Con los dos paneles
+     * conviviendo eso significaba que desactivar a alguien le cerraba `/admin`
+     * y le dejaba `/panel` abierto: la baja no daba de baja.
+     *
+     * Filament responde 403 en vez de cerrar la sesion, como hacia el
+     * middleware. Basta: lo que importa es que no entre.
      *
      * No es opcional. Sin este método Filament aplica su respaldo, que deja
      * entrar a cualquiera en local y a nadie fuera de local: las dos respuestas
@@ -102,6 +107,33 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->isAdmin();
+        return $this->isAdmin() && $this->is_active;
+    }
+
+    /**
+     * ¿Es la única cuenta que hoy puede entrar al panel?
+     *
+     * La salvaguarda vive aquí y no en el panel a propósito. Estaba metida en
+     * el controlador del panel Blade, y al retirarlo se habría ido con él: el
+     * panel de Filament impedía borrarse a uno mismo, pero no degradarse ni
+     * desactivarse, así que quedaba a un clic dejar el sitio sin nadie capaz de
+     * administrarlo — y sin nadie, tampoco hay quien lo arregle desde dentro.
+     */
+    public function esUltimoAdminActivo(): bool
+    {
+        return $this->isAdmin()
+            && $this->is_active
+            && self::query()->admins()->active()->where('id', '!=', $this->id)->doesntExist();
+    }
+
+    /**
+     * Si el cambio que se pretende dejaría a este usuario sin acceso.
+     *
+     * Se pregunta con los valores que se van a guardar, no con los guardados:
+     * es lo que permite frenar el cambio antes de aplicarlo.
+     */
+    public function perderiaElAcceso(?string $rol, bool $activa): bool
+    {
+        return $rol !== 'admin' || ! $activa;
     }
 }

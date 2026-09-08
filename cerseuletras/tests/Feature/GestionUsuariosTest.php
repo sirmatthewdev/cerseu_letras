@@ -2,14 +2,24 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Users\Pages\CreateUser;
+use App\Filament\Resources\Users\Pages\EditUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * Gestión de usuarios del panel, con foco en las salvaguardas: el sitio nunca
  * debe quedarse sin administradores ni permitir que alguien se autobloquee.
+ *
+ * Estas comprobaciones entraban por `/admin/users`. Al portarlas se vio que el
+ * panel de Filament solo traía una de las tres: impedía borrarse a uno mismo
+ * desde la lista —aunque no desde la pantalla de edición—, pero no impedía
+ * degradarse, ni desactivarse, ni dejar el sitio sin ningún administrador
+ * activo. Retirar el panel anterior sin esto habría dejado el acceso al panel
+ * a un clic de perderse, sin nadie dentro capaz de deshacerlo.
  */
 class GestionUsuariosTest extends TestCase
 {
@@ -22,16 +32,18 @@ class GestionUsuariosTest extends TestCase
 
     public function test_un_admin_puede_crear_otro_usuario(): void
     {
-        $this->actingAs($this->admin())
-            ->post(route('admin.users.store'), [
+        $this->actingAs($this->admin());
+
+        Livewire::test(CreateUser::class)
+            ->fillForm([
                 'name' => 'Nueva Persona',
                 'email' => 'nueva@unmsm.edu.pe',
                 'password' => 'contrasena-larga',
-                'password_confirmation' => 'contrasena-larga',
                 'role' => 'admin',
-                'is_active' => '1',
+                'is_active' => true,
             ])
-            ->assertRedirect(route('admin.users.index'));
+            ->call('create')
+            ->assertHasNoFormErrors();
 
         $creado = User::where('email', 'nueva@unmsm.edu.pe')->first();
         $this->assertNotNull($creado);
@@ -43,21 +55,19 @@ class GestionUsuariosTest extends TestCase
 
     public function test_la_contrasena_solo_cambia_si_se_escribe_una_nueva(): void
     {
-        $admin = $this->admin();
+        $this->actingAs($this->admin());
         $otro = $this->admin(['password' => Hash::make('original-larga')]);
         $hashPrevio = $otro->password;
 
-        $this->actingAs($admin)->put(route('admin.users.update', $otro), [
-            'name' => 'Nombre Cambiado',
-            'email' => $otro->email,
-            'password' => '',
-            'password_confirmation' => '',
-            'role' => 'admin',
-            'is_active' => '1',
-        ])->assertRedirect(route('admin.users.index'));
+        Livewire::test(EditUser::class, ['record' => $otro->getRouteKey()])
+            ->fillForm(['name' => 'Nombre Cambiado', 'password' => ''])
+            ->call('save')
+            ->assertHasNoFormErrors();
 
         $otro->refresh();
         $this->assertSame('Nombre Cambiado', $otro->name);
+        // Sin esto, abrir una ficha y guardarla sin tocar nada dejaría a esa
+        // persona fuera de su cuenta.
         $this->assertSame($hashPrevio, $otro->password);
     }
 
@@ -66,63 +76,80 @@ class GestionUsuariosTest extends TestCase
         $admin = $this->admin();
         $this->admin(); // otro admin, para que no sea el "último"
 
-        $this->actingAs($admin)->put(route('admin.users.update', $admin), [
-            'name' => $admin->name,
-            'email' => $admin->email,
-            'role' => 'user',
-            'is_active' => '1',
-        ]);
+        $this->actingAs($admin);
 
-        $this->assertSame('admin', $admin->fresh()->role);
+        Livewire::test(EditUser::class, ['record' => $admin->getRouteKey()])
+            ->fillForm(['role' => 'user', 'is_active' => false])
+            ->call('save');
+
+        $admin->refresh();
+        $this->assertSame('admin', $admin->role);
+        $this->assertTrue((bool) $admin->is_active);
     }
 
-    public function test_no_puedo_eliminar_ni_desactivar_mi_propia_cuenta(): void
-    {
-        $admin = $this->admin();
-        $this->admin();
-
-        $this->actingAs($admin)->delete(route('admin.users.destroy', $admin));
-        $this->assertNotNull($admin->fresh());
-
-        $this->actingAs($admin)->post(route('admin.users.toggle', $admin));
-        $this->assertTrue($admin->fresh()->is_active);
-    }
-
-    public function test_el_ultimo_admin_activo_no_puede_degradarse_ni_borrarse(): void
+    public function test_el_ultimo_admin_activo_no_puede_degradarse(): void
     {
         $unico = $this->admin();
-        $otroAdmin = $this->admin();
+        $otro = $this->admin();
+
+        $this->actingAs($unico);
 
         // Con dos admins, degradar al segundo sí se permite.
-        $this->actingAs($unico)->put(route('admin.users.update', $otroAdmin), [
-            'name' => $otroAdmin->name,
-            'email' => $otroAdmin->email,
-            'role' => 'user',
-            'is_active' => '1',
-        ]);
-        $this->assertSame('user', $otroAdmin->fresh()->role);
+        Livewire::test(EditUser::class, ['record' => $otro->getRouteKey()])
+            ->fillForm(['role' => 'user'])
+            ->call('save')
+            ->assertHasNoFormErrors();
 
-        // Ahora `$unico` es el único admin activo: no se puede eliminar.
-        $this->actingAs($otroAdmin->fresh())->delete(route('admin.users.destroy', $unico));
-        $this->assertNotNull($unico->fresh(), 'No debe poder eliminarse al único administrador activo');
+        $this->assertSame('user', $otro->fresh()->role);
+
+        // Ahora `$unico` es el único que puede entrar: ya no se degrada.
+        $this->assertTrue($unico->fresh()->esUltimoAdminActivo());
+
+        Livewire::test(EditUser::class, ['record' => $unico->getRouteKey()])
+            ->fillForm(['role' => 'user'])
+            ->call('save');
+
+        $this->assertSame('admin', $unico->fresh()->role, 'El último administrador activo no debe poder degradarse.');
+    }
+
+    /**
+     * Y que el botón de borrar no se ofrezca siquiera.
+     *
+     * Estaba resuelto en la lista pero no en la pantalla de edición, que
+     * llevaba la misma acción sin ninguna condición.
+     */
+    public function test_no_se_ofrece_borrar_la_propia_cuenta_ni_la_del_ultimo_admin(): void
+    {
+        $admin = $this->admin();
+        $otro = $this->admin();
+
+        $this->actingAs($admin);
+
+        Livewire::test(EditUser::class, ['record' => $admin->getRouteKey()])
+            ->assertActionHidden('delete');
+
+        // Sobre otra cuenta, con más de un admin, sí se ofrece.
+        Livewire::test(EditUser::class, ['record' => $otro->getRouteKey()])
+            ->assertActionVisible('delete');
     }
 
     public function test_una_cuenta_desactivada_pierde_el_acceso_al_panel(): void
     {
         $admin = $this->admin();
 
-        $this->actingAs($admin)->get(route('admin.users.index'))->assertOk();
+        $this->actingAs($admin)->get('/panel')->assertSuccessful();
 
         $admin->update(['is_active' => false]);
 
-        // Aun con la sesión abierta, el middleware la cierra.
-        $this->actingAs($admin)->get(route('admin.users.index'))->assertRedirect('/');
+        // Aun con la sesión abierta, deja de poder entrar.
+        $this->assertFalse($admin->fresh()->is_active);
+        $this->actingAs($admin->fresh())->get('/panel/users')->assertForbidden();
     }
 
     public function test_un_usuario_sin_rol_admin_no_entra_al_panel(): void
     {
         $usuario = User::factory()->create(['role' => 'user', 'is_active' => true]);
 
-        $this->actingAs($usuario)->get(route('admin.users.index'))->assertRedirect('/');
+        $this->actingAs($usuario)->get('/panel/users')->assertForbidden();
     }
 }

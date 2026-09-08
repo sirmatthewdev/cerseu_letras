@@ -34,13 +34,19 @@ class MenuItemsTable
 
                 TextColumn::make('destino')
                     ->label('A dónde lleva')
+                    // El mismo orden que `MenuItem::getEnlaceAttribute()`:
+                    // primero la ruta interna. Estaba al reves, y un elemento
+                    // con las dos cosas se veia aqui con su URL externa
+                    // mientras la barra llevaba a la ruta interna — quien
+                    // fuera a averiguar por que el enlace no va donde deberia
+                    // encontraba justo el dato que no era.
                     ->state(function (MenuItem $r): string {
-                        if ($r->url) {
-                            return $r->url;
-                        }
-
                         if ($r->route_name) {
                             return DestinosPublicos::mapa()[$r->route_name] ?? "⚠ {$r->route_name}";
+                        }
+
+                        if ($r->url) {
+                            return $r->url;
                         }
 
                         return 'Solo desplegable';

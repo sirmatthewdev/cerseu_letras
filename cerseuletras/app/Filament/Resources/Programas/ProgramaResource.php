@@ -7,6 +7,7 @@ use App\Filament\Resources\Programas\Pages\EditPrograma;
 use App\Filament\Resources\Programas\Pages\ListProgramas;
 use App\Filament\Resources\Programas\Schemas\ProgramaForm;
 use App\Filament\Resources\Programas\Tables\ProgramasTable;
+use App\Filament\Resources\Programas\RelationManagers\DocentesRelationManager;
 use App\Models\Programa;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -53,7 +54,9 @@ class ProgramaResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            DocentesRelationManager::class,
+        ];
     }
 
     /** Cuantos hay publicados, en la barra de navegacion. */

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -48,6 +49,17 @@ class UserForm
                         ? 'Se deja vacía para no cambiarla.'
                         : 'Mínimo 8 caracteres.'),
 
+                /*
+                 * Rol y actividad se bloquean en dos casos: sobre la propia
+                 * cuenta y sobre la del ultimo administrador activo. En
+                 * cualquiera de los dos, guardar el cambio dejaria el panel sin
+                 * nadie que pueda entrar —y sin nadie dentro, tampoco hay quien
+                 * lo deshaga—.
+                 *
+                 * `disabled()` no es solo cosmetico en Filament: un campo
+                 * deshabilitado no se deshidrata, asi que el valor no viaja al
+                 * guardar aunque alguien lo fuerce desde el navegador.
+                 */
                 Select::make('role')
                     ->label('Rol')
                     ->required()
@@ -57,11 +69,28 @@ class UserForm
                         'admin' => 'Administrador',
                         'user' => 'Usuario',
                     ])
-                    ->helperText('Solo «Administrador» puede entrar al panel.'),
+                    ->disabled(fn (?User $record): bool => self::esIntocable($record))
+                    ->helperText(fn (?User $record): string => self::esIntocable($record)
+                        ? self::MOTIVO
+                        : 'Solo «Administrador» puede entrar al panel.'),
 
                 Toggle::make('is_active')
                     ->label('Cuenta activa')
-                    ->default(true),
+                    ->default(true)
+                    ->disabled(fn (?User $record): bool => self::esIntocable($record))
+                    ->helperText(fn (?User $record): ?string => self::esIntocable($record) ? self::MOTIVO : null),
             ]);
+    }
+
+    private const MOTIVO = 'No se puede cambiar: dejaría el sitio sin ningún administrador activo.';
+
+    /** La propia cuenta y la del último administrador activo no se degradan. */
+    public static function esIntocable(?User $record): bool
+    {
+        if (! $record?->exists) {
+            return false;
+        }
+
+        return $record->id === auth()->id() || $record->esUltimoAdminActivo();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Anuncios\Tables;
 
+use App\Models\Anuncio;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -21,6 +22,24 @@ class AnunciosTable
                 ImageColumn::make('imagen')->label('')->disk('public'),
 
                 TextColumn::make('titulo')->label('Título')->searchable()->wrap()->weight('semibold'),
+
+                /*
+                 * Cuanto se va a recortar la imagen en la portada.
+                 *
+                 * El marco es 4:5 y se rellena con `cover`, asi que una imagen
+                 * con otra proporcion pierde bordes — a veces la mitad de un
+                 * texto. El modelo ya sabia calcularlo y decir por donde corta;
+                 * sin esta columna ese calculo no se enseñaba en ninguna parte
+                 * y el recorte solo se descubria mirando la portada.
+                 */
+                TextColumn::make('recorte')
+                    ->label('Recorte')
+                    ->state(fn (Anuncio $record): string => $record->recorte_notable
+                        ? "Se recorta {$record->recorte_porcentaje}% {$record->recorte_lado}"
+                        : 'Cuadra')
+                    ->badge()
+                    ->color(fn (Anuncio $record): string => $record->recorte_notable ? 'warning' : 'success')
+                    ->placeholder('—'),
 
                 TextColumn::make('visible_desde')
                     ->label('Vigencia')

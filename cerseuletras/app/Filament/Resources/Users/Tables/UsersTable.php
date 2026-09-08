@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -29,7 +30,11 @@ class UsersTable
                     ->formatStateUsing(fn (?string $state): string => $state === 'admin' ? 'Administrador' : 'Usuario')
                     ->color(fn (?string $state): string => $state === 'admin' ? 'success' : 'gray'),
 
-                ToggleColumn::make('is_active')->label('Activa'),
+                // Mismo criterio que el formulario: desde la lista tampoco se
+                // desactiva la propia cuenta ni la del ultimo administrador.
+                ToggleColumn::make('is_active')
+                    ->label('Activa')
+                    ->disabled(fn (User $record): bool => UserForm::esIntocable($record)),
 
                 TextColumn::make('created_at')
                     ->label('Alta')
@@ -47,7 +52,7 @@ class UsersTable
                 // curso y, si es la unica cuenta de administrador, deja el panel
                 // sin nadie que pueda entrar.
                 DeleteAction::make()
-                    ->visible(fn (User $record): bool => $record->id !== auth()->id()),
+                    ->visible(fn (User $record): bool => ! UserForm::esIntocable($record)),
             ])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
