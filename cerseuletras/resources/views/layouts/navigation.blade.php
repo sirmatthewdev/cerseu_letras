@@ -17,8 +17,10 @@
                     </x-nav-link>
                     @auth
                         @if(auth()->user()->isAdmin())
-                            <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
-                                {{ __('Panel Admin') }}
+                            {{-- Al panel de Filament. La ruta se le pregunta a el:
+                                 sale del id del panel y de su `path`. --}}
+                            <x-nav-link :href="\Filament\Facades\Filament::getPanel('admin')->getUrl()">
+                                {{ __('Panel') }}
                             </x-nav-link>
                         @endif
                     @endauth
@@ -90,8 +92,8 @@
             </x-responsive-nav-link>
             @auth
                 @if(auth()->user()->isAdmin())
-                    <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
-                        {{ __('Panel Admin') }}
+                    <x-responsive-nav-link :href="\Filament\Facades\Filament::getPanel('admin')->getUrl()">
+                        {{ __('Panel') }}
                     </x-responsive-nav-link>
                 @endif
             @endauth

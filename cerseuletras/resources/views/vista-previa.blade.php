@@ -1,10 +1,9 @@
-@extends('admin.layout.app')
-
-@section('title', 'Vista previa · ' . $titulo)
-
-@section('content')
 {{--
     Pantalla de espera de la vista previa.
+
+    Página suelta y no una pantalla de Filament: aquí lo único que importa es el
+    borrador dentro del iframe, y la barra lateral del panel alrededor solo le
+    robaría ancho a lo que se ha venido a mirar.
 
     El render es un `astro build` completo: 17 segundos medidos, y más si la
     máquina está cargada. Lo que no se puede hacer con esa espera es dejar la
@@ -14,8 +13,21 @@
     Cuando termina, la página real se enseña dentro de un iframe. Es la misma
     que verá el visitante: no hay un segundo diseño que mantener.
 --}}
-<div class="p-6" data-vista-previa data-estado="{{ $estadoUrl }}"
-     data-destino="{{ route('admin.vista-previa.archivo', ['ruta' => '']) }}"
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- Un borrador no se indexa: esta pantalla exige sesión, pero el aviso
+         cuesta una línea y cierra la puerta a cualquier despiste. --}}
+    <meta name="robots" content="noindex, nofollow">
+    <title>Vista previa · {{ $titulo }}</title>
+    @vite(['resources/css/app.css'])
+</head>
+<body class="h-full bg-gray-100">
+
+<div class="mx-auto max-w-7xl p-6" data-vista-previa data-estado="{{ $estadoUrl }}"
+     data-destino="{{ route('gestion.vista-previa.archivo', ['ruta' => '']) }}"
      data-ruta="{{ $ruta }}">
 
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -25,9 +37,9 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{{ route('admin.programas.index') }}"
-               class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Volver
+            <a href="{{ $volver }}"
+               class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Volver al panel
             </a>
             <button type="button" data-rehacer
                     class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
@@ -122,4 +134,6 @@
     setTimeout(revisar, 1500);
 })();
 </script>
-@endsection
+
+</body>
+</html>

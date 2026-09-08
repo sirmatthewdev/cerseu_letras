@@ -103,9 +103,9 @@ class VistaPreviaTest extends TestCase
     {
         $programa = $this->borrador();
 
-        $this->get("/admin/vista-previa/programas/{$programa->id}")->assertRedirect('/login');
-        $this->get('/admin/vista-previa/estado')->assertRedirect('/login');
-        $this->get('/admin/vista-previa/sitio/cursos/borrador-sin-publicar/')->assertRedirect('/login');
+        $this->get("/gestion/vista-previa/programas/{$programa->id}")->assertRedirect('/login');
+        $this->get('/gestion/vista-previa/estado')->assertRedirect('/login');
+        $this->get('/gestion/vista-previa/sitio/cursos/borrador-sin-publicar/')->assertRedirect('/login');
     }
 
     /**
@@ -120,7 +120,7 @@ class VistaPreviaTest extends TestCase
         // Con rol de admin: el grupo lleva `isAdmin`, y sin el rol la
         // peticion se va en un 302 antes de llegar al controlador.
         $this->actingAs(User::factory()->create(['role' => 'admin']))
-            ->get("/admin/vista-previa/programas/{$programa->id}")
+            ->get("/gestion/vista-previa/programas/{$programa->id}")
             ->assertStatus(503);
     }
 }

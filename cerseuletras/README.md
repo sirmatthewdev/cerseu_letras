@@ -89,7 +89,7 @@ docentes, requisitos, textos— no se escribe en un seeder, ni en una migración
 ni como valor por defecto de un controlador. Las migraciones crean estructura;
 los seeders, a lo sumo, el andamiaje mínimo para que el sitio arranque sin
 pantallas rotas; el contenido real entra por el panel. Si al instalar de cero
-aparece un texto que nadie escribió desde `/admin`, está mal por definición.
+aparece un texto que nadie escribió desde el panel, está mal por definición.
 
 ### Esquema Relacional
 El sistema utiliza las siguientes tablas principales:
@@ -158,7 +158,7 @@ El sistema utiliza las siguientes tablas principales:
 - **users**: Usuarios del sistema (Administradores).
     - Roles: definidos por columna `role` (ej. 'admin').
     - **No hay alta pública ni verificación de correo.** Las cuentas se crean
-      desde `/admin/users`, y las rutas `register` y `verify-email` no se
+      desde el panel, y las rutas `register` y `verify-email` no se
       registran. Los controladores que Breeze dejó para eso se retiraron: eran
       inalcanzables y arrastraban una referencia a una ruta inexistente.
       Quedan los de inicio de sesión, cierre de sesión, cambio y recuperación
@@ -174,7 +174,7 @@ El sistema utiliza las siguientes tablas principales:
 - **documents**: documentos PDF publicables (`type`, `title`,
   `original_name`, `url`, `published`). Se siembra vacía: las diez filas
   que traía apuntaban a ficheros que nunca existieron y hablaban de tesis
-  y grados académicos. Se cargan desde `/admin/documents`.
+  y grados académicos. Se cargan desde el panel, en «Documentos».
 - **directorio_cerseu**: directorio de contacto. A la espera del equipo del
   CERSEU está vacía y su enlace no aparece en el menú.
 
@@ -182,33 +182,48 @@ El sistema utiliza las siguientes tablas principales:
 
 ## 3. Módulos del Sistema
 
-### Panel Administrativo (`/admin`)
-El acceso está protegido por el middleware `auth` y `isAdmin`. Permite la gestión CRUD (Crear, Leer, Actualizar, Eliminar) de todos los contenidos.
+### Panel Administrativo (`/panel`)
 
-#### Funcionalidades Clave:
-1.  **Dashboard**: Vista general del sistema.
-2.  **Gestión de la oferta**: talleres, cursos y especializaciones se editan
-    en la misma pantalla. El tipo se elige en el desplegable «Grado», y el
-    formulario muestra solo los campos de duración que ese tipo usa.
-3.  **Gestión de Docentes**: Catálogo de profesores, asignación a programas y enlaces a perfiles académicos (ORCID, DINA).
-4.  **Configuración del Sitio**: Control de identidad visual (logos, favicon) y textos generales.
-5.  **Cronogramas**: dos pantallas distintas, y se confunden con facilidad.
-    `/admin/cronograma` edita la tabla de `/cronograma`;
-    `/admin/cronograma-admision` edita el bloque «Cómo inscribirte» de la
-    portada, con sus pasos, iconos y botón.
-6.  **Admisión por módulo**
-    (`/admin/admision/{talleres|cursos|especializaciones}`): una misma pantalla
-    sirve los tres, con un selector arriba. Cada tipo guarda sus propios
-    ajustes y su propio cronograma.
-7.  **Solicitudes** (`/admin/leads`): listado y exportación a CSV de las
-    solicitudes de información, filtrables por tipo, con reenvío del aviso por
-    correo cuando el envío falló.
+El panel es **Filament**. El acceso lo decide `User::canAccessPanel()`: hace
+falta rol de administrador **y** cuenta activa — las dos cosas, o dar de baja a
+alguien no le cerraría la puerta.
 
-`PanelHumoTest` recorre todas estas pantallas con un admin autenticado y
-falla si alguna pasa de 400. Se añadió después de encontrar tres rutas que
-`Route::resource` registraba para métodos que los controladores no
-implementan —`programas.show`, `docentes.show`, `informativos.create`— y que
-por eso devolvían un 500 en lugar de un 404.
+Hubo un panel anterior escrito a mano en `/admin` (19 controladores, 41 vistas
+Blade). Se retiró cuando este alcanzó paridad. Lo que no cabía dentro de un
+recurso de Filament vive ahora bajo `/gestion`: la vista previa de borradores y
+la exportación de solicitudes a CSV.
+
+#### Funcionalidades clave
+
+1.  **Escritorio**: el widget `ResumenDelSitio` con el estado del contenido.
+2.  **Oferta**: talleres, cursos y especializaciones en un solo recurso. El
+    tipo se elige en «Grado», y publicar o pasar a borrador es una acción de la
+    propia lista.
+3.  **Docentes**: catálogo, y sus perfiles académicos (ORCID, CTI Vitae,
+    LinkedIn). La asignación a programas se hace desde la ficha del programa,
+    en la pestaña «Docentes»: es una relación con datos propios —quién coordina,
+    con qué denominación, con qué rol y en qué orden— y por eso es un *relation
+    manager* y no un selector.
+4.  **Configuración del sitio**: identidad visual, contacto, heros por módulo y
+    ajustes del anuncio de portada.
+5.  **Cronogramas**: dos pantallas distintas y fáciles de confundir. El recurso
+    «Cronogramas» edita la tabla de `/cronograma`; la página «Cronograma de
+    admisión» edita el bloque «Cómo inscribirte» de la portada.
+6.  **Admisión por módulo**: una fila por tipo de oferta, cada una con sus
+    requisitos, pasos y cronograma.
+7.  **Solicitudes**: solo lectura —las crea el visitante—, con filtros,
+    exportación a CSV y reenvío del aviso por correo cuando el envío falló.
+8.  **Papelera**: lo borrado en cualquier sección se recupera desde aquí.
+
+`PanelHumoTest` recorre **todas** las pantallas del panel con un admin
+autenticado y falla si alguna pasa de 400. Los recursos se enumeran
+preguntándole al panel, no a mano, así que uno nuevo entra solo en el recorrido.
+
+Abre listado, creación **y edición con un registro real**. Lo último importa:
+había una prueba que solo abría listado y creación, y aun así la pantalla de
+edición de la admisión llevaba tiempo devolviendo un 500 —su título salía de un
+atributo casteado a enum, y Filament exige una cadena—. Sin registro no hay
+título que resolver, así que nada lo veía.
 
 ### Frontend Público
 El sitio público presenta la información de manera responsiva y optimizada para SEO.

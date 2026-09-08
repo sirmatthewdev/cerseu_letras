@@ -59,7 +59,7 @@
         <p>Puede que el enlace esté mal escrito o que la pantalla se haya retirado.</p>
 
         <div class="enlaces">
-            <a class="principal" href="{{ route('admin.dashboard') }}">Ir al panel</a>
+            <a class="principal" href="{{ \Filament\Facades\Filament::getPanel('admin')->getUrl() }}">Ir al panel</a>
             <a href="{{ url('/') }}">Ir al sitio</a>
         </div>
     </main>

@@ -6,7 +6,9 @@ use App\Mail\NuevaSolicitudInformacion;
 use App\Models\Lead;
 use App\Models\Programa;
 use App\Models\SiteSetting;
+use App\Filament\Resources\Leads\Pages\ListLeads;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -177,9 +179,10 @@ class CorreoSolicitudTest extends TestCase
 
         Mail::fake();
 
-        $this->actingAs($this->administrador())
-            ->post(route('admin.leads.reenviar', $lead))
-            ->assertRedirect();
+        $this->actingAs($this->administrador());
+
+        Livewire::test(ListLeads::class)
+            ->callTableAction('reenviar', $lead);
 
         Mail::assertSent(NuevaSolicitudInformacion::class);
         $this->assertFalse($lead->fresh()->avisoPendiente());
@@ -187,9 +190,11 @@ class CorreoSolicitudTest extends TestCase
 
     public function test_reenviar_el_aviso_exige_haber_entrado_al_panel(): void
     {
-        $lead = Lead::create($this->solicitud());
+        Lead::create($this->solicitud());
 
-        $this->post(route('admin.leads.reenviar', $lead))->assertRedirect(route('login'));
+        // La accion vive dentro del panel, asi que la puerta es la del panel:
+        // sin sesion no se llega siquiera a la pantalla que la ofrece.
+        $this->get('/panel/leads')->assertRedirect(route('login'));
     }
 
     private function administrador(): \App\Models\User

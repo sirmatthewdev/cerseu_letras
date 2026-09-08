@@ -2,82 +2,78 @@
 
 namespace Tests\Feature;
 
-use App\Models\Programa;
+use App\Filament\Resources\Programas\Schemas\ProgramaForm;
 use App\Models\User;
+use Filament\Schemas\Schema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * El formulario de programas debe exponer todos los campos de inversión
- * económica que la ficha sabe mostrar. Sin esto, un campo puede existir en la
- * base y en la vista pública pero no tener dónde escribirse.
+ * Los campos de inversión están en el formulario del programa.
+ *
+ * Comprobaba los `id` del HTML del formulario Blade (`inv_costo_total`…), que
+ * ya no existe. Se reapunta al esquema de Filament en vez de borrarse: lo que
+ * guardaba sigue importando —que ningún bloque de la inversión desaparezca del
+ * formulario sin que nadie lo note— y son los campos que pidió la Unidad de
+ * Posgrado en sus observaciones.
+ *
+ * Se pregunta al esquema y no al HTML: el marcado de Filament es suyo y puede
+ * cambiar entre versiones, pero los nombres de los campos son nuestros.
  */
 class PanelInversionCamposTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function admin(): User
+    /** @return list<string> */
+    private function camposDelFormulario(): array
     {
-        return User::factory()->create(['role' => 'admin']);
+        $this->actingAs(User::factory()->create(['role' => 'admin', 'is_active' => true]));
+
+        $esquema = ProgramaForm::configure(Schema::make(
+            \Livewire\Livewire::test(\App\Filament\Resources\Programas\Pages\CreatePrograma::class)->instance()
+        ));
+
+        $nombres = [];
+
+        $recorrer = function ($componentes) use (&$recorrer, &$nombres): void {
+            foreach ($componentes as $componente) {
+                if ($componente instanceof \Filament\Forms\Components\Field) {
+                    $nombres[] = $componente->getName();
+                }
+
+                if (method_exists($componente, 'getDefaultChildComponents')) {
+                    $recorrer($componente->getDefaultChildComponents());
+                }
+            }
+        };
+
+        $recorrer($esquema->getComponents());
+
+        return array_values(array_unique($nombres));
     }
 
-    private function diplomado(): Programa
+    public function test_el_formulario_expone_los_campos_de_inversion(): void
     {
-        return Programa::create([
-            'grado' => 'Taller',
-            'nombre' => 'Diplomado de Prueba',
-            'modalidad' => 'Virtual',
-            'duracion' => 2,
-            'creditos' => 24,
-            'estado' => Programa::ESTADO_PUBLICADO,
-            'inversion_economica' => ['costo_matricula' => 200],
-        ]);
-    }
-
-    public function test_el_formulario_de_edicion_expone_los_campos_de_inversion(): void
-    {
-        $html = $this->actingAs($this->admin())
-            ->get(route('admin.programas.edit', $this->diplomado()))
-            ->assertOk()
-            ->getContent();
+        $campos = $this->camposDelFormulario();
 
         foreach ([
-            'inv_derecho_bachiller',
-            'inv_derecho_otras',
-            'inv_costo_total',
-            'inv_costo_diploma',
-            'inv_costo_matricula',
+            'inversion_economica.derecho_inscripcion.bachiller_unmsm',
+            'inversion_economica.derecho_inscripcion.otras_universidades',
+            'inversion_economica.costo_total',
+            'inversion_economica.costo_diploma',
+            'inversion_economica.costo_matricula',
         ] as $campo) {
-            $this->assertStringContainsString('id="' . $campo . '"', $html, "Falta el campo {$campo}");
+            $this->assertContains($campo, $campos, "Falta el campo {$campo}");
         }
-
-        // El valor guardado se precarga en el formulario.
-        $this->assertMatchesRegularExpression(
-            '~id="inv_costo_matricula"[^>]*value="200"~',
-            $html,
-        );
-
-        // Y los repetidores de modalidades y condiciones están montados.
-        $this->assertStringContainsString('name="inversion_modalidades"', $html);
-        $this->assertStringContainsString('name="inversion_condiciones"', $html);
     }
 
-    public function test_el_formulario_de_alta_expone_los_mismos_campos(): void
+    public function test_las_modalidades_y_las_condiciones_siguen_siendo_listas(): void
     {
-        $html = $this->actingAs($this->admin())
-            ->get(route('admin.programas.create'))
-            ->assertOk()
-            ->getContent();
+        $campos = $this->camposDelFormulario();
 
-        foreach ([
-            'inv_costo_total',
-            'inv_costo_diploma',
-            'inv_costo_matricula',
-        ] as $campo) {
-            $this->assertStringContainsString('id="' . $campo . '"', $html, "Falta el campo {$campo}");
-        }
-
-        $this->assertStringContainsString('name="inversion_modalidades"', $html);
-        $this->assertStringContainsString('name="inversion_condiciones"', $html);
+        // Los dos son repetidores: la Unidad añade y quita filas, no escribe
+        // JSON a mano como en el formulario anterior.
+        $this->assertContains('inversion_economica.modalidades', $campos);
+        $this->assertContains('inversion_economica.condiciones', $campos);
     }
 }

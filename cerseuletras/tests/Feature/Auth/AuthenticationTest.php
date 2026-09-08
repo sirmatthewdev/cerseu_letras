@@ -34,7 +34,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('admin.dashboard', absolute: false));
+        $response->assertRedirect('/panel');
     }
 
     public function test_un_usuario_sin_rol_admin_vuelve_a_la_portada(): void
@@ -49,7 +49,7 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticated();
         // Al panel: el sitio publico es estatico y no tiene sesion, asi que
         // quien se autentica lo hace para administrar.
-        $response->assertRedirect(route('admin.dashboard', absolute: false));
+        $response->assertRedirect('/panel');
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void

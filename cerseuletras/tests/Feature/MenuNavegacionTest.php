@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\MenuItem;
 use App\Models\User;
+use App\Filament\Resources\MenuItems\Pages\CreateMenuItem;
+use App\Filament\Resources\MenuItems\Pages\ListMenuItems;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -105,91 +108,80 @@ class MenuNavegacionTest extends TestCase
         $this->assertTrue($hijo['nueva_pestana']);
     }
 
-    public function test_el_panel_guarda_el_arbol_completo(): void
+    public function test_el_panel_guarda_una_entrada_con_su_padre(): void
     {
-        $respuesta = $this->actingAs($this->admin())->put('/admin/menu', [
-            'items' => [
-                [
-                    'id' => null, 'etiqueta' => 'Admisión', 'route_name' => '', 'url' => '',
-                    'icono' => 'fas-user-plus', 'is_visible' => '1',
-                    'hijos' => [
-                        ['id' => null, 'etiqueta' => 'Proceso', 'route_name' => 'admision', 'url' => '', 'icono' => '', 'is_visible' => '1'],
-                        ['id' => null, 'etiqueta' => 'Vacantes 2026', 'route_name' => '', 'url' => 'https://posgrado.unmsm.edu.pe/doc/v', 'icono' => '', 'nueva_pestana' => '1', 'is_visible' => '1'],
-                    ],
-                ],
-            ],
-        ]);
+        $padre = $this->entrada(['etiqueta' => 'Admisión', 'route_name' => null]);
 
-        $respuesta->assertRedirect(route('admin.menu.index'));
+        Livewire::test(CreateMenuItem::class)
+            ->fillForm([
+                'etiqueta' => 'Vacantes 2026',
+                'parent_id' => $padre->id,
+                'url' => 'https://posgrado.unmsm.edu.pe/doc/v',
+                'nueva_pestana' => true,
+                'is_visible' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
-        $padre = MenuItem::whereNull('parent_id')->firstOrFail();
-        $this->assertSame('Admisión', $padre->etiqueta);
-        $this->assertCount(2, $padre->hijos);
-        $this->assertSame('Vacantes 2026', $padre->hijos[1]->etiqueta);
-        $this->assertTrue($padre->hijos[1]->nueva_pestana);
+        $hijo = MenuItem::where('etiqueta', 'Vacantes 2026')->firstOrFail();
+        $this->assertSame($padre->id, $hijo->parent_id);
+        $this->assertTrue((bool) $hijo->nueva_pestana);
     }
 
-    public function test_lo_que_no_se_envia_se_borra(): void
-    {
-        $viejo = $this->entrada(['etiqueta' => 'Convocatoria caducada']);
+    /*
+     * Aqui vivia `test_lo_que_no_se_envia_se_borra`. Se retira con el panel
+     * Blade y no se sustituye: guardaba una regla de aquel formulario —enviaba
+     * el arbol entero de una vez, asi que lo ausente se entendia como borrado—
+     * y esa regla ya no existe. En Filament cada entrada se borra a mano, que
+     * ademas es lo que evita el accidente que aquella semantica permitia:
+     * perder medio menu por enviar un formulario a medio cargar.
+     */
 
-        $this->actingAs($this->admin())->put('/admin/menu', [
-            'items' => [
-                ['id' => null, 'etiqueta' => 'Nuevo', 'route_name' => 'nosotros', 'url' => '', 'icono' => '', 'is_visible' => '1'],
-            ],
-        ]);
-
-        $this->assertNull(MenuItem::find($viejo->id));
-        $this->assertSame(1, MenuItem::count());
-    }
-
+    /**
+     * Con las dos cosas puestas, manda la ruta interna.
+     *
+     * Se comprueba sobre lo que llega al sitio y no sobre lo que guarda el
+     * panel: es la propiedad que importa —a donde lleva el enlace— y sigue
+     * siendo cierta con cualquier panel, porque vive en el modelo.
+     */
     public function test_la_ruta_interna_gana_a_la_url_externa(): void
     {
-        $this->actingAs($this->admin())->put('/admin/menu', [
-            'items' => [
-                ['id' => null, 'etiqueta' => 'Ambos', 'route_name' => 'nosotros',
-                 'url' => 'https://ejemplo.pe', 'icono' => '', 'is_visible' => '1'],
-            ],
+        $this->entrada([
+            'etiqueta' => 'Ambos',
+            'route_name' => 'nosotros',
+            'url' => 'https://ejemplo.pe',
         ]);
 
-        $item = MenuItem::firstOrFail();
-        $this->assertSame('nosotros', $item->route_name);
-        $this->assertNull($item->url);
+        $respuesta = $this->getJson('/api/v1/menu')->assertOk();
+
+        $item = collect($respuesta->json('data'))->firstWhere('etiqueta', 'Ambos');
+        $this->assertNotNull($item);
+        $this->assertNotSame('https://ejemplo.pe', $item['enlace']);
     }
 
     public function test_una_direccion_externa_invalida_se_rechaza(): void
     {
-        $this->actingAs($this->admin())
-            ->put('/admin/menu', [
-                'items' => [
-                    ['id' => null, 'etiqueta' => 'Rota', 'route_name' => '', 'url' => 'no-es-una-url', 'icono' => '', 'is_visible' => '1'],
-                ],
-            ])
-            ->assertSessionHasErrors('items.0.url');
-
-        $this->assertSame(0, MenuItem::count());
+        Livewire::test(CreateMenuItem::class)
+            ->fillForm(['etiqueta' => 'Rota', 'url' => 'no-es-una-url'])
+            ->call('create')
+            ->assertHasFormErrors(['url']);
     }
 
-    public function test_guardar_invalida_la_cache_del_menu(): void
+    public function test_guardar_desde_el_panel_invalida_la_cache_del_menu(): void
     {
         $this->entrada(['etiqueta' => 'Antes']);
         // Deja el árbol en caché.
         $this->getJson('/api/v1/menu')->assertJsonFragment(['etiqueta' => 'Antes']);
 
-        $this->actingAs($this->admin())->put('/admin/menu', [
-            'items' => [
-                ['id' => null, 'etiqueta' => 'Después', 'route_name' => 'nosotros', 'url' => '', 'icono' => '', 'is_visible' => '1'],
-            ],
-        ]);
+        Livewire::test(CreateMenuItem::class)
+            ->fillForm(['etiqueta' => 'Después', 'route_name' => 'nosotros', 'is_visible' => true])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
-        $this->getJson('/api/v1/menu')
-            ->assertJsonFragment(['etiqueta' => 'Después'])
-            ->assertJsonMissing(['etiqueta' => 'Antes']);
-    }
-
-    public function test_el_panel_exige_sesion_de_administrador(): void
-    {
-        $this->get('/admin/menu')->assertRedirect();
+        // Sin invalidar, el menú nuevo no se vería hasta que caducara la caché:
+        // se guarda, se mira el sitio, no ha cambiado nada, y se vuelve a
+        // guardar pensando que no se guardó.
+        $this->getJson('/api/v1/menu')->assertJsonFragment(['etiqueta' => 'Después']);
     }
 
     public function test_una_cabecera_con_hijos_conserva_su_propio_destino(): void
@@ -269,6 +261,14 @@ class MenuNavegacionTest extends TestCase
             ->assertJsonMissing(['etiqueta' => 'Vacantes del año pasado']);
     }
 
+    /**
+     * Lo caducado tiene que seguir viendose en el panel.
+     *
+     * El sitio lo esconde —para eso esta la fecha—, pero si el panel aplicara
+     * el mismo criterio la entrada desapareceria de la lista el dia que caduca
+     * y no habria forma de renovarla ni de borrarla: quedaria en la base para
+     * siempre, invisible desde las dos puntas.
+     */
     public function test_el_panel_si_muestra_lo_caducado_para_poder_arreglarlo(): void
     {
         $item = $this->entrada([
@@ -276,24 +276,26 @@ class MenuNavegacionTest extends TestCase
             'vigente_hasta' => now()->subMonths(8),
         ]);
 
-        $respuesta = $this->actingAs($this->admin())->get('/admin/menu')->assertOk();
+        // Fuera del sitio...
+        $this->getJson('/api/v1/menu')->assertOk()->assertJsonMissing(['etiqueta' => 'Criterios 2025']);
 
-        $inicial = collect($respuesta->viewData('inicial'));
-        $fila = $inicial->firstWhere('id', $item->id);
-
-        $this->assertNotNull($fila, 'El panel debe seguir listando lo caducado.');
-        $this->assertTrue($fila['caducado']);
+        // ...pero presente en el panel.
+        Livewire::test(ListMenuItems::class)->assertCanSeeTableRecords([$item]);
     }
 
     public function test_la_fecha_de_retirada_se_guarda_desde_el_panel(): void
     {
-        $this->actingAs($this->admin())->put('/admin/menu', [
-            'items' => [
-                ['id' => null, 'etiqueta' => 'Convocatoria', 'route_name' => 'nosotros',
-                 'url' => '', 'icono' => '', 'is_visible' => '1', 'vigente_hasta' => '2026-12-31'],
-            ],
-        ]);
+        Livewire::test(CreateMenuItem::class)
+            ->fillForm([
+                'etiqueta' => 'Convocatoria',
+                'route_name' => 'nosotros',
+                'is_visible' => true,
+                'vigente_hasta' => '2026-12-31',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
-        $this->assertSame('2026-12-31', MenuItem::firstOrFail()->vigente_hasta->format('Y-m-d'));
+        $item = MenuItem::where('etiqueta', 'Convocatoria')->firstOrFail();
+        $this->assertSame('2026-12-31', $item->vigente_hasta->format('Y-m-d'));
     }
 }

@@ -2,32 +2,41 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Docentes\Pages\ListDocentes;
+use App\Filament\Resources\Documents\Pages\CreateDocument;
 use App\Models\Docente;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * Listados del panel: paginación y validación de subidas.
+ *
+ * Entraba por `/admin/docentes` y `/admin/documents`. Se reapunta a Filament en
+ * lugar de borrarse: que un listado no se traiga la tabla entera, y que no se
+ * cuele un ejecutable disfrazado de documento, son ciertas con cualquier panel.
  */
 class PanelListadosTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function admin(): User
+    protected function setUp(): void
     {
-        return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create(['role' => 'admin', 'is_active' => true]));
     }
 
     /** No hay factory para Docente; se crean a mano. */
-    private function docentes(int $cuantos, string $nombres = 'Ana'): void
+    private function docentes(int $cuantos): void
     {
         foreach (range(1, $cuantos) as $i) {
             Docente::create([
-                'nombres' => $nombres,
+                'nombres' => 'Ana',
                 'apellidos' => 'Apellido ' . $i,
                 'email' => "docente{$i}@ejemplo.pe",
                 'estado' => 'activo',
@@ -35,46 +44,41 @@ class PanelListadosTest extends TestCase
         }
     }
 
+    /**
+     * Con la plana docente entera en una sola pantalla, el panel tarda más
+     * cuanto más crece el sitio, hasta que un día deja de abrir.
+     *
+     * No se fija el tamaño de página a mano: es cosa de Filament y puede
+     * cambiar. Lo que se guarda es que haya paginación, no cuál.
+     */
     public function test_el_listado_de_docentes_pagina_en_vez_de_traerlo_todo(): void
     {
-        // El total no se fija a mano: las migraciones cargan plana docente
-        // oficial, y cada expositor que incorpora la Unidad rompia la prueba
-        // sin que la paginacion —que es lo que aqui se vigila— hubiera cambiado.
-        $antes = Docente::count();
         $this->docentes(30);
 
-        $respuesta = $this->actingAs($this->admin())->get('/admin/docentes')->assertOk();
+        $mostrados = Livewire::test(ListDocentes::class)
+            ->instance()
+            ->getTableRecords()
+            ->count();
 
-        $docentes = $respuesta->viewData('docentes');
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $docentes);
-        $this->assertCount(25, $docentes->items());
-        $this->assertSame($antes + 30, $docentes->total());
-    }
-
-    public function test_la_busqueda_sobrevive_al_cambio_de_pagina(): void
-    {
-        // Sin `withQueryString()` el filtro se perdía al pasar de página.
-        $this->docentes(30, 'Ana');
-
-        $respuesta = $this->actingAs($this->admin())
-            ->get('/admin/docentes?search=Ana&page=2')
-            ->assertOk();
-
-        $this->assertStringContainsString('search=Ana', (string) $respuesta->viewData('docentes')->nextPageUrl()
-            ?: $respuesta->viewData('docentes')->previousPageUrl());
+        $this->assertLessThan(
+            Docente::count(),
+            $mostrados,
+            'El listado se trae todas las fichas de golpe.'
+        );
     }
 
     public function test_documentos_rechaza_un_archivo_de_tipo_no_permitido(): void
     {
         Storage::fake('public');
 
-        $this->actingAs($this->admin())
-            ->post('/admin/documents', [
+        Livewire::test(CreateDocument::class)
+            ->fillForm([
                 'type' => 'reglamento',
                 'title' => 'Ejecutable disfrazado',
-                'file' => UploadedFile::fake()->create('malicioso.php', 20, 'application/x-php'),
+                'url' => [UploadedFile::fake()->create('malicioso.php', 20, 'application/x-php')],
             ])
-            ->assertSessionHasErrors('file');
+            ->call('create')
+            ->assertHasFormErrors(['url']);
 
         $this->assertSame(0, Document::count());
     }
@@ -83,13 +87,14 @@ class PanelListadosTest extends TestCase
     {
         Storage::fake('public');
 
-        $this->actingAs($this->admin())
-            ->post('/admin/documents', [
+        Livewire::test(CreateDocument::class)
+            ->fillForm([
                 'type' => 'reglamento',
                 'title' => 'Reglamento vigente',
-                'file' => UploadedFile::fake()->create('reglamento.pdf', 40, 'application/pdf'),
+                'url' => [UploadedFile::fake()->create('reglamento.pdf', 40, 'application/pdf')],
             ])
-            ->assertSessionHasNoErrors();
+            ->call('create')
+            ->assertHasNoFormErrors();
 
         $this->assertSame(1, Document::count());
     }

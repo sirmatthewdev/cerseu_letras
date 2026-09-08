@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,13 +29,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        if ($request->user()->isAdmin()) {
-            return redirect()->intended(route('admin.dashboard', absolute: false));
-        }
-
         // Al panel, no a la portada: el sitio publico es estatico y no tiene
         // sesion, asi que quien se autentica lo hace para administrar.
-        return redirect()->intended(route('admin.dashboard', absolute: false));
+        //
+        // El destino se le pregunta a Filament en vez de escribirlo: la ruta
+        // sale del id del panel y de su `path`, y los dos viven en el
+        // PanelProvider.
+        return redirect()->intended(Filament::getPanel('admin')->getUrl());
     }
 
     /**

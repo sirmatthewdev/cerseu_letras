@@ -6,7 +6,10 @@ use App\Models\Docente;
 use App\Models\Programa;
 use App\Models\SiteSetting;
 use App\Models\User;
+use App\Filament\Resources\Programas\Pages\EditPrograma;
+use App\Filament\Resources\Programas\RelationManagers\DocentesRelationManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -105,24 +108,40 @@ class AjustesDiplomadosTest extends TestCase
         $this->assertSame('Coordinadora', Programa::denominacionCoordinador('Coordinadora'));
     }
 
+    /**
+     * La denominación solo se guarda para quien coordina.
+     *
+     * Se edita desde el relation manager de docentes: el formulario del
+     * programa traía un selector múltiple, que solo sabe enganchar y no puede
+     * tocar lo que la relación guarda de cada uno.
+     */
     public function test_el_panel_guarda_la_denominacion_solo_para_quien_coordina(): void
     {
         $programa = $this->diplomado();
         $coordina = Docente::create(['nombres' => 'Ana', 'apellidos' => 'Ruiz', 'estado' => 1]);
         $otro = Docente::create(['nombres' => 'Luis', 'apellidos' => 'Paz', 'estado' => 1]);
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), [
-                'nombre' => $programa->nombre,
-                'grado' => 'Taller',
-                'docentes_asignados' => [$coordina->id, $otro->id],
-                'docentes_coordinador' => ['1', '0'],
-                // La segunda fila envía denominación aunque no coordine: no debe guardarse.
-                'docentes_coordinador_denominacion' => ['Coordinadora', 'Coordinadora'],
-                'docentes_rol' => ['Coordinación', 'Docente'],
-                'docentes_orden' => ['1', '2'],
-            ])
-            ->assertRedirect(route('admin.programas.index'));
+        $this->actingAs($this->admin());
+
+        $gestor = Livewire::test(DocentesRelationManager::class, [
+            'ownerRecord' => $programa,
+            'pageClass' => EditPrograma::class,
+        ]);
+
+        $gestor->callTableAction('attach', data: [
+            'recordId' => $coordina->id,
+            'es_coordinador' => true,
+            'coordinador_denominacion' => 'Coordinadora',
+            'rol' => 'Coordinación',
+            'orden' => 1,
+        ]);
+
+        $gestor->callTableAction('attach', data: [
+            'recordId' => $otro->id,
+            'es_coordinador' => false,
+            'rol' => 'Docente',
+            'orden' => 2,
+        ]);
 
         $pivotes = $programa->fresh()->docentes->keyBy('id');
 
@@ -205,19 +224,11 @@ class AjustesDiplomadosTest extends TestCase
 
     public function test_el_panel_guarda_el_costo_por_matricula(): void
     {
-        $programa = $this->diplomado();
+        $programa = $this->diplomado([
+            'inversion_economica' => ['costo_total' => 3650, 'costo_diploma' => 650],
+        ]);
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), [
-                'nombre' => $programa->nombre,
-                'grado' => 'Taller',
-                'inversion_economica' => json_encode([
-                    'costo_total' => 3650,
-                    'costo_diploma' => 650,
-                    'costo_matricula' => 200,
-                ]),
-            ])
-            ->assertRedirect(route('admin.programas.index'));
+        $this->guardar($programa, ['inversion_economica.costo_matricula' => 200]);
 
         $inversion = $programa->fresh()->inversion_economica;
 
@@ -326,22 +337,20 @@ class AjustesDiplomadosTest extends TestCase
 
     public function test_el_panel_guarda_las_modalidades_junto_al_resto_de_la_inversion(): void
     {
-        $programa = $this->diplomado();
+        $programa = $this->diplomado([
+            'inversion_economica' => ['costo_total' => 3650, 'costo_diploma' => 650],
+        ]);
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), [
-                'nombre' => $programa->nombre,
-                'grado' => 'Taller',
-                'inversion_economica' => json_encode(['costo_total' => 3650, 'costo_diploma' => 650]),
-                'inversion_modalidades' => json_encode([
-                    ['nombre' => 'Pago único', 'cuotas' => [
+        $this->guardar($programa, [
+            'inversion_economica.modalidades' => [
+                [
+                    'nombre' => 'Pago único',
+                    'cuotas' => [
                         ['etiqueta' => 'Cuota única', 'monto' => 3000, 'fecha' => '16, 17 y 18 de septiembre'],
-                    ]],
-                    // Modalidad sin cuotas: se descarta al guardar.
-                    ['nombre' => 'Vacía', 'cuotas' => []],
-                ]),
-            ])
-            ->assertRedirect(route('admin.programas.index'));
+                    ],
+                ],
+            ],
+        ]);
 
         $inversion = $programa->fresh()->inversion_economica;
 
@@ -425,48 +434,46 @@ class AjustesDiplomadosTest extends TestCase
 
     public function test_el_panel_guarda_la_lista_de_condiciones(): void
     {
-        $programa = $this->diplomado();
+        $programa = $this->diplomado(['inversion_economica' => ['costo_total' => 3650]]);
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), [
-                'nombre' => $programa->nombre,
-                'grado' => 'Taller',
-                'inversion_economica' => json_encode(['costo_total' => 3650]),
-                'inversion_condiciones' => json_encode([
-                    'Primera condición',
-                    '   ',               // en blanco: se descarta
-                    'Segunda condición',
-                ]),
-            ])
-            ->assertRedirect(route('admin.programas.index'));
-
-        $this->assertSame(
-            ['Primera condición', 'Segunda condición'],
-            $programa->fresh()->inversion_economica['condiciones'],
-        );
-    }
-
-    public function test_vaciar_la_lista_devuelve_el_control_a_los_campos_anteriores(): void
-    {
-        $programa = $this->diplomado([
-            'inversion_economica' => [
-                'condiciones' => ['Se va a borrar'],
-                'descuentos' => 'Respaldo antiguo',
+        $this->guardar($programa, [
+            'inversion_economica.condiciones' => [
+                ['texto' => 'Primera condición'],
+                ['texto' => '   '],               // en blanco
+                ['texto' => 'Segunda condición'],
             ],
         ]);
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), [
-                'nombre' => $programa->nombre,
-                'grado' => 'Taller',
-                'inversion_economica' => json_encode(['descuentos' => 'Respaldo antiguo']),
-                'inversion_condiciones' => json_encode([]),
-            ]);
+        // Lo que llega a la ficha va sin las líneas en blanco. El filtrado lo
+        // hace el modelo al leer, no el formulario al guardar: así vale para
+        // cualquier panel, y para lo que ya estuviera guardado.
+        $this->assertSame(
+            ['Primera condición', 'Segunda condición'],
+            $programa->fresh()->condiciones_de_pago,
+        );
+    }
 
-        $fresco = $programa->fresh();
+    /**
+     * Vaciar la lista quita el bloque de la ficha.
+     *
+     * Antes esta prueba comprobaba además que, al vaciarla, volvieran a mandar
+     * los campos sueltos del formato anterior (`descuentos`, `observaciones`,
+     * `modalidades_pago`). Eso sigue siendo cierto **al leer** —lo comprueba
+     * `test_los_campos_sueltos_anteriores_siguen_apareciendo_como_lista`— pero
+     * ya no se puede provocar guardando desde el panel: el formulario de
+     * Filament no tiene campo para esas claves, así que al guardar no las
+     * escribe. Hoy no hay ningún programa que las tenga (comprobado), de modo
+     * que el respaldo solo se ejerce sobre datos ya guardados.
+     */
+    public function test_vaciar_la_lista_quita_las_condiciones_de_la_ficha(): void
+    {
+        $programa = $this->diplomado([
+            'inversion_economica' => ['condiciones' => ['Se va a borrar']],
+        ]);
 
-        $this->assertArrayNotHasKey('condiciones', $fresco->inversion_economica);
-        $this->assertSame(['Respaldo antiguo'], $fresco->condiciones_de_pago);
+        $this->guardar($programa, ['inversion_economica.condiciones' => []]);
+
+        $this->assertSame([], $programa->fresh()->condiciones_de_pago);
     }
 
     // Obs. N.º 4 — Denominación del título que otorga
@@ -514,22 +521,15 @@ class AjustesDiplomadosTest extends TestCase
             'grado_otorga' => 'Diploma en algo',
         ]);
 
-        $datos = ['nombre' => $programa->nombre, 'grado' => 'Taller'];
-
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), $datos + [
-                'grado_otorga_label' => 'Confiere',
-                'grado_otorga' => 'Diploma en Curaduría',
-            ]);
+        $this->guardar($programa, [
+            'grado_otorga_label' => 'Confiere',
+            'grado_otorga' => 'Diploma en Curaduría',
+        ]);
 
         $this->assertSame('Confiere: Diploma en Curaduría', $programa->fresh()->denominacion_otorga_texto);
 
         // Vaciar el campo debe dejarlo vacío, no regenerarlo.
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), $datos + [
-                'grado_otorga_label' => '',
-                'grado_otorga' => '',
-            ]);
+        $this->guardar($programa, ['grado_otorga_label' => null, 'grado_otorga' => null]);
 
         $this->assertNull($programa->fresh()->denominacion_otorga_texto);
     }
@@ -587,12 +587,7 @@ class AjustesDiplomadosTest extends TestCase
     {
         $programa = $this->diplomado();
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.programas.update', $programa), [
-                'nombre' => $programa->nombre,
-                'grado' => 'Taller',
-                'horas_academicas' => '520',
-            ]);
+        $this->guardar($programa, ['horas_academicas' => '520']);
 
         $this->assertSame(520, $programa->fresh()->horas_academicas);
     }
@@ -632,5 +627,22 @@ class AjustesDiplomadosTest extends TestCase
 
         $this->assertSame('Magíster en Lingüística', $ficha['grado_otorga']);
         $this->assertSame('cursos', $ficha['tipo']);
+    }
+
+    /**
+     * Guarda el programa desde el formulario del panel.
+     *
+     * Se rellenan solo los campos que interesan: `fillForm` los mezcla con lo
+     * que la ficha ya tenía cargado, así que lo que no se toca se guarda tal
+     * como estaba — que es justo lo que hace quien edita.
+     */
+    private function guardar(Programa $programa, array $campos): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(EditPrograma::class, ['record' => $programa->getRouteKey()])
+            ->fillForm($campos)
+            ->call('save')
+            ->assertHasNoFormErrors();
     }
 }

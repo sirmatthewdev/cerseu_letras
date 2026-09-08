@@ -11,7 +11,7 @@ El sitio son **dos piezas**, y conviene tenerlo claro desde el principio:
 | **Astro** | El sitio público, ficheros estáticos | `sitio/` |
 
 Astro se construye contra la API y Nginx entrega el resultado. Laravel solo
-responde HTML en `/admin`, `/login` y `/profile`; todo lo demás son ficheros.
+responde HTML en `/panel`, `/login` y `/profile`; todo lo demás son ficheros.
 Publicar desde el panel encola un trabajo que pide reconstruir el sitio, así
 que un cambio de contenido no exige tocar nada a mano.
 
@@ -26,7 +26,7 @@ uno se anuncia con la unidad que le es propia:
 
 Los tres funcionan igual: listado, ficha, página de admisión y formulario de
 solicitud de información, cada uno con su propio cronograma. El contenido se
-administra desde el panel en `/admin`.
+administra desde el panel en `/panel`.
 
 > El sitio nació como portal de la Unidad de Posgrado y conserva de aquel origen
 > el nombre de la tabla `programas`, donde ahora viven los tres tipos: los
@@ -199,7 +199,7 @@ docker compose run --rm -e CERSEU_API=http://web/api/v1 astro npm run build
 No sirve `localhost`: ahí dentro sería el propio contenedor de Astro.
 
 Sin este paso `sitio/dist/` está vacío y el dominio responde 404 —Nginx sirve
-ficheros y todavía no hay ninguno—, aunque `/admin` y `/api` funcionen.
+ficheros y todavía no hay ninguno—, aunque `/panel` y `/api` funcionen.
 
 `--seed` deja el sitio utilizable desde el primer arranque: menú, textos de
 `/nosotros`, `/tramites` y `/admision`, ajustes del sitio y la programación
@@ -208,7 +208,7 @@ secciones salen en blanco porque su contenido es administrable y no vive en las
 vistas.
 
 Si al instalar de cero aparece contenido institucional que nadie escribió
-desde `/admin`, es un fallo: el contenido no debe vivir en el código. Está
+desde el panel, es un fallo: el contenido no debe vivir en el código. Está
 explicado, con los tres sitios donde se coló contenido de Posgrado, en
 [«Dónde no debe vivir el contenido»](cerseuletras/README.md#dónde-no-debe-vivir-el-contenido).
 
@@ -247,7 +247,7 @@ docker compose run --rm app chmod -R 775 storage bootstrap/cache
 | | Dirección | Qué es |
 |---|---|---|
 | Sitio | [http://localhost](http://localhost) | El `dist/` de Astro servido por Nginx |
-| Panel | [http://localhost/admin](http://localhost/admin) | Laravel |
+| Panel | [http://localhost/panel](http://localhost/panel) | Laravel + Filament |
 | API | [http://localhost/api/v1/sitio](http://localhost/api/v1/sitio) | El contrato entre ambos |
 | Sitio en desarrollo | [http://localhost:4321](http://localhost:4321) | Servidor de Astro con recarga en caliente |
 
@@ -421,7 +421,7 @@ mirando uno por uno en vez de silenciarlos:
 
 - Las pruebas de **registro público** y **verificación de correo** se
   eliminaron. Comprobaban rutas que este sitio no sirve —no hay alta pública,
-  los usuarios se crean desde `/admin/users`—, así que no cubrían nada.
+  los usuarios se crean desde el panel—, así que no cubrían nada.
 - La de **inicio de sesión** afirmaba una redirección a `route('dashboard')`,
   que aquí no existe. Ahora comprueba lo que de verdad pasa: quien se
   autentica acaba en el panel, porque es lo único para lo que hay sesión.
@@ -462,7 +462,7 @@ docker compose down -v
 
 | Servicio | Puerto | Descripción |
 |---|---|---|
-| web | 80 y 443 | Nginx. Sirve el `dist/` de Astro y pasa a PHP solo `/admin`, `/api`, la sesión y los ficheros subidos |
+| web | 80 y 443 | Nginx. Sirve el `dist/` de Astro y pasa a PHP solo `/panel`, `/api`, `/gestion`, la sesión y los ficheros subidos |
 | app | — | PHP-FPM 8.2 (interno, sin puerto publicado) |
 | db | 3307 → 3306 | MySQL 8.0 (`DB_PORT` cambia el puerto del host) |
 | redis | — | Caché, sesiones y colas |

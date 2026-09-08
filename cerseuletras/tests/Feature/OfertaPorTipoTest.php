@@ -8,7 +8,10 @@ use App\Models\Programa;
 use App\Models\SiteSetting;
 use App\Models\TipoOferta;
 use App\Models\User;
+use App\Filament\Pages\ConfiguracionDelSitio;
+use App\Filament\Resources\AdmisionSettings\Pages\EditAdmisionSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -120,18 +123,23 @@ class OfertaPorTipoTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('tipos')]
     public function test_el_panel_edita_la_admision_de_cada_modulo_por_separado(TipoOferta $tipo): void
     {
-        $this->actingAs($this->admin())
-            ->put(route('admin.admision.update', $tipo->slug()), [
-                'hero_titulo' => 'Titular de ' . $tipo->plural(),
-            ])
-            ->assertRedirect(route('admin.admision.index', $tipo->slug()));
+        // La fila puede no existir todavia: cada tipo estrena la suya la
+        // primera vez que alguien guarda su admision.
+        $ajuste = AdmisionSetting::deTipo($tipo)->first()
+            ?? AdmisionSetting::create(['tipo' => $tipo->value]);
+
+        Livewire::test(EditAdmisionSetting::class, ['record' => $ajuste->getRouteKey()])
+            ->fillForm(['hero_titulo' => 'Titular de ' . $tipo->plural()])
+            ->call('save')
+            ->assertHasNoFormErrors();
 
         $this->assertSame(
             'Titular de ' . $tipo->plural(),
             AdmisionSetting::deTipo($tipo)->firstOrFail()->hero_titulo,
         );
 
-        // El otro módulo no se toca al guardar este.
+        // El otro módulo no se toca al guardar este: cada tipo tiene su fila, y
+        // confundirlas publicaría el titular de talleres en cursos.
         $otro = collect(TipoOferta::cases())->first(fn ($t) => $t !== $tipo);
         $this->assertNotSame(
             'Titular de ' . $tipo->plural(),
@@ -144,13 +152,14 @@ class OfertaPorTipoTest extends TestCase
         // `site_settings` es de una sola fila y la migración ya la crea.
         SiteSetting::firstOrFail()->update(['site_name' => 'CERSEU Letras']);
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.settings.update'), [
+        Livewire::test(ConfiguracionDelSitio::class)
+            ->fillForm([
                 'site_name' => 'CERSEU Letras',
                 'talleres_hero_titulo' => 'Nuestros talleres',
                 'cursos_hero_titulo' => 'Nuestros cursos',
             ])
-            ->assertSessionHasNoErrors();
+            ->call('guardar')
+            ->assertHasNoFormErrors();
 
         $settings = SiteSetting::firstOrFail();
         $this->assertSame('Nuestros talleres', $settings->talleres_hero_titulo);
@@ -167,8 +176,11 @@ class OfertaPorTipoTest extends TestCase
 
     public function test_un_modulo_inventado_da_404(): void
     {
+        // Ya no hay pantalla de panel que probar con un tipo inventado: en
+        // Filament la admision es un recurso con una fila por tipo, y solo
+        // existen las de los tipos reales. Lo que si sigue: la API no se
+        // inventa un modulo.
         $this->getJson('/api/v1/admision/seminarios')->assertNotFound();
         $this->getJson('/api/v1/programas?tipo=seminarios')->assertNotFound();
-        $this->actingAs($this->admin())->get('/admin/admision/seminarios')->assertNotFound();
     }
 }

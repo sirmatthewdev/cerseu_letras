@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Filament\Resources\Programas\ProgramaResource;
 use App\Models\Programa;
 use App\Models\TipoOferta;
 use Illuminate\Http\Request;
@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\Http;
  * que los ficheros se piden por HTTP con el mismo token. Es también lo que hace
  * que esto siga funcionando el día que el build se mueva a CI.
  */
-class AdminVistaPreviaController extends Controller
+class VistaPreviaController extends Controller
 {
     /** Encarga el render y devuelve la pantalla de espera. */
     public function programa(Programa $programa)
@@ -42,10 +42,14 @@ class AdminVistaPreviaController extends Controller
 
         $this->encargar();
 
-        return view('admin.vista-previa', [
+        return view('vista-previa', [
             'titulo' => $programa->nombre,
             'ruta' => $this->rutaDe($programa),
-            'estadoUrl' => route('admin.vista-previa.estado'),
+            'estadoUrl' => route('gestion.vista-previa.estado'),
+            // Se pregunta al recurso en vez de escribir el nombre de la
+            // ruta: Filament lo compone a partir del id del panel y del
+            // slug del recurso, y cualquiera de los dos puede cambiar.
+            'volver' => ProgramaResource::getUrl('index'),
         ]);
     }
 
@@ -88,9 +92,9 @@ class AdminVistaPreviaController extends Controller
             $cuerpo = str_replace(
                 ['"/_astro/', "'/_astro/", '"/indice-busqueda.json'],
                 [
-                    '"' . route('admin.vista-previa.archivo', ['ruta' => '_astro']) . '/',
-                    "'" . route('admin.vista-previa.archivo', ['ruta' => '_astro']) . '/',
-                    '"' . route('admin.vista-previa.archivo', ['ruta' => 'indice-busqueda.json']),
+                    '"' . route('gestion.vista-previa.archivo', ['ruta' => '_astro']) . '/',
+                    "'" . route('gestion.vista-previa.archivo', ['ruta' => '_astro']) . '/',
+                    '"' . route('gestion.vista-previa.archivo', ['ruta' => 'indice-busqueda.json']),
                 ],
                 $cuerpo
             );

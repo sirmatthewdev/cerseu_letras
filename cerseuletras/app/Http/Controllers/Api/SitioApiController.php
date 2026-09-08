@@ -134,7 +134,7 @@ class SitioApiController extends Controller
     }
 
     /**
-     * Los pasos que la Unidad edita en /admin/cronograma-admision.
+     * Los pasos que la Unidad edita en el panel, en «Cronograma de admisión».
      *
      * Devuelve null si no hay ninguno visible, para que el sitio pueda omitir
      * la seccion entera en vez de pintar un titulo sobre un hueco.

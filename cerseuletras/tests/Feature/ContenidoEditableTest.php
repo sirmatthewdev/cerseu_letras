@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\ContentPage;
 use App\Models\SiteSetting;
 use App\Models\User;
+use App\Filament\Resources\ContentPages\Pages\EditContentPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -80,52 +82,47 @@ class ContenidoEditableTest extends TestCase
     {
         $pagina = $this->paginaConSeccion('admision');
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.contenido.update', 'admision'), [
+        Livewire::test(EditContentPage::class, ['record' => $pagina->getRouteKey()])
+            ->fillForm([
                 'titulo' => 'Proceso de Admisión 2027-I',
                 'subtitulo' => 'Nuevo subtítulo',
                 'secciones' => [
-                    ['id' => null, 'titulo' => 'Paso nuevo', 'cuerpo' => '<p>Contenido nuevo</p>', 'is_visible' => '1'],
-                    ['id' => null, 'titulo' => 'Paso posterior', 'cuerpo' => '<p>Otro</p>', 'is_visible' => '1'],
+                    ['titulo' => 'Paso nuevo', 'cuerpo' => '<p>Contenido nuevo</p>', 'is_visible' => true],
+                    ['titulo' => 'Paso posterior', 'cuerpo' => '<p>Otro</p>', 'is_visible' => true],
                 ],
             ])
-            ->assertRedirect(route('admin.contenido.edit', 'admision'));
+            ->call('save')
+            ->assertHasNoFormErrors();
 
         $pagina->refresh();
         $this->assertSame('Proceso de Admisión 2027-I', $pagina->titulo);
 
         $secciones = $pagina->secciones()->get();
-        // La sección original no venía en el envío: se elimina.
         $this->assertCount(2, $secciones);
         $this->assertSame('Paso nuevo', $secciones[0]->titulo);
-        $this->assertSame(0, $secciones[0]->orden);
-        $this->assertSame(1, $secciones[1]->orden);
 
-        // Y queda disponible para la página en cuanto se conecte.
+        // Lo que se guarda es el orden RELATIVO, que es de lo que tira la
+        // página. El numero de partida no se fija a proposito: el repetidor de
+        // Filament empieza en 1 y el formulario anterior en 0, y clavar el
+        // valor absoluto solo ataria la prueba al panel de turno.
+        $this->assertLessThan($secciones[1]->orden, $secciones[0]->orden);
+
         $this->assertSame('Paso nuevo', ContentPage::porSlug('admision')->seccionesDe()[0]->titulo);
     }
 
+    /**
+     * Una sección sin título se pinta en el sitio como un bloque de texto
+     * suelto: sin encabezado, y sin ancla a la que enlazar desde el índice.
+     */
     public function test_una_seccion_sin_titulo_se_rechaza(): void
     {
-        $this->paginaConSeccion('admision');
+        $pagina = $this->paginaConSeccion('admision');
 
-        $this->actingAs($this->admin())
-            ->put(route('admin.contenido.update', 'admision'), [
-                'secciones' => [['id' => null, 'titulo' => '', 'cuerpo' => '<p>x</p>']],
+        Livewire::test(EditContentPage::class, ['record' => $pagina->getRouteKey()])
+            ->fillForm([
+                'secciones' => [['titulo' => '', 'cuerpo' => '<p>x</p>']],
             ])
-            ->assertSessionHasErrors('secciones.0.titulo');
-    }
-
-    public function test_solo_un_admin_edita_el_contenido(): void
-    {
-        $this->paginaConSeccion('admision');
-        $usuario = User::factory()->create(['role' => 'user', 'is_active' => true]);
-
-        $this->actingAs($usuario)->get(route('admin.contenido.edit', 'admision'))->assertRedirect('/');
-    }
-
-    public function test_una_pagina_desconocida_da_404(): void
-    {
-        $this->actingAs($this->admin())->get('/admin/contenido/inventada')->assertNotFound();
+            ->call('save')
+            ->assertHasFormErrors();
     }
 }

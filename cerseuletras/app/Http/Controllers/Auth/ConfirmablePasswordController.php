@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,6 @@ class ConfirmablePasswordController extends Controller
         // `dashboard` a secas no existe: el panel monta su indice como
         // `admin.dashboard`. Con el nombre viejo esto lanzaba
         // RouteNotFoundException, es decir un 500 al confirmar la clave.
-        return redirect()->intended(route('admin.dashboard', absolute: false));
+        return redirect()->intended(Filament::getPanel('admin')->getUrl());
     }
 }

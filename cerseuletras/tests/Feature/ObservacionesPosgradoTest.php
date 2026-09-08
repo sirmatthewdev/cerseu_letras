@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use App\Models\CronogramaAdmision;
 use App\Models\Programa;
 use App\Models\User;
+use App\Filament\Pages\CronogramaDeAdmision;
+use App\Filament\Resources\Programas\Pages\ListProgramas;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -96,49 +99,55 @@ class ObservacionesPosgradoTest extends TestCase
     /** Obs. N.º 2 — el panel guarda encabezado, etapas, orden y botón. */
     public function test_el_panel_guarda_el_cronograma_completo(): void
     {
-        $this->actingAs($this->admin())
-            ->get(route('admin.cronograma-admision.index'))
-            ->assertOk()
-            ->assertSee('Cronograma de Admisión');
+        $this->actingAs($this->admin());
 
-        $payload = [
-            ['id' => null, 'titulo' => 'Examen', 'fecha_inicio' => '06 de abril', 'fecha_fin' => '',
-             'detalle' => '', 'publico' => 'Maestrías', 'icono' => 'examen', 'destacado' => false, 'is_visible' => true],
-            ['id' => null, 'titulo' => 'Resultados', 'fecha_inicio' => '09 de abril', 'fecha_fin' => '',
-             'detalle' => 'Lista oficial', 'publico' => '', 'icono' => 'check', 'destacado' => true, 'is_visible' => true],
-        ];
-
-        $this->actingAs($this->admin())
-            ->put(route('admin.cronograma-admision.update'), [
+        Livewire::test(CronogramaDeAdmision::class)
+            ->fillForm([
                 'eyebrow' => 'Proceso de Admisión de Diplomados 2026-II',
                 'titulo' => 'Cronograma de Diplomados',
                 'boton_texto' => 'Postular',
                 'boton_url' => '/diplomados/admision',
-                'is_visible' => '1',
-                'pasos_payload' => json_encode($payload),
+                'is_visible' => true,
+                'pasos' => [
+                    ['titulo' => 'Examen', 'fecha_inicio' => '06 de abril', 'publico' => 'Maestrías',
+                     'icono' => 'examen', 'destacado' => false, 'is_visible' => true],
+                    ['titulo' => 'Resultados', 'fecha_inicio' => '09 de abril', 'detalle' => 'Lista oficial',
+                     'icono' => 'check', 'destacado' => true, 'is_visible' => true],
+                ],
             ])
-            ->assertRedirect(route('admin.cronograma-admision.index'));
+            ->call('guardar')
+            ->assertHasNoFormErrors();
 
         $cronograma = CronogramaAdmision::first();
         $this->assertSame('Cronograma de Diplomados', $cronograma->titulo);
-        $this->assertTrue($cronograma->is_visible);
+        $this->assertTrue((bool) $cronograma->is_visible);
 
         $pasos = $cronograma->pasos()->get();
         $this->assertCount(2, $pasos);
-        // El orden se toma de la posición en el payload.
+        // El orden es el de la lista del formulario.
         $this->assertSame('Examen', $pasos[0]->titulo);
-        $this->assertSame(0, $pasos[0]->orden);
         $this->assertSame('Resultados', $pasos[1]->titulo);
-        $this->assertSame(1, $pasos[1]->orden);
-        $this->assertTrue($pasos[1]->destacado);
+        $this->assertLessThan($pasos[1]->orden, $pasos[0]->orden);
+        $this->assertTrue((bool) $pasos[1]->destacado);
+    }
 
-        // Un ícono inválido cae al de respaldo en lugar de romper la vista.
-        $this->actingAs($this->admin())->put(route('admin.cronograma-admision.update'), [
-            'pasos_payload' => json_encode([
-                ['id' => null, 'titulo' => 'Etapa', 'icono' => '<script>', 'is_visible' => true],
-            ]),
-        ]);
-        $this->assertSame('documento', CronogramaAdmision::first()->pasos()->first()->icono);
+    /**
+     * El icono ya no puede ser inválido.
+     *
+     * Antes era un campo de texto y había que sanearlo al guardar —escribir
+     * cualquier cosa dejaba el paso sin icono—. Ahora sale de una lista
+     * cerrada, así que lo que se comprueba es que la lista sea la del modelo.
+     */
+    public function test_el_icono_del_paso_sale_del_catalogo_del_modelo(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(CronogramaDeAdmision::class)
+            ->fillForm([
+                'pasos' => [['titulo' => 'Etapa', 'icono' => 'no-existe', 'is_visible' => true]],
+            ])
+            ->call('guardar')
+            ->assertHasFormErrors();
     }
 
     /** Obs. N.º 3 — filtros reordenados y "Diplomados" activo por defecto. */
@@ -386,12 +395,14 @@ class ObservacionesPosgradoTest extends TestCase
             'estado' => Programa::ESTADO_PUBLICADO,
         ]);
 
-        $admin = $this->admin();
+        $this->actingAs($this->admin());
 
-        $this->actingAs($admin)->post(route('admin.programas.toggle', $programa));
+        Livewire::test(ListProgramas::class)
+            ->callTableAction('publicar', $programa);
         $this->assertSame(Programa::ESTADO_BORRADOR, $programa->fresh()->estado);
 
-        $this->actingAs($admin)->post(route('admin.programas.toggle', $programa));
+        Livewire::test(ListProgramas::class)
+            ->callTableAction('publicar', $programa);
         $this->assertSame(Programa::ESTADO_PUBLICADO, $programa->fresh()->estado);
     }
 

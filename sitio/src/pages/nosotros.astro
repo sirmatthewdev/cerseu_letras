@@ -16,7 +16,7 @@ const autoridades =
 
 // El agrupado lo decide el panel, no esta plantilla: cada sección trae su
 // `grupo`, y aquí solo se reparten. Si la Unidad añade un valor más desde
-// /admin/contenido, aparece sin tocar código.
+// el panel, en «Páginas de contenido», aparece sin tocar código.
 const de = (grupo: string) => pagina.secciones.filter((s) => s.grupo === grupo);
 
 const mision = de('mision')[0];
