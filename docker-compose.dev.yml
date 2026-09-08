@@ -36,6 +36,17 @@ services:
       - vendor-data:/var/www/html/vendor
       - node-modules:/var/www/html/node_modules
 
+  # El trabajador de colas corre el MISMO codigo que la aplicacion, asi que
+  # necesita el mismo vendor/. Sin esta linea leia el del bind mount —donde no
+  # esta Filament, porque `composer install` se corre dentro del contenedor— y
+  # moria al arrancar con «Class Filament\PanelProvider not found», en bucle de
+  # reinicio. Un trabajador caido no da error: simplemente los avisos por correo
+  # de las solicitudes se quedan en la cola sin que nadie lo note.
+  queue:
+    volumes:
+      - ./cerseuletras:/var/www/html
+      - vendor-data:/var/www/html/vendor
+
   web:
     environment:
       # En desarrollo el sitio se sirve por localhost, no por el dominio.
