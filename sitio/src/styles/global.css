@@ -31,6 +31,18 @@
     --color-unmsm-dorado: #B6A350;
     --color-unmsm-dorado-light: #C9AA36;
 
+    /*
+     * El oscuro con el que arranca la banda de cifras, y con el que ahora
+     * termina el hero de la portada.
+     *
+     * Estaba escrito a mano en la banda. Se saca a variable porque el hero se
+     * apoya en el para que la costura entre los dos no se vea: si uno cambia y
+     * el otro no, aparece una linea horizontal a media pagina que nadie sabe de
+     * donde sale. Los degradados de la fotografia del hero tambien tiran de el
+     * —son este color desvaneciendose—, asi que son tres sitios.
+     */
+    --color-fondo-hondo: #0F1B26;
+
     /* El gesto que identificaba al sitio anterior: azul institucional a
        dorado, a 135°. Estaba escrito a mano en tres plantillas —los avatares
        de autoridades y de profesores— con los mismos valores repetidos; aquí

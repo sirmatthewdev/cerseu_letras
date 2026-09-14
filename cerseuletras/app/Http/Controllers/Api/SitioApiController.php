@@ -64,6 +64,9 @@ class SitioApiController extends Controller
                 'portada' => [
                     'kicker' => $ajustes?->home_hero_kicker,
                     'titulo' => $ajustes?->home_hero_titulo,
+                    // El mismo papel que el `claim` de los heros de oferta: la
+                    // frase corta que va entre el nombre y el parrafo.
+                    'claim' => $ajustes?->home_hero_claim,
                     'texto' => $ajustes?->home_hero_texto,
                     'acciones' => array_values(array_filter([
                         $ajustes?->home_hero_cta1_texto ? [

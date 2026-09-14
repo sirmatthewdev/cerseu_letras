@@ -110,6 +110,11 @@ class ConfiguracionDelSitio extends Page
                 ->schema([
                     TextInput::make('home_hero_kicker')->label('Antetítulo')->maxLength(255),
                     TextInput::make('home_hero_titulo')->label('Titular')->maxLength(255),
+                    TextInput::make('home_hero_claim')
+                        ->label('Mensaje institucional')
+                        ->helperText('La frase corta que va bajo el titular, antes del texto.')
+                        ->maxLength(255)
+                        ->columnSpanFull(),
                     Textarea::make('home_hero_texto')->label('Texto')->rows(3)->columnSpanFull(),
                 ]),
 

@@ -60,67 +60,127 @@ const [eventos, informativos, testimonios] = await Promise.all([
     descripcion="Formación abierta a toda la comunidad: talleres, cursos y especializaciones del CERSEU de la Facultad de Letras."
     sobreHero
 >
-    {/* Alto y a sangre, con la cabecera montada encima: es lo primero que se
-        ve y lo que dice de que va el sitio. El `pt` deja libre la altura de la
-        cabecera superpuesta —barra de contacto mas navegacion—. */}
-    <section class="relative isolate flex min-h-[34rem] items-center overflow-hidden text-white lg:min-h-[42rem]">
-        {
-            fondo && (
+    {/* Portada editorial: el contenido a la izquierda, la fotografía de la
+        Facultad emergiendo por la derecha del mismo oscuro con el que sigue la
+        banda de cifras.
+
+        No es una fotografía de fondo con un velo azul encima, que es lo que
+        había: la foto ocupa su propio lado y se disuelve hacia el texto con un
+        degradado del color del fondo. El resultado es que la Facultad se
+        reconoce —se ve el edificio, no una mancha azul— y el texto no depende
+        de que la zona que le toque detrás sea oscura.
+
+        El `pt` reserva la altura de la cabecera superpuesta. El alto no se fija
+        en `100vh` a propósito: manda el contenido, y la banda de cifras tiene
+        que asomar en una pantalla de escritorio sin rodar la rueda. */}
+    <section class="hero-portada relative isolate overflow-hidden text-white">
+        {/* Textura de puntos, la misma de la banda de cifras y de «Cómo
+            inscribirte»: es lo que hace que las tres se lean como una pieza. */}
+        <div
+            aria-hidden="true"
+            class="absolute inset-0 -z-20 opacity-[0.05]"
+            style="background-image: radial-gradient(circle at 1px 1px, #fff 1.5px, transparent 0); background-size: 30px 30px;"
+        >
+        </div>
+
+        {/* Luz de arriba, en dorado rebajado y muy abierta. No es un adorno
+            suelto: levanta la esquina por donde entra la fotografía y evita que
+            el oscuro se lea como un rectángulo plano. */}
+        <div
+            aria-hidden="true"
+            class="hero-luz absolute -z-20"
+        >
+        </div>
+
+        {/* `z-10`: la fotografia va despues en el marcado, asi que sin esto
+            pintaria encima del titular. El solape es de unos pocos pixeles y cae
+            sobre la parte del degradado que ya es del color del fondo —o sea que
+            no se notaria—, pero basta un titular una palabra mas largo para que
+            se coma una letra. */}
+        <div class="relative z-10 mx-auto w-full max-w-7xl px-4 lg:px-8">
+            <div class="hero-texto max-w-xl pb-12 pt-32 lg:max-w-[29rem] lg:pb-20 lg:pt-36 xl:max-w-[33rem]">
+                {portada.kicker && (
+                    <p class="hero-entra hero-entra-1 text-[0.7rem] font-semibold uppercase leading-relaxed tracking-[0.22em] text-unmsm-dorado-light sm:text-xs">
+                        {portada.kicker}
+                    </p>
+                )}
+
+                {/* Filo de marca bajo el antetítulo: el mismo gesto que separa
+                    las secciones en el pie. */}
+                <div
+                    aria-hidden="true"
+                    class="hero-entra hero-entra-1 marca-regla mt-4 h-px w-16 opacity-80"
+                >
+                </div>
+
+                {portada.titulo && (
+                    <h1 class="hero-entra hero-entra-2 mt-6 font-serif text-[2.1rem] font-bold leading-[1.08] sm:text-5xl lg:text-[3.4rem]">
+                        {portada.titulo}
+                    </h1>
+                )}
+
+                {portada.claim && (
+                    <p class="hero-entra hero-entra-3 mt-5 font-serif text-lg leading-snug text-unmsm-dorado-light sm:text-xl">
+                        {portada.claim}
+                    </p>
+                )}
+
+                {portada.texto && (
+                    <p class="hero-entra hero-entra-4 mt-4 max-w-lg leading-relaxed text-slate-300">
+                        {portada.texto}
+                    </p>
+                )}
+
+                {portada.acciones.length > 0 && (
+                    <div class="hero-entra hero-entra-5 mt-9 flex flex-wrap gap-3">
+                        {portada.acciones.map((accion, i) => (
+                            /* A ancho completo mientras quepan uno por linea: el
+                               ancho lo daba el texto, asi que apilados en movil
+                               salian dos botones de largos distintos, escalonados.
+                               Desde `sm` vuelven a medir lo que miden. */
+                            <Boton
+                                href={accion.url}
+                                variante={i === 0 ? 'dorado' : 'contorno-claro'}
+                                tamano="grande"
+                                /* Las dos acciones las escribe la Unidad desde el
+                                   panel, destino incluido, asi que el icono lo da
+                                   la URL en las dos. Hoy son «Ver cursos» y «Cómo
+                                   inscribirse», o sea el birrete y la persona con
+                                   el mas. */
+                                icono={iconoDeAccion(accion.url)}
+                                clase="max-sm:w-full"
+                            >
+                                {accion.texto}
+                            </Boton>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* La fotografía va DESPUÉS del texto en el marcado y no antes: en móvil
+            el orden de lectura es el del documento —titular, mensaje, botones y
+            entonces la imagen—, y en escritorio basta con sacarla del flujo
+            hacia la derecha. Así no hace falta repetirla dos veces ni reordenar
+            nada con CSS. */}
+        {fondo && (
+            <div class="hero-foto">
                 <img
                     src={fondo}
-                    alt=""
+                    alt="Fachada de la Facultad de Letras y Ciencias Humanas de la UNMSM"
                     fetchpriority="high"
                     decoding="async"
-                    class="absolute inset-0 -z-10 h-full w-full object-cover"
+                    class="h-full w-full object-cover"
                 />
-            )
-        }
-        {/* Velo sobre la foto: sin el, el texto blanco pierde contraste sobre las
-            zonas claras del campus y deja de cumplir AA. */}
-        <div class="absolute inset-0 -z-10 bg-linear-to-r from-unmsm-azul-dark/95 via-unmsm-azul/75 to-unmsm-azul/25"></div>
 
-        <div class="mx-auto w-full max-w-7xl px-4 pb-16 pt-40 lg:px-8 lg:pb-24 lg:pt-44">
-            {portada.kicker && (
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-unmsm-dorado-light">
-                    {portada.kicker}
-                </p>
-            )}
-
-            {portada.titulo && (
-                <h1 class="mt-4 max-w-[14ch] font-serif text-4xl font-bold leading-[1.1] sm:text-5xl lg:text-6xl">
-                    {portada.titulo}
-                </h1>
-            )}
-
-            {portada.texto && (
-                <p class="mt-6 max-w-xl text-lg leading-relaxed text-slate-100">{portada.texto}</p>
-            )}
-
-            {portada.acciones.length > 0 && (
-                <div class="mt-8 flex flex-wrap gap-4">
-                    {portada.acciones.map((accion, i) => (
-                        /* A ancho completo mientras quepan uno por linea: el
-                           ancho lo daba el texto, asi que apilados en movil
-                           salian dos botones de largos distintos, escalonados.
-                           Desde `sm` vuelven a medir lo que miden. */
-                        <Boton
-                            href={accion.url}
-                            variante={i === 0 ? "dorado" : "contorno-claro"}
-                            tamano="grande"
-                            /* Las dos acciones las escribe la Unidad desde el
-                               panel, destino incluido, asi que el icono lo da
-                               la URL en las dos. Hoy son «Ver cursos» y «Cómo
-                               inscribirte», o sea el birrete y la persona con
-                               el mas. */
-                            icono={iconoDeAccion(accion.url)}
-                            clase="max-sm:w-full"
-                        >
-                            {accion.texto}
-                        </Boton>
-                    ))}
-                </div>
-            )}
-        </div>
+                {/* Lo que la funde con el fondo. Dos degradados del color del
+                    propio fondo —no un velo de otro color— en un solo elemento:
+                    por eso encaja sin costura y no hay que componer máscaras,
+                    que es donde esto se vuelve frágil. La orientación la cambia
+                    la media query, no otro elemento. */}
+                <span aria-hidden="true" class="hero-foto-fundido"></span>
+            </div>
+        )}
     </section>
 
     <BandaIndicadores tipos={tipos} docentes={portada.docentes ?? docentes.length} />
@@ -162,7 +222,15 @@ const [eventos, informativos, testimonios] = await Promise.all([
         </div>
     </section>
 
-    <section class="relative isolate overflow-hidden bg-slate-50 py-20">
+    {/* `id` para que el botón «Ver cursos» del hero baje hasta aquí en vez de
+        salir a /cursos: la portada ya enseña la oferta, y mandar fuera a quien
+        acaba de llegar es hacerle salir de la pagina para ver lo que tiene dos
+        pantallas mas abajo.
+
+        `scroll-mt-24` porque la cabecera es fija: sin margen de desplazamiento,
+        el ancla deja el titulo de la seccion justo debajo de la capsula. Es el
+        mismo recurso que usan las anclas de /tramites. */}
+    <section id="oferta" class="relative isolate scroll-mt-24 overflow-hidden bg-slate-50 py-20">
         <FondoSeccion />
 
       <div class="relative mx-auto max-w-6xl px-6">
@@ -191,5 +259,199 @@ const [eventos, informativos, testimonios] = await Promise.all([
         background-image: var(--degradado-banda);
         background-size: 200% 100%;
         background-position: 0% 50%;
+    }
+
+    /*
+     * HERO DE LA PORTADA
+     *
+     * Fondo plano y no degradado: debajo empieza la banda de cifras con este
+     * mismo color, de modo que las dos se leen como una sola pieza y no hay
+     * costura que disimular. La profundidad la ponen la textura de puntos y la
+     * luz de arriba, no un degradado vertical.
+     *
+     * El plano tambien es lo que permite que la fotografia se funda con un
+     * degradado de ESTE color: con un fondo degradado habria que perseguirlo a
+     * cada altura y la costura se veria.
+     */
+    .hero-portada {
+        background-color: var(--color-fondo-hondo);
+    }
+
+    .hero-luz {
+        top: -18rem;
+        right: -12rem;
+        height: 40rem;
+        width: 40rem;
+        border-radius: 9999px;
+        background: radial-gradient(
+            circle,
+            color-mix(in oklab, var(--color-unmsm-dorado) 22%, transparent) 0%,
+            transparent 68%
+        );
+        filter: blur(36px);
+        pointer-events: none;
+    }
+
+    /*
+     * La fotografia.
+     *
+     * En movil es un bloque mas del flujo, debajo de los botones, a todo el
+     * ancho. En escritorio sale del flujo y ocupa la mitad derecha completa.
+     * Es el mismo elemento en los dos casos: duplicarlo habria significado dos
+     * peticiones de la misma imagen o un `display:none` que igual la descarga.
+     */
+    .hero-foto {
+        position: relative;
+        height: 17rem;
+        width: 100%;
+    }
+
+    .hero-foto img {
+        /* Tratamiento navy, sin pasarse: la foto tiene que seguir
+           reconociendose. Un punto menos de saturacion y algo de contraste
+           bastan para que no compita con el texto. */
+        filter: saturate(0.82) contrast(1.06) brightness(0.92);
+    }
+
+    /*
+     * El fundido. Dos degradados del color del fondo sobre la propia foto:
+     * arriba para que emerja del oscuro, abajo para que entregue a la banda de
+     * cifras. No es una mascara —`mask-composite` para cruzar dos direcciones
+     * es justo el tipo de cosa que se rompe en un navegador y nadie se entera—:
+     * son dos capas de `background` en un solo elemento.
+     */
+    .hero-foto-fundido {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            /* En vertical los dos degradados se comen el bloque entero si se
+               les da mucho recorrido: sobre 272 px de alto, un 42 % arriba y un
+               28 % abajo dejaban una franja de foto de 70 px y la Facultad no se
+               reconocia. Lo justo para que emerja del oscuro y lo entregue. */
+            linear-gradient(to bottom, var(--color-fondo-hondo) 0%, transparent 26%),
+            linear-gradient(to top, var(--color-fondo-hondo) 0%, transparent 18%);
+    }
+
+    @media (min-width: 1024px) {
+        .hero-foto {
+            position: absolute;
+            inset-block: 0;
+            right: 0;
+            /* Ni la mitad justa ni un tercio: la fotografia domina su lado sin
+               que el titular tenga que estrecharse. Un punto menos en el corte
+               justo de 1024, donde la columna de texto y la foto se tocan. */
+            width: 52%;
+            height: auto;
+        }
+
+        /* En horizontal el fundido gira: entra por la izquierda, hacia el
+           texto. Se conserva un resto por abajo para que la foto no choque en
+           seco con el filo de la banda de cifras. */
+        .hero-foto-fundido {
+            background:
+                /* Sombra bajo la cabecera. La cabecera va transparente sobre el
+                   hero, y sin esto «Trámites», «Actualidad» y la lupa caian
+                   sobre el cielo y los arboles de la fotografia: se leian a
+                   duras penas. Es la franja de arriba y nada mas —no un velo
+                   sobre la foto entera, que es de lo que se venia—. */
+                linear-gradient(
+                    to bottom,
+                    color-mix(in oklab, var(--color-fondo-hondo) 88%, transparent) 0%,
+                    transparent 30%
+                ),
+                linear-gradient(to right, var(--color-fondo-hondo) 0%, transparent 52%),
+                /* Mas recorrido por abajo que en movil: aqui la foto llega a
+                   todo el alto y el corte contra la banda de cifras se veia. */
+                linear-gradient(to top, var(--color-fondo-hondo) 0%, transparent 26%);
+        }
+
+        /* El texto no llega nunca por debajo de la foto: sin este tope, un
+           titular largo se metia bajo el edificio. */
+        .hero-texto {
+            min-height: 26rem;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .hero-foto {
+            width: 56%;
+        }
+    }
+
+    /*
+     * Entrada: lo mismo que hace el resto del sitio al desvelar una seccion
+     * —opacidad y un empujon de 18 px—, escalonado.
+     *
+     * El estado oculto vive DENTRO de la media query, nunca fuera: si el
+     * navegador no anima, el hero se ve y ya esta. Al reves es como se llega a
+     * una portada en blanco.
+     */
+    @media (prefers-reduced-motion: no-preference) {
+        .hero-entra {
+            animation: hero-entra 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+
+        .hero-entra-1 {
+            animation-delay: 0.05s;
+        }
+        .hero-entra-2 {
+            animation-delay: 0.14s;
+        }
+        .hero-entra-3 {
+            animation-delay: 0.23s;
+        }
+        .hero-entra-4 {
+            animation-delay: 0.3s;
+        }
+        .hero-entra-5 {
+            animation-delay: 0.38s;
+        }
+
+        /* La fotografia entra sola y mas despacio, sin desplazarse: moverla
+           ademas de los textos serian dos cosas viajando a la vez. */
+        .hero-foto {
+            animation: hero-foto-entra 1.1s ease-out both;
+            animation-delay: 0.1s;
+        }
+    }
+
+    /*
+     * Los fotogramas se declaran AQUI y no se toma prestado el `aparecer` de
+     * `global.css`: Astro renombra los nombres de animacion que encuentra en un
+     * `<style>` de componente, y el renombrado apuntaba a unos fotogramas que
+     * no existen. La animacion no fallaba con un error, simplemente no ocurria.
+     */
+    @keyframes hero-entra {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    /*
+     * La fotografia no arranca en invisible.
+     *
+     * Es la unica pieza del hero que, si la animacion no llega a correr, deja
+     * la mitad de la portada en negro —y no correr es un caso real: en una
+     * pestaña que aun no esta en primer plano el reloj de animaciones no
+     * avanza—. Entra desde una opacidad alta y un pelo de escala, de modo que
+     * el estado de partida ya es un estado presentable. Es la misma regla que
+     * `global.css` se escribio para el desvelado: nunca esconder primero y
+     * confiar en que algo lo revele.
+     */
+    @keyframes hero-foto-entra {
+        from {
+            opacity: 0.55;
+            transform: scale(1.035);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
     }
 </style>

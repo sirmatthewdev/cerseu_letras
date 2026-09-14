@@ -39,6 +39,7 @@ class SiteSetting extends Model
         'especializaciones_hero_imagen',
         'home_hero_kicker',
         'home_hero_titulo',
+        'home_hero_claim',
         'home_hero_texto',
         'home_hero_cta1_texto',
         'home_hero_cta1_url',

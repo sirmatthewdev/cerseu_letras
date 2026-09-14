@@ -202,6 +202,11 @@ export type ConfiguracionSitio = {
     portada: {
         kicker: string | null;
         titulo: string | null;
+        /**
+         * La frase corta entre el titular y el texto. Mismo papel que el
+         * `claim` de los heros de oferta, y por eso el mismo nombre.
+         */
+        claim: string | null;
         texto: string | null;
         acciones: { texto: string; url: string }[];
         /**
