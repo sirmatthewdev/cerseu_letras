@@ -74,6 +74,12 @@ export type Programa = {
     } | null;
     estado: string;
     imagen: string | null;
+    /**
+     * Si `imagen` es del programa o el respaldo que pone el modelo —una foto
+     * del campus según el tipo—. La ficha usa las dos igual; el listado no, que
+     * ahí el respaldo son 39 tarjetas con la misma fotografía.
+     */
+    imagen_propia: boolean;
 
     /**
      * Contenido largo de la ficha. Hoy los 39 programas lo tienen vacio, pero

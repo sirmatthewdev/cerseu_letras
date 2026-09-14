@@ -2,6 +2,7 @@
 import TituloSeccion from './TituloSeccion.astro';
 import FondoSeccion from './FondoSeccion.astro';
 import EnlacesAcademicos from './EnlacesAcademicos.astro';
+import { inicialesDePersona } from '../lib/iniciales';
 import type { Docente } from '../lib/api';
 
 interface Props {
@@ -16,13 +17,10 @@ const { docentes } = Astro.props;
 // marca y las iniciales encima: es exactamente donde el sitio en Blade usaba
 // `linear-gradient(135deg, #103050, #B6A350)`, escrito a mano en tres
 // plantillas.
-const iniciales = (nombre: string) =>
-    nombre
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((p) => p[0]?.toUpperCase() ?? '')
-        .join('');
+//
+// La regla vive en `lib/iniciales`: de aquí salió el monograma que llevan ahora
+// también las tarjetas de programa sin fotografía, y tenerla en dos sitios era
+// garantizar que acabaran diciendo cosas distintas.
 
 const tieneFoto = (url: string) => !url.includes('profesor-default');
 ---
@@ -76,7 +74,7 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                                             aria-hidden="true"
                                             class="marca-degradado flex aspect-square w-full items-center justify-center font-serif text-3xl font-bold text-white"
                                         >
-                                            {iniciales(docente.nombre)}
+                                            {inicialesDePersona(docente.nombre)}
                                         </span>
                                     )}
 

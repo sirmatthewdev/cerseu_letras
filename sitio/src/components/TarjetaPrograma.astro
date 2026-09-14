@@ -2,6 +2,7 @@
 import { Image } from 'astro:assets';
 import { paraDescargar, type Programa } from '../lib/api';
 import { iconoDeAccion } from '../lib/iconos';
+import { anguloDelFondo, inicialesDePrograma } from '../lib/iniciales';
 import Icono from './Icono.astro';
 
 interface Props {
@@ -24,6 +25,17 @@ const ruta = `/${programa.tipo}/${programa.slug}`;
  * calcula el modelo y no esta plantilla.
  */
 const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].filter(Boolean);
+
+/*
+ * `imagen_propia` y no `imagen`, que nunca llega vacia.
+ *
+ * El modelo sustituye la imagen que falta por una foto del campus segun el
+ * tipo. Para la ficha esta bien —una foto del campus presidiendo una pagina es
+ * una foto del campus—, pero aqui son 39 tarjetas seguidas con exactamente la
+ * misma fotografia: la rejilla se lee como un fallo de pintado. La API dice
+ * ahora cual de las dos es, y esta tarjeta elige.
+ */
+const conFotografia = programa.imagen_propia && programa.imagen;
 ---
 
 <article
@@ -36,9 +48,9 @@ const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].fil
     <div class="marco-foto relative overflow-hidden rounded-xl">
         <div class="overflow-hidden rounded-xl border-4 border-white bg-slate-100">
             {
-                programa.imagen ? (
+                conFotografia ? (
                     <Image
-                        src={paraDescargar(programa.imagen)}
+                        src={paraDescargar(programa.imagen!)}
                         alt=""
                         width={640}
                         height={400}
@@ -47,41 +59,75 @@ const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].fil
                         class="h-52 w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                 ) : (
-                    /* Sin imagen no se deja un hueco roto: el degradado de marca
-                       ocupa el mismo alto y la tarjeta no cambia de tamaño. */
-                    <div class="marca-degradado h-52 w-full" aria-hidden="true" />
+                    /* Sin fotografia, el monograma: el mismo recurso que usan
+                       las tarjetas de coordinador sin retrato. Ocupa el mismo
+                       alto que la foto, asi que la tarjeta no cambia de tamaño
+                       el dia que la Unidad suba unas cuantas y otras no.
+
+                       El degradado es el de la banda ancha y no el de marca
+                       —que es el de los coordinadores— porque aqui hay texto
+                       encima y en un rectangulo de 208 px el dorado de marca
+                       ocupa medio fondo: sobre el, las letras blancas se
+                       quedan sin contraste. Este lleva el dorado rebajado y
+                       solo en el ultimo tramo. Es la misma razon por la que
+                       existe, escrita en `global.css`.
+
+                       La inclinacion sale del slug. Con 39 programas las
+                       iniciales se repiten, y dos monogramas iguales sobre el
+                       mismo fondo son dos tarjetas iguales. */
+                    <div
+                        aria-hidden="true"
+                        class="marca-degradado-banda flex h-52 w-full items-center justify-center"
+                        style={`--angulo-banda: ${anguloDelFondo(programa.slug)}deg`}
+                    >
+                        <span class="font-serif text-5xl font-bold tracking-wide text-white/90">
+                            {inicialesDePrograma(programa.nombre)}
+                        </span>
+                    </div>
                 )
             }
         </div>
 
         {/* Velo y flecha, solo donde hay ratón. En una pantalla táctil el
             «hover» se dispara con el primer toque y el adorno aparece justo
-            cuando ya se está navegando: no aporta nada y tapa la foto. */}
-        <span aria-hidden="true" class="velo-foto"></span>
+            cuando ya se está navegando: no aporta nada y tapa la foto.
 
-        {/* La misma flecha que el boton de abajo, y por la misma razon: los
-            dos llevan a la ficha de este programa. Era una diagonal —la flecha
-            de «esto abre en otro sitio»—, que aqui no es verdad: la ficha es
-            una pagina mas de este sitio, y a otra pagina de este sitio se va
-            con una flecha a la derecha, como en todos los demas botones. Dos
-            flechas distintas en la misma tarjeta para el mismo destino era la
-            incoherencia. */}
-        <span aria-hidden="true" class="flecha-foto">
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M5 12h14"></path>
-                <path d="m12 5 7 7-7 7"></path>
-            </svg>
-        </span>
+            Y solo donde hay fotografía. Los dos existen por la foto: el velo
+            para que el borde inferior no corte en seco contra el panel claro, y
+            la flecha para decir que la imagen es pulsable. Sobre el monograma
+            estorban: el velo deslavaba el degradado hasta dejarlo casi blanco y
+            la flecha caía justo encima de las letras —«DE I» se leía «D→I»—,
+            tapando lo único que hay ahí que leer. El monograma ya se ve
+            pulsable por lo demás: la tarjeta se levanta, estrena filo dorado y
+            el botón se invierte.
+
+            La flecha es la misma que la del botón de abajo, y por la misma
+            razón: los dos llevan a la ficha de este programa. Era una diagonal
+            —la de «esto abre en otro sitio»—, que aquí no es verdad. */}
+        {
+            conFotografia && (
+                <>
+                    <span aria-hidden="true" class="velo-foto" />
+
+                    <span aria-hidden="true" class="flecha-foto">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M5 12h14" />
+                            <path d="m12 5 7 7-7 7" />
+                        </svg>
+                    </span>
+                </>
+            )
+        }
 
         {
             programa.estado === 'proximamente' && (

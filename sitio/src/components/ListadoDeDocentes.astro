@@ -2,6 +2,7 @@
 import EnlacesAcademicos from './EnlacesAcademicos.astro';
 import Paginacion from './Paginacion.astro';
 import type { Docente } from '../lib/api';
+import { inicialesDePersona } from '../lib/iniciales';
 
 interface Props {
     /** Los de ESTA pagina. */
@@ -18,14 +19,6 @@ const { docentes, total, paginaActual, totalPaginas } = Astro.props;
 // defecto. Veinte veces la misma silueta se lee como un fallo; unas iniciales
 // sobre el azul institucional se leen como una decisión. Cuando la Unidad
 // suba fotos reales, la condición se apaga sola.
-const iniciales = (nombre: string) =>
-    nombre
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((p) => p[0]?.toUpperCase() ?? '')
-        .join('');
-
 const tieneFotoPropia = (url: string) => !url.includes('profesor-default');
 
 /* Como en la oferta: `/pagina/N` y no `/N`, para no competir con ninguna ruta
@@ -62,7 +55,7 @@ const urlDe = (pagina: number) =>
                                     aria-hidden="true"
                                     class="flex h-16 w-16 flex-none items-center justify-center rounded-full bg-unmsm-azul font-serif text-lg font-bold text-white"
                                 >
-                                    {iniciales(docente.nombre)}
+                                    {inicialesDePersona(docente.nombre)}
                                 </span>
                             )}
 

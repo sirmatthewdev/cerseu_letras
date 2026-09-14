@@ -86,6 +86,19 @@ class ProgramaResource extends JsonResource
             // obligaria a reimplementar ese respaldo en cada consumidor.
             'imagen' => $this->resource->imagen_url,
 
+            /*
+             * Si la de arriba es suya o es el respaldo.
+             *
+             * El respaldo sirve para la ficha —una foto del campus presidiendo
+             * una pagina es una foto del campus— y no sirve para el listado:
+             * ahi son 39 tarjetas seguidas con la misma fotografia, que se lee
+             * como un fallo de pintado y no como una decision. Con este dato el
+             * consumidor elige, que es algo que solo el puede saber; sin el
+             * tendria que adivinarlo comparando la URL con el nombre del
+             * archivo de respaldo.
+             */
+            'imagen_propia' => filled($this->resource->imagen),
+
             // Sin URL: la API entrega identidad (`tipo` + `slug`), no rutas.
             // Devolver la URL del sitio en Blade ataba al consumidor a la
             // estructura de enlaces de OTRO sitio, y el de Astro acababa

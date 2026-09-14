@@ -54,8 +54,13 @@
      * ultimo tramo, que es donde no hay parrafo sino el boton. El degradado de
      * marca sigue siendo el de los filos y los aros, donde no hay texto encima.
      */
+    /* La inclinacion sale fuera para que quien lo use pueda cambiarla sin
+       reescribir las paradas de color: las tarjetas de programa sin fotografia
+       reparten cuatro inclinaciones entre ellas, y con el angulo escrito aqui
+       dentro habrian tenido que copiarse el degradado entero. Por defecto, la
+       de siempre. */
     --degradado-banda: linear-gradient(
-        115deg,
+        var(--angulo-banda, 115deg),
         var(--color-unmsm-azul-dark) 0%,
         var(--color-unmsm-azul) 36%,
         /* Un paso intermedio a propósito: interpolando en sRGB de azul a dorado
@@ -89,6 +94,13 @@
 
 @utility marca-degradado-suave {
     background-image: var(--degradado-marca-suave);
+}
+
+/* El de la banda ancha, que es el que admite texto encima: el dorado llega
+   rebajado y solo al ultimo tramo. Lo usan la banda de la portada y el fondo de
+   las tarjetas de programa sin fotografia. */
+@utility marca-degradado-banda {
+    background-image: var(--degradado-banda);
 }
 
 @utility marca-regla {

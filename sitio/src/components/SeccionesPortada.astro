@@ -2,6 +2,7 @@
 import TituloSeccion from './TituloSeccion.astro';
 import FondoSeccion from './FondoSeccion.astro';
 import Boton from './Boton.astro';
+import { inicialesDePersona } from '../lib/iniciales';
 import Icono from './Icono.astro';
 import { faArrowRight, faCalendarDay, faFilePdf, faQuoteLeft } from '@fortawesome/free-solid-svg-icons';
 import type { Evento, GrupoInformativos, Testimonio } from '../lib/api';
@@ -46,13 +47,6 @@ const fecha = (valor: string | null) =>
 const tieneRetrato = (url: string | null | undefined) =>
     Boolean(url) && !String(url).includes('default-avatar');
 
-const inicialesDe = (nombre: string) =>
-    nombre
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((p) => p[0]?.toUpperCase() ?? '')
-        .join('');
 ---
 
 {
@@ -104,7 +98,7 @@ const inicialesDe = (nombre: string) =>
                                         aria-hidden="true"
                                         class="marca-degradado flex h-12 w-12 flex-none items-center justify-center rounded-full text-sm font-bold text-white ring-2 ring-white"
                                     >
-                                        {inicialesDe(testimonio.nombre)}
+                                        {inicialesDePersona(testimonio.nombre)}
                                     </span>
                                 )}
                                 <div class="min-w-0 flex-1">
