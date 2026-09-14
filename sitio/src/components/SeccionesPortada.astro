@@ -4,7 +4,8 @@ import FondoSeccion from './FondoSeccion.astro';
 import Boton from './Boton.astro';
 import { inicialesDePersona } from '../lib/iniciales';
 import Icono from './Icono.astro';
-import { faArrowRight, faCalendarDay, faFilePdf, faQuoteLeft } from '@fortawesome/free-solid-svg-icons';
+import { faCalendarDay, faFilePdf, faQuoteLeft } from '@fortawesome/free-solid-svg-icons';
+import { iconoDeAccion } from '../lib/iconos';
 import type { Evento, GrupoInformativos, Testimonio } from '../lib/api';
 
 interface Props {
@@ -171,7 +172,7 @@ const tieneRetrato = (url: string | null | undefined) =>
                 </ul>
 
                 <div class="mt-10 text-center">
-                    <Boton href="/eventos" variante="contorno" icono={faArrowRight} iconoAlFinal>
+                    <Boton href="/eventos" variante="contorno" icono={iconoDeAccion('/eventos')}>
                         Ver todos los eventos
                     </Boton>
                 </div>
@@ -235,7 +236,7 @@ const tieneRetrato = (url: string | null | undefined) =>
                 </ul>
 
                 <div class="mt-10 text-center">
-                    <Boton href="/informativos" variante="contorno" icono={faArrowRight} iconoAlFinal>
+                    <Boton href="/informativos" variante="contorno" icono={iconoDeAccion('/informativos')}>
                         Ver todos los documentos
                     </Boton>
                 </div>

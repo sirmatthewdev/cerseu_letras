@@ -4,7 +4,7 @@ import InversionPrograma from '../../components/InversionPrograma.astro';
 import TarjetaPrograma from '../../components/TarjetaPrograma.astro';
 import Boton from '../../components/Boton.astro';
 import ListaContenido from '../../components/ListaContenido.astro';
-import { faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { iconoDeAccion } from '../../lib/iconos';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import {
     obtenerTipos,
@@ -336,7 +336,9 @@ const iniciales = (nombre: string) =>
                         </dl>
 
                         <div class="space-y-3 p-5 pt-4">
-                            <Boton href="/admision" variante="azul" icono={faUserPlus} ancho>Cómo inscribirte</Boton>
+                            <Boton href="/admision" variante="azul" icono={iconoDeAccion('/admision')} ancho>
+                                Cómo inscribirte
+                            </Boton>
                             {
                                 contacto.whatsapp && (
                                     <Boton

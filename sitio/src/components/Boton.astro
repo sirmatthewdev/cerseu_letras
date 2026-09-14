@@ -6,9 +6,13 @@ interface Props {
     href: string;
     variante?: 'dorado' | 'azul' | 'contorno' | 'contorno-claro';
     tamano?: 'normal' | 'grande';
+    /**
+     * Va siempre delante del texto, y nombra la accion: a donde lleva el boton
+     * o por que canal. Hubo un `iconoAlFinal` para colgar una flecha detras de
+     * la frase; se retira con las flechas, que es lo que colgaba de el. Un
+     * icono que nombra la accion se lee como la etiqueta de un campo, delante.
+     */
     icono?: IconDefinition;
-    /** Coloca el icono detrás del texto, para «seguir leyendo». */
-    iconoAlFinal?: boolean;
     ancho?: boolean;
     nuevaPestana?: boolean;
     clase?: string;
@@ -19,7 +23,6 @@ const {
     variante = 'dorado',
     tamano = 'normal',
     icono,
-    iconoAlFinal = false,
     ancho = false,
     nuevaPestana = false,
     clase = '',
@@ -53,14 +56,6 @@ const tamanos = {
         clase,
     ]}
 >
-    {icono && !iconoAlFinal && <Icono icono={icono} clase="h-4 w-4" />}
+    {icono && <Icono icono={icono} clase="h-4 w-4" />}
     <slot />
-    {
-        icono && iconoAlFinal && (
-            <Icono
-                icono={icono}
-                clase="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-            />
-        )
-    }
 </a>

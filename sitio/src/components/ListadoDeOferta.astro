@@ -5,7 +5,6 @@ import TituloSeccion from './TituloSeccion.astro';
 import FormularioSolicitud from './FormularioSolicitud.astro';
 import Paginacion from './Paginacion.astro';
 import EstadoVacio from './EstadoVacio.astro';
-import { faUserPlus } from '@fortawesome/free-solid-svg-icons';
 import { iconoDeAccion } from '../lib/iconos';
 import type { Programa, TipoOferta } from '../lib/api';
 
@@ -111,17 +110,10 @@ const urlDe = (pagina: number) =>
             </p>
 
             <div class="mt-8 flex flex-wrap gap-4">
-                <Boton href={`/${tipo.slug}/admision`} icono={faUserPlus}>
+                <Boton href={`/${tipo.slug}/admision`} icono={iconoDeAccion(`/${tipo.slug}/admision`)}>
                     Cómo inscribirte
                 </Boton>
-                {/* Flecha abajo y no a la derecha: este boton no lleva a otra
-                    pantalla, baja hasta la rejilla de esta misma. */}
-                <Boton
-                    href="#oferta"
-                    variante="contorno-claro"
-                    icono={iconoDeAccion('#oferta')}
-                    iconoAlFinal
-                >
+                <Boton href="#oferta" variante="contorno-claro" icono={iconoDeAccion('#oferta')}>
                     Ver la oferta
                 </Boton>
             </div>

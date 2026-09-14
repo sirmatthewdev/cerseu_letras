@@ -1,6 +1,6 @@
 ---
 import Boton from './Boton.astro';
-import { iconoDeAccion, iconoAlFinalDeAccion } from '../lib/iconos';
+import { iconoDeAccion } from '../lib/iconos';
 
 interface Props {
     titulo: string;
@@ -23,12 +23,7 @@ const { titulo, texto, accion } = Astro.props;
                 {/* La salida de un estado vacio no siempre es otra pagina:
                     en trámites es una direccion de correo. El icono lo decide
                     el enlace. */}
-                <Boton
-                    href={accion.url}
-                    variante="contorno"
-                    icono={iconoDeAccion(accion.url)}
-                    iconoAlFinal={iconoAlFinalDeAccion(accion.url)}
-                >
+                <Boton href={accion.url} variante="contorno" icono={iconoDeAccion(accion.url)}>
                     {accion.texto}
                 </Boton>
             </div>

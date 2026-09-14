@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Boton from '../components/Boton.astro';
 import { obtenerTipos, obtenerConfiguracion } from '../lib/api';
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { iconoDeAccion } from '../lib/iconos';
 
 /**
  * Página de error 404.
@@ -53,8 +53,10 @@ const { contacto } = await obtenerConfiguracion();
         </ul>
 
         <div class="mt-10 flex flex-wrap justify-center gap-4">
-            <Boton href="/" icono={faArrowRight} iconoAlFinal>Ir al inicio</Boton>
-            <Boton href="/buscar" variante="contorno">Buscar en el sitio</Boton>
+            <Boton href="/" icono={iconoDeAccion('/')}>Ir al inicio</Boton>
+            <Boton href="/buscar" variante="contorno" icono={iconoDeAccion('/buscar')}>
+                Buscar en el sitio
+            </Boton>
         </div>
 
         {

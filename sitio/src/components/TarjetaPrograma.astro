@@ -99,11 +99,7 @@ const conFotografia = programa.imagen_propia && programa.imagen;
             la flecha caía justo encima de las letras —«DE I» se leía «D→I»—,
             tapando lo único que hay ahí que leer. El monograma ya se ve
             pulsable por lo demás: la tarjeta se levanta, estrena filo dorado y
-            el botón se invierte.
-
-            La flecha es la misma que la del botón de abajo, y por la misma
-            razón: los dos llevan a la ficha de este programa. Era una diagonal
-            —la de «esto abre en otro sitio»—, que aquí no es verdad. */}
+            el botón se invierte. */}
         {
             conFotografia && (
                 <>
@@ -121,8 +117,8 @@ const conFotografia = programa.imagen_propia && programa.imagen;
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
-                            <path d="M5 12h14" />
-                            <path d="m12 5 7 7-7 7" />
+                            <path d="M7 7h10v10" />
+                            <path d="M7 17 17 7" />
                         </svg>
                     </span>
                 </>
@@ -193,11 +189,12 @@ const conFotografia = programa.imagen_propia && programa.imagen;
                 aria-hidden="true"
                 class="boton-tarjeta inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition duration-300"
             >
+                {/* Delante del texto y sin desplazarse al pasar, como el resto
+                    de botones del sitio: el icono nombra lo que hay al otro
+                    lado —la ficha del programa— y no la direccion en que se
+                    va. */}
+                <Icono icono={iconoDeAccion(ruta)} clase="h-4 w-4" />
                 Más información
-                <Icono
-                    icono={iconoDeAccion(ruta)}
-                    clase="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-                />
             </span>
         </span>
     </div>

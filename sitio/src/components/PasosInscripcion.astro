@@ -2,7 +2,7 @@
 import TituloSeccion from './TituloSeccion.astro';
 import type { ConfiguracionSitio } from '../lib/api';
 import Boton from './Boton.astro';
-import { iconoDeAccion, iconoAlFinalDeAccion } from '../lib/iconos';
+import { iconoDeAccion } from '../lib/iconos';
 
 interface Props {
     inscripcion: NonNullable<ConfiguracionSitio['inscripcion']>;
@@ -124,7 +124,6 @@ const { inscripcion } = Astro.props;
                         href={inscripcion.boton.url}
                         tamano="grande"
                         icono={iconoDeAccion(inscripcion.boton.url)}
-                        iconoAlFinal={iconoAlFinalDeAccion(inscripcion.boton.url)}
                     >
                         {inscripcion.boton.texto}
                     </Boton>
