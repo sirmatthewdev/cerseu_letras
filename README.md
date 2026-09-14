@@ -383,6 +383,16 @@ php artisan serve
 Con `DB_CONNECTION=sqlite` y `DB_DATABASE` apuntando a un fichero `.sqlite`
 en el `.env`.
 
+Composer resuelve contra **PHP 8.2**, el del contenedor, y no contra el del
+host: está fijado en `composer.json` (`config.platform`) y anotado en el
+`composer.lock`. El `vendor/` es un bind mount —la misma carpeta la usan el
+host, `app` y el trabajador de colas—, así que instalar con la versión del host
+produciría un árbol que el contenedor no puede ejecutar. Sin ese anclaje, un
+host con PHP 8.5 ni siquiera llega a instalar: `composer install` se detiene en
+`openspout/openspout`, que pide `~8.2 || ~8.3 || ~8.4`, y deja el `vendor/` sin
+Filament —y la aplicación entera caída con «Class "Filament\PanelProvider" not
+found».
+
 ## Comandos Útiles
 
 ### Artisan / Composer / NPM
