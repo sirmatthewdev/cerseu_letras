@@ -36,17 +36,26 @@ const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].fil
  * ahora cual de las dos es, y esta tarjeta elige.
  */
 const conFotografia = programa.imagen_propia && programa.imagen;
+
+/*
+ * El alto del marco, el de la plantilla de referencia: 250 px.
+ *
+ * En una constante porque lo comparten la fotografía y el monograma. Si los dos
+ * no miden exactamente lo mismo, la rejilla da un salto el día que la Unidad
+ * suba una foto a un programa y no a los de al lado.
+ */
+const ALTO_MARCO = 'h-[15.625rem]';
 ---
 
 <article
     data-revelar
-    class="tarjeta-programa group relative flex flex-col rounded-2xl bg-slate-50 p-5 transition duration-300 hover:-translate-y-1"
+    class="tarjeta-programa group relative flex flex-col rounded-2xl bg-slate-50 p-6 transition duration-300 hover:-translate-y-1"
 >
     {/* Marco de la imagen. El «paspartú» blanco de 4 px es lo que separa la
         foto del panel gris sin necesidad de un borde: es el gesto de la
         referencia, y aquí funciona igual porque el panel también es claro. */}
     <div class="marco-foto relative overflow-hidden rounded-xl">
-        <div class="overflow-hidden rounded-xl border-4 border-white bg-slate-100">
+        <div class="overflow-hidden rounded-2xl border-4 border-white bg-slate-100">
             {
                 conFotografia ? (
                     <Image
@@ -56,7 +65,7 @@ const conFotografia = programa.imagen_propia && programa.imagen;
                         height={400}
                         loading="lazy"
                         decoding="async"
-                        class="h-52 w-full object-cover transition duration-500 group-hover:scale-105"
+                        class={`${ALTO_MARCO} w-full object-cover transition duration-500 group-hover:scale-105`}
                     />
                 ) : (
                     /* Sin fotografia, el monograma: el mismo recurso que usan
@@ -77,10 +86,10 @@ const conFotografia = programa.imagen_propia && programa.imagen;
                        mismo fondo son dos tarjetas iguales. */
                     <div
                         aria-hidden="true"
-                        class="marca-degradado-banda flex h-52 w-full items-center justify-center"
+                        class={`marca-degradado-banda flex ${ALTO_MARCO} w-full items-center justify-center`}
                         style={`--angulo-banda: ${anguloDelFondo(programa.slug)}deg`}
                     >
-                        <span class="font-serif text-5xl font-bold tracking-wide text-white/90">
+                        <span class="monograma font-serif text-5xl font-bold tracking-wide text-white/90">
                             {inicialesDePrograma(programa.nombre)}
                         </span>
                     </div>
@@ -92,38 +101,30 @@ const conFotografia = programa.imagen_propia && programa.imagen;
             «hover» se dispara con el primer toque y el adorno aparece justo
             cuando ya se está navegando: no aporta nada y tapa la foto.
 
-            Y solo donde hay fotografía. Los dos existen por la foto: el velo
-            para que el borde inferior no corte en seco contra el panel claro, y
-            la flecha para decir que la imagen es pulsable. Sobre el monograma
-            estorban: el velo deslavaba el degradado hasta dejarlo casi blanco y
-            la flecha caía justo encima de las letras —«DE I» se leía «D→I»—,
-            tapando lo único que hay ahí que leer. El monograma ya se ve
-            pulsable por lo demás: la tarjeta se levanta, estrena filo dorado y
-            el botón se invierte. */}
-        {
-            conFotografia && (
-                <>
-                    <span aria-hidden="true" class="velo-foto" />
+            Van también sobre el monograma, y no solo sobre la fotografía: hoy
+            ningún programa tiene imagen propia, de modo que reservarlos para la
+            foto era dejar la rejilla entera sin el gesto. Lo que estorbaba era
+            el círculo cayendo encima de las letras —«DE I» se leía «D→I»—, y
+            eso se resuelve atenuando el monograma al pasar: las letras se
+            retiran y el círculo queda limpio. */}
+        <span aria-hidden="true" class="velo-foto" />
 
-                    <span aria-hidden="true" class="flecha-foto">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="22"
-                            height="22"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M7 7h10v10" />
-                            <path d="M7 17 17 7" />
-                        </svg>
-                    </span>
-                </>
-            )
-        }
+        <span aria-hidden="true" class="flecha-foto">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M7 7h10v10" />
+                <path d="M7 17 17 7" />
+            </svg>
+        </span>
 
         {
             programa.estado === 'proximamente' && (
@@ -136,16 +137,16 @@ const conFotografia = programa.imagen_propia && programa.imagen;
         }
     </div>
 
-    <div class="mt-5 flex flex-1 flex-col">
+    <div class="mt-4 flex flex-1 flex-col gap-4">
         {
             datos.length > 0 && (
-                <p class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-medium text-slate-500">
+                <p class="flex flex-wrap items-center gap-x-2.5 gap-y-px text-sm font-medium text-slate-500">
                     {datos.map((dato, i) => (
                         <>
                             {i > 0 && (
                                 <span
                                     aria-hidden="true"
-                                    class="inline-block h-1 w-1 rounded-full bg-slate-400"
+                                    class="inline-block h-[3px] w-[3px] rounded-full bg-slate-400"
                                 />
                             )}
                             <span>{dato}</span>
@@ -155,7 +156,7 @@ const conFotografia = programa.imagen_propia && programa.imagen;
             )
         }
 
-        <h3 class="mt-3 font-serif text-lg font-bold leading-snug text-unmsm-azul">
+        <h3 class="font-serif text-lg font-bold leading-snug text-unmsm-azul">
             {/* El enlace cubre la tarjeta entera, pero el texto accesible sigue
                 siendo solo el título: un área de clic grande no tiene por qué
                 convertirse en un nombre de enlace largo.
@@ -169,7 +170,7 @@ const conFotografia = programa.imagen_propia && programa.imagen;
         </h3>
 
         {programa.sumilla && (
-            <p class="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">
+            <p class="line-clamp-3 text-sm leading-relaxed text-slate-600">
                 {programa.sumilla}
             </p>
         )}
@@ -184,7 +185,7 @@ const conFotografia = programa.imagen_propia && programa.imagen;
             de dos y de tres líneas quedaba a tres alturas distintas. El hueco
             mínimo lo da el `pt-5` del envoltorio y no un margen del botón, que
             `mt-auto` se comería. */}
-        <span class="mt-auto block pt-5">
+        <span class="mt-auto block">
             <span
                 aria-hidden="true"
                 class="boton-tarjeta inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition duration-300"
@@ -239,7 +240,9 @@ const conFotografia = programa.imagen_propia && programa.imagen;
     }
 
     /* Velo que sube desde abajo, del color del propio panel: así el pie de la
-       foto se funde con la tarjeta en vez de oscurecerse. */
+       foto se funde con la tarjeta en vez de oscurecerse. Se apaga al 20 % y no
+       a media altura, como en la plantilla: es el pie lo que se funde, y
+       subiendo más lo que hacía era deslavar la imagen entera. */
     .velo-foto {
         position: absolute;
         inset: 0;
@@ -247,31 +250,41 @@ const conFotografia = programa.imagen_propia && programa.imagen;
         display: none;
         pointer-events: none;
         border-radius: inherit;
-        background: linear-gradient(to top, var(--color-slate-50, #f8fafc), transparent 55%);
+        background: linear-gradient(to top, var(--color-slate-50, #f8fafc), transparent 20%);
         opacity: 0;
         transition: opacity 0.5s ease;
     }
 
+    /*
+     * El círculo de la plantilla: 4 rem, blanco, y entra solo con la opacidad.
+     * Llevaba además un `scale`, y dos cosas moviéndose a la vez —la imagen
+     * acercándose y el círculo creciendo— se leen como dos animaciones
+     * compitiendo. Con una sola, la que se mueve es la imagen y el círculo
+     * simplemente aparece encima.
+     */
     .flecha-foto {
         position: absolute;
         top: 50%;
         left: 50%;
         z-index: 20;
         display: none;
-        height: 3.5rem;
-        width: 3.5rem;
+        height: 4rem;
+        width: 4rem;
         align-items: center;
         justify-content: center;
         border-radius: 9999px;
         background: #fff;
-        color: var(--color-unmsm-azul);
+        color: var(--color-unmsm-azul-dark);
         box-shadow: 0 10px 24px -12px rgb(15 43 72 / 0.5);
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.9);
-        transition:
-            opacity 0.4s ease,
-            transform 0.4s ease;
+        transform: translate(-50%, -50%);
+        transition: opacity 0.5s ease;
         pointer-events: none;
+    }
+
+    /* El monograma se retira para dejar sitio al círculo. */
+    .monograma {
+        transition: opacity 0.5s ease;
     }
 
     /*
@@ -294,7 +307,10 @@ const conFotografia = programa.imagen_propia && programa.imagen;
 
         .group:hover .flecha-foto {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .group:hover .monograma {
+            opacity: 0.3;
         }
     }
 
