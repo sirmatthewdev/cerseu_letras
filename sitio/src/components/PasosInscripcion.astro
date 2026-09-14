@@ -97,15 +97,16 @@ const { inscripcion } = Astro.props;
                             </p>
                         )}
 
+                        {/* El mismo gris en las cuatro. El destacado llevaba
+                            `text-slate-600`, que era lo correcto cuando su
+                            tarjeta se invertia a blanco; al pasar a
+                            `bg-white/[0.12]` quedo texto oscuro sobre fondo
+                            oscuro —1,4:1 de contraste, ilegible— y nadie lo
+                            movio. Lo que distingue al destacado es el filo y el
+                            fondo, como dice el comentario de arriba, no el
+                            color del texto. */}
                         {paso.detalle && (
-                            <p
-                                class:list={[
-                                    'mt-2 text-sm leading-relaxed',
-                                    paso.destacado ? 'text-slate-600' : 'text-slate-300',
-                                ]}
-                            >
-                                {paso.detalle}
-                            </p>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-300">{paso.detalle}</p>
                         )}
 
                         {paso.publico && (
