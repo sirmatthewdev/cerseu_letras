@@ -4,6 +4,7 @@ import Boton from './Boton.astro';
 import TituloSeccion from './TituloSeccion.astro';
 import FormularioSolicitud from './FormularioSolicitud.astro';
 import Paginacion from './Paginacion.astro';
+import EstadoVacio from './EstadoVacio.astro';
 import { faUserPlus, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import type { Programa, TipoOferta } from '../lib/api';
 
@@ -19,9 +20,16 @@ interface Props {
     todos: Programa[];
     paginaActual: number;
     totalPaginas: number;
+    /**
+     * Otro tipo que si tenga oferta, para ofrecerlo cuando este no tiene
+     * ninguna. Lo calcula la pagina, que es quien ve todos los tipos. Opcional
+     * porque `pagina/[pagina]` nunca llega con la rejilla vacia: de un tipo sin
+     * programas solo se genera la primera pagina.
+     */
+    alternativa?: TipoOferta;
 }
 
-const { tipo, programas, todos, paginaActual, totalPaginas } = Astro.props;
+const { tipo, programas, todos, paginaActual, totalPaginas, alternativa } = Astro.props;
 
 const totalProgramas = todos.length;
 
@@ -146,11 +154,25 @@ const urlDe = (pagina: number) =>
 
     {
         totalProgramas === 0 ? (
-            <div class="mt-16 rounded-xl border border-dashed border-slate-300 px-6 py-16 text-center">
-                <p class="text-lg font-semibold text-slate-700">Próximamente</p>
-                <p class="mt-2 text-slate-500">
-                    Muy pronto anunciaremos nuestra oferta de {tipo.plural.toLowerCase()}.
-                </p>
+            /* `EstadoVacio` y no un div a medida: es el mismo componente que
+               usan cronograma, directorio, eventos e informativos, y el unico
+               que sabe ofrecer a donde ir. Aqui hace falta mas que en ninguna
+               otra parte —talleres y especializaciones llevan meses sin oferta
+               y van para largo—: quien entra encontraba dos lineas y el pie,
+               sin nada que pulsar, teniendo el CERSEU 39 cursos abiertos. */
+            <div class="mt-16">
+                <EstadoVacio
+                    titulo="Próximamente"
+                    texto={`Muy pronto anunciaremos nuestra oferta de ${tipo.plural.toLowerCase()}.`}
+                    accion={
+                        alternativa
+                            ? {
+                                  texto: `Ver los ${alternativa.publicados} ${alternativa.plural.toLowerCase()}`,
+                                  url: `/${alternativa.slug}`,
+                              }
+                            : undefined
+                    }
+                />
             </div>
         ) : (
             <>

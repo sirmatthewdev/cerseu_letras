@@ -25,13 +25,17 @@ export async function getStaticPaths() {
                     todos,
                     programas: todos.slice(0, POR_PAGINA),
                     totalPaginas: Math.max(1, Math.ceil(todos.length / POR_PAGINA)),
+                    // A dónde mandar a quien llegue a un tipo sin oferta. Se
+                    // resuelve aquí porque esta es la única capa que ve los
+                    // tres tipos a la vez; el listado solo conoce el suyo.
+                    alternativa: tipos.find((t) => t.slug !== tipo.slug && t.publicados > 0),
                 },
             };
         })
     );
 }
 
-const { tipo, todos, programas, totalPaginas } = Astro.props;
+const { tipo, todos, programas, totalPaginas, alternativa } = Astro.props;
 ---
 
 <Base
@@ -45,5 +49,6 @@ const { tipo, todos, programas, totalPaginas } = Astro.props;
         todos={todos}
         paginaActual={1}
         totalPaginas={totalPaginas}
+        alternativa={alternativa}
     />
 </Base>

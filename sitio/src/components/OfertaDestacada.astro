@@ -45,24 +45,45 @@ const inicial = tipos.find((t) => t.publicados > 0)?.slug ?? 'todos';
                 aria-label="Filtrar la oferta por tipo"
                 class="mb-10 flex flex-wrap justify-center gap-3"
             >
-                {filtros.map((filtro) => (
-                    <button
-                        type="button"
-                        role="tab"
-                        id={`filtro-${filtro.slug}`}
-                        aria-controls={`panel-${filtro.slug}`}
-                        x-bind:aria-selected={`tipo === '${filtro.slug}' ? 'true' : 'false'`}
-                        x-bind:tabindex={`tipo === '${filtro.slug}' ? 0 : -1`}
-                        x-on:click={`tipo = '${filtro.slug}'`}
-                        x-bind:class={`tipo === '${filtro.slug}'
-                            ? 'marca-degradado border-transparent text-white shadow-md'
-                            : 'border-slate-300 text-slate-600 hover:border-unmsm-azul hover:text-unmsm-azul'`}
-                        class="cursor-pointer rounded-full border px-5 py-2 text-sm font-medium transition duration-300"
-                    >
-                        {filtro.etiqueta}
-                        <span class="ml-1.5 text-xs opacity-70">{filtro.cuenta}</span>
-                    </button>
-                ))}
+                {/* Un tipo sin oferta se apaga: filo de trazos y texto gris.
+                    Se veia igual que «Cursos 39», asi que la unica forma de
+                    saber que detras no hay nada era pulsarlo. Ahora lo dice el
+                    propio boton, antes del clic.
+
+                    Apagado pero pulsable, no deshabilitado: el panel de un tipo
+                    vacio explica el hueco —para eso se escribio— y cerrarle el
+                    paso dejaria ese texto sin nadie que lo lea. Se mantiene a la
+                    vista, ademas, por lo mismo que la banda de indicadores
+                    enseña «Talleres — Proximamente»: el tipo existe y va a
+                    volver. */}
+                {filtros.map((filtro) => {
+                    const vacio = filtro.cuenta === 0;
+
+                    return (
+                        <button
+                            type="button"
+                            role="tab"
+                            id={`filtro-${filtro.slug}`}
+                            aria-controls={`panel-${filtro.slug}`}
+                            x-bind:aria-selected={`tipo === '${filtro.slug}' ? 'true' : 'false'`}
+                            x-bind:tabindex={`tipo === '${filtro.slug}' ? 0 : -1`}
+                            x-on:click={`tipo = '${filtro.slug}'`}
+                            x-bind:class={
+                                vacio
+                                    ? `tipo === '${filtro.slug}'
+                                ? 'marca-degradado border-transparent text-white shadow-md'
+                                : 'border-dashed border-slate-300 text-slate-400 hover:border-unmsm-azul hover:text-unmsm-azul'`
+                                    : `tipo === '${filtro.slug}'
+                                ? 'marca-degradado border-transparent text-white shadow-md'
+                                : 'border-slate-300 text-slate-600 hover:border-unmsm-azul hover:text-unmsm-azul'`
+                            }
+                            class="cursor-pointer rounded-full border px-5 py-2 text-sm font-medium transition duration-300"
+                        >
+                            {filtro.etiqueta}
+                            <span class="ml-1.5 text-xs opacity-70">{filtro.cuenta}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {filtros.map((filtro) => (
