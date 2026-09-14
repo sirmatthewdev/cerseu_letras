@@ -78,7 +78,16 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    /*
+     * El panel se usa en espanol, asi que el idioma por defecto es `es` y no el
+     * `en` de fabrica: la aplicacion no debe depender de que el `.env` de cada
+     * maquina lo declare. Las traducciones estan en `lang/`.
+     *
+     * El de reserva sigue siendo `en`, el idioma en que vienen escritas las
+     * cadenas dentro de `vendor/`. Si alguna clave falta, se lee en ingles; con
+     * `es` en los dos sitios lo que sale es la clave en crudo, «validation.min».
+     */
+    'locale' => env('APP_LOCALE', 'es'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
