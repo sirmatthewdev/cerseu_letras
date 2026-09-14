@@ -147,6 +147,27 @@
 }
 
 /*
+ * Las anclas de la propia pagina se recorren, no se saltan.
+ *
+ * «Ver cursos» en el hero baja hasta «Formación abierta», que esta mil y pico
+ * pixeles mas abajo, y «Ver la oferta» hace lo mismo en los listados. De golpe,
+ * el salto no se lee como un desplazamiento sino como un cambio de pagina: el
+ * visitante pierde de vista de donde venia y tiene que reconstruir donde esta.
+ * Recorriendolo, el gesto se entiende.
+ *
+ * No lleva media query propia: el bloque de `prefers-reduced-motion` de mas
+ * abajo ya devuelve esto a `auto` para quien pide menos movimiento, que es
+ * justo a quien un desplazamiento animado puede marear.
+ *
+ * El destino de cada ancla se aparta de la cabecera fija con su propio
+ * `scroll-mt`; se hace ahi y no con un `scroll-padding-top` aqui porque las
+ * anclas de /tramites ya traian el suyo y los dos se sumarian.
+ */
+html {
+    scroll-behavior: smooth;
+}
+
+/*
  * Menu plegable: el boton solo existe en pantallas estrechas. Abrir y cerrar
  * lo hace el atributo `open` —ver el script del layout—, no CSS: `open` es un
  * atributo y no se puede forzar desde una hoja de estilos.

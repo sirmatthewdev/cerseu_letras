@@ -97,8 +97,14 @@ const [eventos, informativos, testimonios] = await Promise.all([
             sobre la parte del degradado que ya es del color del fondo —o sea que
             no se notaria—, pero basta un titular una palabra mas largo para que
             se coma una letra. */}
+        {/* El marco de la portada: texto y fotografía. Se separa de la banda
+            de cifras para que la fotografía, que va absoluta en escritorio, se
+            posicione contra ESTE bloque y no contra la seccion entera: asi
+            termina justo donde empieza la banda y su degradado inferior sirve
+            de algo, en vez de quedar tapado por ella. */}
+        <div class="hero-marco relative">
         <div class="relative z-10 mx-auto w-full max-w-7xl px-4 lg:px-8">
-            <div class="hero-texto max-w-xl pb-12 pt-32 lg:max-w-[29rem] lg:pb-20 lg:pt-36 xl:max-w-[33rem]">
+            <div class="hero-texto max-w-xl pb-12 pt-32 lg:max-w-[31rem] lg:pb-0 lg:pt-0 xl:max-w-[36rem]">
                 {portada.kicker && (
                     <p class="hero-entra hero-entra-1 text-[0.7rem] font-semibold uppercase leading-relaxed tracking-[0.22em] text-unmsm-dorado-light sm:text-xs">
                         {portada.kicker}
@@ -114,25 +120,25 @@ const [eventos, informativos, testimonios] = await Promise.all([
                 </div>
 
                 {portada.titulo && (
-                    <h1 class="hero-entra hero-entra-2 mt-6 font-serif text-[2.1rem] font-bold leading-[1.08] sm:text-5xl lg:text-[3.4rem]">
+                    <h1 class="hero-entra hero-entra-2 mt-7 font-serif text-[2.1rem] font-bold leading-[1.05] sm:text-5xl lg:text-[3.4rem] xl:text-[3.8rem]">
                         {portada.titulo}
                     </h1>
                 )}
 
                 {portada.claim && (
-                    <p class="hero-entra hero-entra-3 mt-5 font-serif text-lg leading-snug text-unmsm-dorado-light sm:text-xl">
+                    <p class="hero-entra hero-entra-3 mt-6 font-serif text-lg leading-snug text-unmsm-dorado-light sm:text-xl lg:text-2xl">
                         {portada.claim}
                     </p>
                 )}
 
                 {portada.texto && (
-                    <p class="hero-entra hero-entra-4 mt-4 max-w-lg leading-relaxed text-slate-300">
+                    <p class="hero-entra hero-entra-4 mt-6 max-w-lg leading-relaxed text-slate-300 lg:text-lg">
                         {portada.texto}
                     </p>
                 )}
 
                 {portada.acciones.length > 0 && (
-                    <div class="hero-entra hero-entra-5 mt-9 flex flex-wrap gap-3">
+                    <div class="hero-entra hero-entra-5 mt-10 flex flex-wrap gap-3">
                         {portada.acciones.map((accion, i) => (
                             /* A ancho completo mientras quepan uno por linea: el
                                ancho lo daba el texto, asi que apilados en movil
@@ -181,9 +187,14 @@ const [eventos, informativos, testimonios] = await Promise.all([
                 <span aria-hidden="true" class="hero-foto-fundido"></span>
             </div>
         )}
-    </section>
+        </div>
 
-    <BandaIndicadores tipos={tipos} docentes={portada.docentes ?? docentes.length} />
+        {/* Las cifras, dentro del hero y no debajo. Cierran la pantalla de
+            entrada: quien llega ve el nombre, lo que se ofrece, por donde se
+            entra y cuanto hay, sin rodar la rueda. Lo que hay despues empieza
+            al desplazarse. */}
+        <BandaIndicadores tipos={tipos} docentes={portada.docentes ?? docentes.length} />
+    </section>
 
 
     {/* El orden es el que tenia la portada anterior: primero como se entra,
@@ -334,6 +345,38 @@ const [eventos, informativos, testimonios] = await Promise.all([
     }
 
     @media (min-width: 1024px) {
+        /*
+         * El hero ocupa la pantalla entera y la banda de cifras queda debajo
+         * del pliegue: se llega a ella rodando la rueda, no de entrada.
+         *
+         * `100svh` y no `100vh`: en un movil con la barra de direcciones a la
+         * vista, `100vh` cuenta el alto SIN esa barra, de modo que el hero
+         * sobresale por abajo y la pagina arranca con un desplazamiento que
+         * nadie ha pedido. `svh` es el alto estable, el pequeño, y no da ese
+         * salto. Solo se aplica desde 1024 de todos modos, donde en movil el
+         * contenido y la foto ya pasan del alto de la pantalla.
+         *
+         * El relleno superior reserva la cabecera fija: el centrado reparte lo
+         * que queda, no la pantalla entera, o el contenido caeria bajo la
+         * capsula en una pantalla corta.
+         */
+        .hero-portada {
+            display: flex;
+            /* En columna: arriba el marco —texto y fotografia— y abajo la banda
+               de cifras, pegada al borde inferior de la pantalla. */
+            flex-direction: column;
+            min-height: 100svh;
+            padding-top: var(--alto-cabecera);
+        }
+
+        /* Se queda con todo el alto que la banda no usa, y centra el contenido
+           dentro de el. */
+        .hero-marco {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
         .hero-foto {
             position: absolute;
             inset-block: 0;
@@ -366,11 +409,6 @@ const [eventos, informativos, testimonios] = await Promise.all([
                 linear-gradient(to top, var(--color-fondo-hondo) 0%, transparent 26%);
         }
 
-        /* El texto no llega nunca por debajo de la foto: sin este tope, un
-           titular largo se metia bajo el edificio. */
-        .hero-texto {
-            min-height: 26rem;
-        }
     }
 
     @media (min-width: 1280px) {
