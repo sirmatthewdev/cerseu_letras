@@ -95,8 +95,12 @@ const { tipo, programas, apiPublica } = Astro.props;
 
         <div>
             <label for="region" class="block text-sm font-medium text-slate-700">
-                <span class="etiqueta-region">Departamento</span>
-                <span class="text-red-600" aria-hidden="true">*</span>
+                {/* En una sola linea: el nombre del campo lo reescribe la
+                    API —Departamento, Provincia, Estado— y por eso va en su
+                    propio `span`, pero partido en dos lineas Astro se come el
+                    espacio y salia «Departamento*», pegado, cuando los otros
+                    seis campos llevan «Nombres *». */}
+                <span class="etiqueta-region">Departamento</span> <span class="text-red-600" aria-hidden="true">*</span>
             </label>
             <select
                 id="region"
@@ -189,7 +193,7 @@ const { tipo, programas, apiPublica } = Astro.props;
                     '<option value="">Selecciona…</option>' +
                     lista.map((r) => `<option value="${r}">${r}</option>`).join('');
             } catch {
-                aTexto(region, 'Región');
+                aTexto(region, etiquetaRegion?.textContent?.trim() || 'Región');
             }
         }
 
@@ -216,7 +220,9 @@ const { tipo, programas, apiPublica } = Astro.props;
                 await cargarRegiones('PE');
             } catch {
                 aTexto(pais, 'País');
-                aTexto(region, 'Región');
+                // El marcador repite la etiqueta que se este mostrando: decia
+                // «Región» debajo de una etiqueta que dice «Departamento».
+                aTexto(region, etiquetaRegion?.textContent?.trim() || 'Región');
             }
         })();
 

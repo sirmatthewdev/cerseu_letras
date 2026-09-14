@@ -98,12 +98,17 @@ const [eventos, informativos, testimonios] = await Promise.all([
             {portada.acciones.length > 0 && (
                 <div class="mt-8 flex flex-wrap gap-4">
                     {portada.acciones.map((accion, i) => (
+                        /* A ancho completo mientras quepan uno por linea: el
+                           ancho lo daba el texto, asi que apilados en movil
+                           salian dos botones de largos distintos, escalonados.
+                           Desde `sm` vuelven a medir lo que miden. */
                         <Boton
                             href={accion.url}
                             variante={i === 0 ? "dorado" : "contorno-claro"}
                             tamano="grande"
                             icono={i === 0 ? faArrowRight : faUserPlus}
                             iconoAlFinal={i === 0}
+                            clase="max-sm:w-full"
                         >
                             {accion.texto}
                         </Boton>

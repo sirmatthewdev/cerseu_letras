@@ -296,6 +296,10 @@ const activo = (item: ItemMenu) =>
     .cabecera {
         --capsula-ancho: 1280px;
         --capsula-alto: 4rem;
+        /* Lo que la capsula se separa del borde al bajar. En variable porque lo
+           usan dos reglas —el relleno del contenedor y el velo— y con el numero
+           escrito dos veces una de las dos acabaria descolgada. */
+        --capsula-hueco: 1.25rem;
         /* Arriba no hay pastilla que rellenar: el logotipo se alinea con el
            borde del contenido de la pagina. El relleno aparece con el cristal. */
         --capsula-padding: 0rem;
@@ -385,7 +389,51 @@ const activo = (item: ItemMenu) =>
     }
 
     .cabecera.bajada .contenedor-capsula {
-        padding-top: 1.25rem;
+        padding-top: var(--capsula-hueco);
+    }
+
+    /*
+     * El hueco que la capsula deja por arriba, desenfocado.
+     *
+     * La capsula flota separada del borde, y por esa franja pasaba el contenido
+     * de la pagina sin nada delante: en la portada se veia la banda de cifras
+     * cortada a media altura, y en una ficha el titular asomaba partido por la
+     * mitad. No parecia una cabecera flotante, parecia un fallo de pintado.
+     *
+     * Se desenfoca en vez de taparse con un color: debajo puede haber una
+     * seccion clara o una oscura, y cualquier velo con color acierta en una y
+     * falla en la otra. El desenfoque funciona con las dos y ademas es el mismo
+     * material que la capsula, asi que no introduce un elemento nuevo.
+     *
+     * Solo la franja, no los flancos: que el contenido pase limpio a los lados
+     * es lo que hace que la capsula se lea como flotante, y eso se conserva.
+     */
+    .cabecera::before {
+        content: '';
+        position: absolute;
+        inset-inline: 0;
+        top: 0;
+        height: calc(var(--capsula-hueco) + 2px);
+        z-index: -1;
+        opacity: 0;
+        pointer-events: none;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        mask-image: linear-gradient(to bottom, #000 55%, transparent);
+        -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+        transition: opacity 300ms ease;
+    }
+
+    .cabecera.bajada::before {
+        opacity: 1;
+    }
+
+    /* Sin `backdrop-filter` no hay nada que desenfocar y el velo no se pinta:
+       una franja opaca de color seria peor que el problema. */
+    @supports not (backdrop-filter: blur(1px)) {
+        .cabecera::before {
+            display: none;
+        }
     }
 
     .logo-capsula {

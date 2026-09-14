@@ -125,12 +125,21 @@ const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].fil
 
         {/* Botón de mentira: `aria-hidden` porque el enlace de verdad es el
             título. Está por lo que dice —que hay más ficha detrás—, no por
-            dónde lleva. */}
-        <span
-            aria-hidden="true"
-            class="boton-tarjeta mt-5 self-start rounded-full border px-4 py-2 text-sm font-semibold transition duration-300"
-        >
-            Más información
+            dónde lleva.
+
+            `mt-auto` en el envoltorio para que caiga al fondo del panel. Las
+            tarjetas ya miden todas lo mismo —la rejilla las estira—, pero el
+            botón colgaba del final del texto, así que en una fila con títulos
+            de dos y de tres líneas quedaba a tres alturas distintas. El hueco
+            mínimo lo da el `pt-5` del envoltorio y no un margen del botón, que
+            `mt-auto` se comería. */}
+        <span class="mt-auto block pt-5">
+            <span
+                aria-hidden="true"
+                class="boton-tarjeta inline-block rounded-full border px-4 py-2 text-sm font-semibold transition duration-300"
+            >
+                Más información
+            </span>
         </span>
     </div>
 </article>

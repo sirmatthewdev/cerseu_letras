@@ -103,7 +103,17 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                                     </span>
                                 </span>
 
-                                <span class="mt-auto block">
+                                {/* Pegado al retrato y no al fondo del panel.
+                                    Con `mt-auto` el bloque se alineaba por
+                                    abajo, asi que un subtitulo de dos lineas
+                                    —el nombre del unico programa que dicta, en
+                                    vez de «12 programas»— empujaba el nombre
+                                    hacia arriba: los seis nombres de la fila
+                                    caian a alturas distintas, hasta 35 px de
+                                    diferencia. Colgando del retrato, que mide
+                                    siempre lo mismo, quedan alineados por
+                                    construccion. */}
+                                <span class="block">
                                     <a
                                         href={`/profesores/${docente.slug}`}
                                         class="block text-sm font-bold leading-snug text-slate-800 transition after:absolute after:inset-0 after:rounded-2xl group-hover:text-unmsm-azul"
