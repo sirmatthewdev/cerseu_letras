@@ -164,26 +164,40 @@ const [eventos, informativos, testimonios] = await Promise.all([
             </div>
         </div>
 
-        {/* La fotografía va DESPUÉS del texto en el marcado y no antes: en móvil
-            el orden de lectura es el del documento —titular, mensaje, botones y
-            entonces la imagen—, y en escritorio basta con sacarla del flujo
-            hacia la derecha. Así no hace falta repetirla dos veces ni reordenar
-            nada con CSS. */}
+        {/* La fotografía, a sangre en todo el marco.
+            
+            Va DESPUÉS del texto en el marcado y no antes: la posiciona el CSS,
+            y dejarla al final mantiene el orden de lectura del documento
+            —titular, texto, botones— para quien navega con teclado o lector.
+
+            Tres capas, cada una con un trabajo:
+
+              · `hero-foto-raton`  la desplaza unos pixeles siguiendo al raton;
+              · `hero-foto-img`    lleva la deriva constante, lenta;
+              · `hero-foto-fundido` protege el contraste del texto.
+
+            Separadas porque las dos primeras animan `transform` y una sola no
+            puede llevar las dos: la del raton pisaria la deriva en cada
+            movimiento. */}
         {fondo && (
             <div class="hero-foto">
-                <img
-                    src={fondo}
-                    alt="Fachada de la Facultad de Letras y Ciencias Humanas de la UNMSM"
-                    fetchpriority="high"
-                    decoding="async"
-                    class="h-full w-full object-cover"
-                />
+                <div class="hero-foto-raton">
+                    <img
+                        src={fondo}
+                        alt="Fachada de la Facultad de Letras y Ciencias Humanas de la UNMSM"
+                        fetchpriority="high"
+                        decoding="async"
+                        class="hero-foto-img"
+                    />
+                </div>
 
-                {/* Lo que la funde con el fondo. Dos degradados del color del
-                    propio fondo —no un velo de otro color— en un solo elemento:
-                    por eso encaja sin costura y no hay que componer máscaras,
-                    que es donde esto se vuelve frágil. La orientación la cambia
-                    la media query, no otro elemento. */}
+                {/* El contraste del texto no se deja al azar de la fotografia.
+                    Es un degradado del color del fondo, no un velo plano de otro
+                    color: sobre la columna de texto llega al 92 % y se abre
+                    hacia la derecha hasta desaparecer, de modo que el edificio
+                    se ve entero donde no hay nada escrito. Un velo uniforme
+                    daria el contraste igual, pero apagaria la Facultad, que es
+                    lo que se venia a arreglar. */}
                 <span aria-hidden="true" class="hero-foto-fundido"></span>
             </div>
         )}
@@ -311,13 +325,39 @@ const [eventos, informativos, testimonios] = await Promise.all([
      * Es el mismo elemento en los dos casos: duplicarlo habria significado dos
      * peticiones de la misma imagen o un `display:none` que igual la descarga.
      */
+    /*
+     * La fotografia ocupa el marco entero, detras del texto.
+     *
+     * Antes vivia en la mitad derecha. A sangre se lee como una portada y no
+     * como dos columnas pegadas, y el contraste del texto lo sostiene el
+     * degradado de la capa de arriba, no el hueco que deje la foto.
+     */
     .hero-foto {
-        position: relative;
-        height: 17rem;
-        width: 100%;
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
     }
 
-    .hero-foto img {
+    /*
+     * La capa que sigue al raton. El script solo escribe dos variables; el
+     * `transform` lo compone el CSS. Asi el movimiento del raton y la deriva
+     * constante no se pisan: son dos elementos distintos.
+     */
+    .hero-foto-raton {
+        position: absolute;
+        /* Sobra por los cuatro lados: el desplazamiento del raton y el zoom de
+           la deriva no pueden llegar a descubrir el borde. */
+        inset: -5%;
+        transform: translate3d(var(--raton-x, 0px), var(--raton-y, 0px), 0);
+        will-change: transform;
+    }
+
+    .hero-foto-img {
+        height: 100%;
+        width: 100%;
+        object-fit: cover;
         /* Tratamiento navy, sin pasarse: la foto tiene que seguir
            reconociendose. Un punto menos de saturacion y algo de contraste
            bastan para que no compita con el texto. */
@@ -336,12 +376,25 @@ const [eventos, informativos, testimonios] = await Promise.all([
         inset: 0;
         pointer-events: none;
         background:
-            /* En vertical los dos degradados se comen el bloque entero si se
-               les da mucho recorrido: sobre 272 px de alto, un 42 % arriba y un
-               28 % abajo dejaban una franja de foto de 70 px y la Facultad no se
-               reconocia. Lo justo para que emerja del oscuro y lo entregue. */
-            linear-gradient(to bottom, var(--color-fondo-hondo) 0%, transparent 26%),
-            linear-gradient(to top, var(--color-fondo-hondo) 0%, transparent 18%);
+            /* Sombra bajo la cabecera, que va transparente sobre el hero. */
+            linear-gradient(
+                to bottom,
+                color-mix(in oklab, var(--color-fondo-hondo) 88%, transparent) 0%,
+                transparent 26%
+            ),
+            /* En vertical: el texto ocupa la parte de arriba, asi que ahi el
+               fondo es casi opaco y se abre hacia abajo, donde no hay nada
+               escrito y la Facultad se ve. */
+            linear-gradient(
+                to bottom,
+                color-mix(in oklab, var(--color-fondo-hondo) 94%, transparent) 0%,
+                /* Hasta el 56 %, que es donde acaban los botones: por debajo de
+                   eso el parrafo y el boton de contorno caian sobre el camino y
+                   el cesped, que son la parte clara de la fotografia. */
+                color-mix(in oklab, var(--color-fondo-hondo) 90%, transparent) 56%,
+                color-mix(in oklab, var(--color-fondo-hondo) 32%, transparent) 84%,
+                color-mix(in oklab, var(--color-fondo-hondo) 68%, transparent) 100%
+            );
     }
 
     @media (min-width: 1024px) {
@@ -377,44 +430,32 @@ const [eventos, informativos, testimonios] = await Promise.all([
             align-items: center;
         }
 
-        .hero-foto {
-            position: absolute;
-            inset-block: 0;
-            right: 0;
-            /* Ni la mitad justa ni un tercio: la fotografia domina su lado sin
-               que el titular tenga que estrecharse. Un punto menos en el corte
-               justo de 1024, donde la columna de texto y la foto se tocan. */
-            width: 52%;
-            height: auto;
-        }
 
-        /* En horizontal el fundido gira: entra por la izquierda, hacia el
-           texto. Se conserva un resto por abajo para que la foto no choque en
-           seco con el filo de la banda de cifras. */
+        /* En horizontal el texto esta a la izquierda: el fondo es casi opaco
+           en esa columna y se abre hacia la derecha, donde esta el edificio.
+           Un velo plano de lado a lado daria el mismo contraste y apagaria la
+           Facultad; esto la deja verse donde no estorba. */
         .hero-foto-fundido {
             background:
-                /* Sombra bajo la cabecera. La cabecera va transparente sobre el
-                   hero, y sin esto «Trámites», «Actualidad» y la lupa caian
-                   sobre el cielo y los arboles de la fotografia: se leian a
-                   duras penas. Es la franja de arriba y nada mas —no un velo
-                   sobre la foto entera, que es de lo que se venia—. */
                 linear-gradient(
                     to bottom,
                     color-mix(in oklab, var(--color-fondo-hondo) 88%, transparent) 0%,
                     transparent 30%
                 ),
-                linear-gradient(to right, var(--color-fondo-hondo) 0%, transparent 52%),
-                /* Mas recorrido por abajo que en movil: aqui la foto llega a
-                   todo el alto y el corte contra la banda de cifras se veia. */
-                linear-gradient(to top, var(--color-fondo-hondo) 0%, transparent 26%);
+                /* El tramo casi opaco llega al 42 %, que es donde termina la
+                   columna de texto a 1440 —el titular cerraba justo en el 30 %,
+                   sobre el borde del degradado, sin margen ninguno—. De ahi en
+                   adelante se abre y el edificio se ve. */
+                linear-gradient(
+                    to right,
+                    var(--color-fondo-hondo) 0%,
+                    color-mix(in oklab, var(--color-fondo-hondo) 92%, transparent) 42%,
+                    color-mix(in oklab, var(--color-fondo-hondo) 45%, transparent) 64%,
+                    transparent 86%
+                ),
+                linear-gradient(to top, var(--color-fondo-hondo) 0%, transparent 22%);
         }
 
-    }
-
-    @media (min-width: 1280px) {
-        .hero-foto {
-            width: 56%;
-        }
     }
 
     /*
@@ -451,6 +492,29 @@ const [eventos, informativos, testimonios] = await Promise.all([
         .hero-foto {
             animation: hero-foto-entra 1.1s ease-out both;
             animation-delay: 0.1s;
+        }
+
+        /*
+         * Deriva constante. Muy lenta y muy corta: 34 segundos de ida y vuelta
+         * sobre un 5 % de escala. Lo que se busca es que la imagen no parezca
+         * congelada, no que se note que se mueve; a la velocidad a la que se
+         * lee un titular, el desplazamiento es imperceptible y aun asi la
+         * portada deja de estar quieta.
+         *
+         * `alternate` y no un bucle que salte: una vuelta al punto de partida
+         * daria un tiron cada 34 segundos.
+         */
+        .hero-foto-img {
+            animation: hero-deriva 34s ease-in-out infinite alternate;
+        }
+    }
+
+    @keyframes hero-deriva {
+        from {
+            transform: scale(1.04) translate3d(0, 0, 0);
+        }
+        to {
+            transform: scale(1.09) translate3d(-1.6%, -1.2%, 0);
         }
     }
 
@@ -493,3 +557,105 @@ const [eventos, informativos, testimonios] = await Promise.all([
         }
     }
 </style>
+
+<script>
+    /*
+     * La fotografía del hero sigue al ratón, unos pocos píxeles.
+     *
+     * Sin librería y sin tocar el diseño: el script solo escribe dos variables
+     * CSS y el `transform` lo compone la hoja de estilos. Así la deriva
+     * constante —que vive en otra capa— y este desplazamiento no se pisan.
+     *
+     * Tres condiciones para que exista siquiera:
+     *
+     *   · `pointer: fine`, o sea que haya un ratón de verdad. En una pantalla
+     *     táctil no hay nada que seguir y el oyente solo gastaría batería.
+     *   · movimiento no reducido, como el resto de las animaciones del sitio.
+     *   · que el hero esté en la página. Esto es la portada, pero el layout es
+     *     compartido y un `querySelector` nulo no puede tumbar nada.
+     *
+     * El seguimiento va con interpolación —cada cuadro recorre un 6 % de lo que
+     * falta— para que la imagen acompañe al puntero en vez de pegarse a él: un
+     * seguimiento exacto se lee como un defecto, no como profundidad. Y el
+     * bucle se detiene solo cuando ya no queda distancia que recorrer, de modo
+     * que no hay un `requestAnimationFrame` corriendo de fondo para siempre.
+     */
+    function seguirAlRaton() {
+        const marco = document.querySelector<HTMLElement>('.hero-marco');
+        const capa = document.querySelector<HTMLElement>('.hero-foto-raton');
+
+        if (!marco || !capa) return;
+        if (capa.dataset.siguiendo === '1') return;
+
+        if (
+            !window.matchMedia('(pointer: fine)').matches ||
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+            return;
+        }
+
+        capa.dataset.siguiendo = '1';
+
+        /** Cuánto se desplaza como máximo, en píxeles. */
+        const ALCANCE_X = 16;
+        const ALCANCE_Y = 11;
+
+        let destinoX = 0;
+        let destinoY = 0;
+        let actualX = 0;
+        let actualY = 0;
+        let enMarcha = false;
+
+        function acercarse() {
+            actualX += (destinoX - actualX) * 0.06;
+            actualY += (destinoY - actualY) * 0.06;
+
+            capa!.style.setProperty('--raton-x', `${(actualX * ALCANCE_X).toFixed(2)}px`);
+            capa!.style.setProperty('--raton-y', `${(actualY * ALCANCE_Y).toFixed(2)}px`);
+
+            if (Math.abs(destinoX - actualX) > 0.002 || Math.abs(destinoY - actualY) > 0.002) {
+                requestAnimationFrame(acercarse);
+            } else {
+                enMarcha = false;
+            }
+        }
+
+        function apuntar(x: number, y: number) {
+            const caja = marco!.getBoundingClientRect();
+            // De -1 a 1, con el centro del marco en el cero.
+            destinoX = ((x - caja.left) / caja.width - 0.5) * 2;
+            destinoY = ((y - caja.top) / caja.height - 0.5) * 2;
+
+            if (!enMarcha) {
+                enMarcha = true;
+                requestAnimationFrame(acercarse);
+            }
+        }
+
+        // En la ventana y no en el marco: la cabecera y los botones se montan
+        // encima, y escuchando solo al marco la imagen se quedaba clavada cada
+        // vez que el puntero pasaba sobre ellos.
+        window.addEventListener(
+            'pointermove',
+            (evento) => {
+                if (evento.pointerType !== 'mouse') return;
+                apuntar(evento.clientX, evento.clientY);
+            },
+            { passive: true }
+        );
+
+        // Al salir de la ventana vuelve al centro, que si no se queda torcida.
+        document.addEventListener('pointerleave', () => {
+            destinoX = 0;
+            destinoY = 0;
+
+            if (!enMarcha) {
+                enMarcha = true;
+                requestAnimationFrame(acercarse);
+            }
+        });
+    }
+
+    seguirAlRaton();
+    document.addEventListener('astro:page-load', seguirAlRaton);
+</script>

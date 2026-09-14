@@ -93,15 +93,38 @@ export async function revelar(selector = '[data-revelar]'): Promise<void> {
     });
 
     grupos.forEach((hijos) => {
+        /*
+         * El estado inicial se pone a mano y no se deja en manos del `fromTo`.
+         *
+         * Con `stagger`, GSAP no aplica el estado de partida aunque
+         * `immediateRender` valga `true`: espera a la primera renderizacion de
+         * la secuencia, que no llega hasta que el disparador la lanza. El
+         * resultado era que nada se ocultaba nunca y, por tanto, nada se
+         * revelaba: los elementos ya estaban a la vista cuando les tocaba
+         * aparecer. El mecanismo entero estaba montado y no se notaba.
+         *
+         * Hacerlo aqui no viola la regla de no esconder nada: esto corre
+         * DESPUES de que GSAP haya cargado. Si no carga, no se llega a esta
+         * linea y la pagina se ve entera.
+         */
+        gsap.set(hijos, { opacity: 0, y: 24 });
+
         gsap.fromTo(
             hijos,
             { opacity: 0, y: 24 },
             {
                 opacity: 1,
                 y: 0,
-                duration: 0.6,
-                ease: 'power2.out',
-                stagger: 0.08,
+                duration: 0.5,
+                /*
+                 * `amount` y no un retardo por elemento: reparte 0,35 s entre
+                 * los que haya, sean tres o doce. Con `each: 0.08` y una rejilla
+                 * de doce tarjetas, la ultima empezaba a los 0,88 s y terminaba
+                 * pasado el segundo y medio — o sea que entraba en pantalla y
+                 * seguia apareciendo un buen rato despues. Asi el grupo entero
+                 * esta puesto en 0,85 s como mucho, lo mire quien lo mire.
+                 */
+                stagger: { amount: 0.35 },
                 // Marca los que están animándose, para que la red de seguridad
                 // sepa a cuáles debe vigilar.
                 onStart: () => hijos.forEach((h) => (h.dataset.revelando = '1')),
@@ -120,15 +143,33 @@ export async function revelar(selector = '[data-revelar]'): Promise<void> {
     // la altura del documento.
     ScrollTrigger.refresh();
 
-    // Red de seguridad: pase lo que pase, a los cuatro segundos nada sigue
-    // oculto por culpa de un disparador que no llegó.
-    window.setTimeout(() => {
+    /*
+     * Red de seguridad: nada que se este viendo puede quedarse invisible.
+     *
+     * Antes revelaba a los cuatro segundos TODO lo que siguiera oculto, mirara
+     * o no a la pantalla. Como lo que esta debajo del pliegue esta oculto a
+     * proposito —esperando a que se llegue a el—, la red lo descubria entero
+     * antes de que nadie hubiera rodado la rueda, y al bajar ya no aparecia
+     * nada: la red se comia el efecto que venia a proteger.
+     *
+     * Ahora solo rescata lo que esta EN PANTALLA y sigue oculto, que es el unico
+     * caso en el que un disparador que no llego le cuesta contenido a alguien.
+     * Y lo comprueba varias veces durante los primeros quince segundos, no una
+     * sola: si el disparador falla, fallara tambien al bajar.
+     */
+    const rescatar = () => {
         fuera.forEach((el) => {
-            if (Number(getComputedStyle(el).opacity) < 1 && !el.dataset.revelando) {
+            const caja = el.getBoundingClientRect();
+            const enPantalla = caja.top < window.innerHeight && caja.bottom > 0;
+
+            if (enPantalla && Number(getComputedStyle(el).opacity) < 1 && !el.dataset.revelando) {
                 gsap.set(el, { opacity: 1, y: 0, clearProps: 'transform' });
             }
         });
-    }, 4000);
+    };
+
+    const vigilancia = window.setInterval(rescatar, 1500);
+    window.setTimeout(() => window.clearInterval(vigilancia), 15000);
 }
 
 /**
