@@ -1,5 +1,7 @@
 ---
 import TarjetaPrograma from './TarjetaPrograma.astro';
+import Icono from './Icono.astro';
+import { iconoDeAccion } from '../lib/iconos';
 import type { Programa, TipoOferta } from '../lib/api';
 
 interface Props {
@@ -111,8 +113,13 @@ const inicial = tipos.find((t) => t.publicados > 0)?.slug ?? 'todos';
                                         href={filtro.slug === 'todos' ? '/cursos' : `/${filtro.slug}`}
                                         class="inline-flex items-center gap-2 rounded-lg border-2 border-unmsm-azul px-6 py-3 font-semibold text-unmsm-azul transition duration-300 hover:bg-unmsm-azul hover:text-white"
                                     >
+                                        <Icono
+                                            icono={iconoDeAccion(
+                                                filtro.slug === 'todos' ? '/cursos' : `/${filtro.slug}`
+                                            )}
+                                            clase="h-4 w-4"
+                                        />
                                         Ver {filtro.slug === 'todos' ? 'toda la oferta' : `los ${filtro.cuenta} ${filtro.etiqueta.toLowerCase()}`}
-                                        <span aria-hidden="true">→</span>
                                     </a>
                                 </div>
                             )}

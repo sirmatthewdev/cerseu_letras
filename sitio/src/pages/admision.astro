@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import HeroPagina from '../components/HeroPagina.astro';
+import Icono from '../components/Icono.astro';
+import { iconoDeAccion } from '../lib/iconos';
 import { obtenerPaginaOpcional, obtenerTipos, obtenerConfiguracion } from '../lib/api';
 
 const pagina = await obtenerPaginaOpcional('admision');
@@ -54,7 +56,8 @@ const intro = pagina.secciones[0];
                                 Se miden en {tipo.medidas.join(' y ')}.
                             </p>
                             <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-unmsm-azul transition-all group-hover:gap-3">
-                                Ver el proceso <span aria-hidden="true">→</span>
+                                <Icono icono={iconoDeAccion(`/${tipo.slug}/admision`)} clase="h-4 w-4" />
+                                Ver el proceso
                             </span>
                         </a>
                     ))

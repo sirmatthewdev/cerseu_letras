@@ -2,6 +2,8 @@
 import TituloSeccion from './TituloSeccion.astro';
 import FondoSeccion from './FondoSeccion.astro';
 import EnlacesAcademicos from './EnlacesAcademicos.astro';
+import Icono from './Icono.astro';
+import { iconoDeAccion } from '../lib/iconos';
 import { inicialesDePersona } from '../lib/iniciales';
 import type { Docente } from '../lib/api';
 
@@ -135,10 +137,10 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                 <p class="mt-12 text-center">
                     <a
                         href="/plana-docente"
-                        class="text-sm font-semibold text-unmsm-azul hover:underline"
+                        class="inline-flex items-center gap-2 text-sm font-semibold text-unmsm-azul hover:underline"
                     >
+                        <Icono icono={iconoDeAccion('/plana-docente')} clase="h-4 w-4" />
                         Ver toda la plana docente
-                        <span aria-hidden="true"> →</span>
                     </a>
                 </p>
             </div>

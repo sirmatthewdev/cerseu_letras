@@ -160,10 +160,13 @@ const tieneRetrato = (url: string | null | undefined) =>
                                 {evento.url && (
                                     <a
                                         href={evento.url}
-                                        class="mt-4 text-sm font-semibold text-unmsm-azul hover:underline"
+                                        class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-unmsm-azul hover:underline"
                                     >
+                                        {/* El enlace de un evento lo escribe la Unidad y
+                                            suele salir del sitio —una inscripcion, un
+                                            formulario—: ahi el icono avisa de que se sale. */}
+                                        <Icono icono={iconoDeAccion(evento.url)} clase="h-4 w-4" />
                                         Ver más
-                                        <span aria-hidden="true"> →</span>
                                     </a>
                                 )}
                             </div>
@@ -227,8 +230,11 @@ const tieneRetrato = (url: string | null | undefined) =>
                                     aria-hidden="true"
                                     class="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-unmsm-azul"
                                 >
+                                    {/* El PDF de arriba dice que es un documento; este
+                                        dice que se abre fuera de la pagina. No es el mismo
+                                        dato, asi que no es el mismo icono. */}
+                                    <Icono icono={iconoDeAccion(recurso.url)} clase="h-4 w-4" />
                                     Abrir
-                                    <span class="transition-transform duration-300 group-hover:translate-x-1">→</span>
                                 </span>
                             </a>
                         </li>
