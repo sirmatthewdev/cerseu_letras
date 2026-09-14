@@ -2,7 +2,7 @@
 import TituloSeccion from './TituloSeccion.astro';
 import type { ConfiguracionSitio } from '../lib/api';
 import Boton from './Boton.astro';
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { iconoDeAccion, iconoAlFinalDeAccion } from '../lib/iconos';
 
 interface Props {
     inscripcion: NonNullable<ConfiguracionSitio['inscripcion']>;
@@ -120,7 +120,12 @@ const { inscripcion } = Astro.props;
         {
             inscripcion.boton && (
                 <div class="mt-12 text-center">
-                    <Boton href={inscripcion.boton.url} tamano="grande" icono={faArrowRight} iconoAlFinal>
+                    <Boton
+                        href={inscripcion.boton.url}
+                        tamano="grande"
+                        icono={iconoDeAccion(inscripcion.boton.url)}
+                        iconoAlFinal={iconoAlFinalDeAccion(inscripcion.boton.url)}
+                    >
                         {inscripcion.boton.texto}
                     </Boton>
                 </div>

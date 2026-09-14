@@ -1,6 +1,8 @@
 ---
 import { Image } from 'astro:assets';
 import { paraDescargar, type Programa } from '../lib/api';
+import { iconoDeAccion } from '../lib/iconos';
+import Icono from './Icono.astro';
 
 interface Props {
     programa: Programa;
@@ -57,6 +59,13 @@ const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].fil
             cuando ya se está navegando: no aporta nada y tapa la foto. */}
         <span aria-hidden="true" class="velo-foto"></span>
 
+        {/* La misma flecha que el boton de abajo, y por la misma razon: los
+            dos llevan a la ficha de este programa. Era una diagonal —la flecha
+            de «esto abre en otro sitio»—, que aqui no es verdad: la ficha es
+            una pagina mas de este sitio, y a otra pagina de este sitio se va
+            con una flecha a la derecha, como en todos los demas botones. Dos
+            flechas distintas en la misma tarjeta para el mismo destino era la
+            incoherencia. */}
         <span aria-hidden="true" class="flecha-foto">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -69,8 +78,8 @@ const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].fil
                 stroke-linecap="round"
                 stroke-linejoin="round"
             >
-                <path d="M7 7h10v10"></path>
-                <path d="M7 17 17 7"></path>
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
             </svg>
         </span>
 
@@ -136,9 +145,13 @@ const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].fil
         <span class="mt-auto block pt-5">
             <span
                 aria-hidden="true"
-                class="boton-tarjeta inline-block rounded-full border px-4 py-2 text-sm font-semibold transition duration-300"
+                class="boton-tarjeta inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition duration-300"
             >
                 Más información
+                <Icono
+                    icono={iconoDeAccion(ruta)}
+                    clase="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                />
             </span>
         </span>
     </div>

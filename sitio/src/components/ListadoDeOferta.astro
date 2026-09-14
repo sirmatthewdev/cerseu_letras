@@ -5,7 +5,8 @@ import TituloSeccion from './TituloSeccion.astro';
 import FormularioSolicitud from './FormularioSolicitud.astro';
 import Paginacion from './Paginacion.astro';
 import EstadoVacio from './EstadoVacio.astro';
-import { faUserPlus, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { iconoDeAccion } from '../lib/iconos';
 import type { Programa, TipoOferta } from '../lib/api';
 
 interface Props {
@@ -113,7 +114,14 @@ const urlDe = (pagina: number) =>
                 <Boton href={`/${tipo.slug}/admision`} icono={faUserPlus}>
                     Cómo inscribirte
                 </Boton>
-                <Boton href="#oferta" variante="contorno-claro" icono={faArrowRight} iconoAlFinal>
+                {/* Flecha abajo y no a la derecha: este boton no lleva a otra
+                    pantalla, baja hasta la rejilla de esta misma. */}
+                <Boton
+                    href="#oferta"
+                    variante="contorno-claro"
+                    icono={iconoDeAccion('#oferta')}
+                    iconoAlFinal
+                >
                     Ver la oferta
                 </Boton>
             </div>

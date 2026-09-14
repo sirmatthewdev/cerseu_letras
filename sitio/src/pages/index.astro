@@ -21,6 +21,7 @@ import OfertaDestacada from '../components/OfertaDestacada.astro';
 import Boton from '../components/Boton.astro';
 import FondoSeccion from '../components/FondoSeccion.astro';
 import { faArrowRight, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { iconoDeAccion, iconoAlFinalDeAccion } from '../lib/iconos';
 
 // Se resuelve en el build: el HTML sale ya con estos datos dentro y el
 // visitante no espera a ninguna petición.
@@ -106,8 +107,13 @@ const [eventos, informativos, testimonios] = await Promise.all([
                             href={accion.url}
                             variante={i === 0 ? "dorado" : "contorno-claro"}
                             tamano="grande"
-                            icono={i === 0 ? faArrowRight : faUserPlus}
-                            iconoAlFinal={i === 0}
+                            /* La primera accion lleva a la oferta y su destino
+                               lo escribe la Unidad: el icono sale de la URL. La
+                               segunda es siempre inscribirse, y ahi lo que
+                               nombra la accion no es una direccion sino un
+                               gesto. */
+                            icono={i === 0 ? iconoDeAccion(accion.url) : faUserPlus}
+                            iconoAlFinal={i === 0 && iconoAlFinalDeAccion(accion.url)}
                             clase="max-sm:w-full"
                         >
                             {accion.texto}
