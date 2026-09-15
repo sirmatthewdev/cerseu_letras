@@ -24,23 +24,17 @@ const ruta = `/${programa.tipo}/${programa.slug}`;
  * que le son propias a cada tipo —horas académicas, sesiones, módulos—, que las
  * calcula el modelo y no esta plantilla.
  */
-const datos = [programa.tipo_label, programa.modalidad, ...programa.medidas].filter(Boolean);
-
 /*
- * `imagen_propia` y no `imagen`, que nunca llega vacia.
- *
- * El modelo sustituye la imagen que falta por una foto del campus segun el
- * tipo. Para la ficha esta bien —una foto del campus presidiendo una pagina es
- * una foto del campus—, pero aqui son 39 tarjetas seguidas con exactamente la
- * misma fotografia: la rejilla se lee como un fallo de pintado. La API dice
- * ahora cual de las dos es, y esta tarjeta elige.
+ * El tipo ya NO va en esta fila: lo dice la etiqueta que va sobre la
+ * fotografia. Repetirlo aqui seria decir «Curso» dos veces a dos centimetros de
+ * distancia.
  */
-const conFotografia = programa.imagen_propia && programa.imagen;
+const datos = [programa.modalidad, ...programa.medidas].filter(Boolean);
 
 /*
  * El alto del marco, el de la plantilla de referencia: 250 px.
  *
- * En una constante porque lo comparten la fotografía y el monograma. Si los dos
+ * En una constante porque lo comparten la fotografía y el respaldo. Si los dos
  * no miden exactamente lo mismo, la rejilla da un salto el día que la Unidad
  * suba una foto a un programa y no a los de al lado.
  */
@@ -57,7 +51,7 @@ const ALTO_MARCO = 'h-[15.625rem]';
     <div class="marco-foto relative overflow-hidden rounded-xl">
         <div class="overflow-hidden rounded-2xl border-4 border-white bg-slate-100">
             {
-                conFotografia ? (
+                programa.imagen ? (
                     <Image
                         src={paraDescargar(programa.imagen!)}
                         alt=""
@@ -68,22 +62,15 @@ const ALTO_MARCO = 'h-[15.625rem]';
                         class={`${ALTO_MARCO} w-full object-cover transition duration-500 group-hover:scale-105`}
                     />
                 ) : (
-                    /* Sin fotografia, el monograma: el mismo recurso que usan
-                       las tarjetas de coordinador sin retrato. Ocupa el mismo
-                       alto que la foto, asi que la tarjeta no cambia de tamaño
-                       el dia que la Unidad suba unas cuantas y otras no.
+                    /* Ultimo recurso: ningun programa llega sin imagen —el
+                       modelo pone una generica segun el tipo—, pero si algun
+                       dia llegara, aqui no se abre un hueco. El monograma ocupa
+                       el mismo alto que la foto y la rejilla no se descuadra.
 
                        El degradado es el de la banda ancha y no el de marca
-                       —que es el de los coordinadores— porque aqui hay texto
-                       encima y en un rectangulo de 208 px el dorado de marca
-                       ocupa medio fondo: sobre el, las letras blancas se
-                       quedan sin contraste. Este lleva el dorado rebajado y
-                       solo en el ultimo tramo. Es la misma razon por la que
-                       existe, escrita en `global.css`.
-
-                       La inclinacion sale del slug. Con 39 programas las
-                       iniciales se repiten, y dos monogramas iguales sobre el
-                       mismo fondo son dos tarjetas iguales. */
+                       porque aqui hay texto encima: en el de marca el dorado
+                       ocupa medio fondo y las letras blancas se quedan sin
+                       contraste. Esta escrito en `global.css`. */
                     <div
                         aria-hidden="true"
                         class={`marca-degradado-banda flex ${ALTO_MARCO} w-full items-center justify-center`}
@@ -125,6 +112,23 @@ const ALTO_MARCO = 'h-[15.625rem]';
                 <path d="M7 17 17 7" />
             </svg>
         </span>
+
+        {/* A qué tipo pertenece, sobre la propia imagen y arriba a la
+            izquierda. Sale de la fila de datos de abajo, donde iba antes: ahi
+            competia con la modalidad y las horas, y aqui identifica la tarjeta
+            de un vistazo, sin leer.
+
+            Cristal oscuro y no dorado: el dorado es de «Próximamente», que va
+            en la esquina de enfrente y es un aviso; este es una categoria. Dos
+            etiquetas doradas en la misma imagen se leerian como lo mismo.
+
+            Va despues del velo y de la flecha en el marcado, como la de
+            «Próximamente», para que el «hover» no la deslave. */}
+        {programa.tipo_label && (
+            <span class="absolute left-3 top-3 rounded-full border border-white/25 bg-unmsm-azul-dark/75 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                {programa.tipo_label}
+            </span>
+        )}
 
         {
             programa.estado === 'proximamente' && (

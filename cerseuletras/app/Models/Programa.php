@@ -591,12 +591,24 @@ class Programa extends Model
 
     public function getImagenUrlAttribute()
     {
-        // Sin imagen propia: se usa una del campus, auto-alojada y ya recortada
-        // a tamaño de tarjeta (40–90 KB). Antes se pedían a Unsplash: media
-        // pantalla de peso y una dependencia externa en la ruta crítica.
+        /*
+         * Sin imagen propia: una del campus, auto-alojada. Antes se pedían a
+         * Unsplash: media pantalla de peso y una dependencia externa en la ruta
+         * crítica.
+         *
+         * Una por tipo, y las tres distintas. Antes había dos —la de curso y la
+         * de taller, que hacía también de especialización—, de modo que dos de
+         * los tres tipos enseñaban la misma. Con una cada uno, la fotografía
+         * acompaña a la etiqueta que la tarjeta lleva encima en vez de
+         * contradecirla.
+         *
+         * Se comparan con `->grado()` y no con la cadena escrita a mano: es lo
+         * que guarda la columna y lo que usan los `scope` de este mismo modelo.
+         */
         if (!$this->imagen) {
-            return match($this->grado) {
-                'Curso' => asset('images/programa-curso.webp'),
+            return match ($this->grado) {
+                TipoOferta::Curso->grado() => asset('images/programa-curso.webp'),
+                TipoOferta::Especializacion->grado() => asset('images/campus-aerea-2.webp'),
                 default => asset('images/programa-taller.webp'),
             };
         }
