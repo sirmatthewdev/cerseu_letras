@@ -192,7 +192,7 @@ const [eventos, informativos, testimonios] = await Promise.all([
             puede llevar las dos: la del raton pisaria la deriva en cada
             movimiento. */}
         {fondo && (
-            <div class="hero-foto">
+            <div class="hero-foto" data-sigue-raton>
                 <div class="hero-foto-raton">
                     <img
                         src={fondo}
@@ -229,9 +229,18 @@ const [eventos, informativos, testimonios] = await Promise.all([
         quedarse clavado en una esquina. */}
     <section
         data-banda-degradado
+        data-sigue-raton
         class="banda-marca relative isolate overflow-hidden py-16 text-white"
     >
         <FondoSeccion tono="oscuro" deriva={80} />
+
+        {/* Una luz que sigue al cursor. Aqui no hay fotografía que desplazar
+            —la banda es degradado— y mover el degradado tampoco valía: ya lo
+            recorre el scroll con `data-banda-degradado`, y las dos cosas se
+            pelearían por la misma propiedad. Lo que se mueve es una luz propia
+            encima, que es lo que hace que la superficie se lea como un material
+            y no como un color. */}
+        <div aria-hidden="true" class="luz-raton"></div>
 
         <div class="relative mx-auto flex max-w-6xl flex-col gap-6 px-6 md:flex-row md:items-center md:justify-between">
             <div>
@@ -292,6 +301,26 @@ const [eventos, informativos, testimonios] = await Promise.all([
     }
 
     /*
+     * La luz de la banda. El centro se desplaza con el puntero; sin puntero se
+     * queda en medio, que es un estado presentable por si mismo.
+     *
+     * Dorado rebajado y muy abierta: sobre esta banda hay texto blanco, y una
+     * luz cerrada le subiria el fondo justo debajo. `screen` para que aclare en
+     * vez de pintar encima, que es lo que hace que se lea como luz.
+     */
+    .luz-raton {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        mix-blend-mode: screen;
+        background: radial-gradient(
+            38rem 22rem at calc(50% + var(--raton-h, 0) * 42%) calc(50% + var(--raton-v, 0) * 70%),
+            color-mix(in oklab, var(--color-unmsm-dorado) 26%, transparent) 0%,
+            transparent 70%
+        );
+    }
+
+    /*
      * HERO DE LA PORTADA
      *
      * Fondo plano y no degradado: debajo empieza la banda de cifras con este
@@ -348,7 +377,14 @@ const [eventos, informativos, testimonios] = await Promise.all([
         /* Sobra por los cuatro lados: el desplazamiento del raton y el zoom de
            la deriva no pueden llegar a descubrir el borde. */
         inset: -5%;
-        transform: translate3d(var(--raton-x, 0px), var(--raton-y, 0px), 0);
+        /* Las variables llegan de −1 a 1 y aqui se convierten en pixeles: el
+           script no sabe cuanto tiene que moverse cada cosa, solo donde esta el
+           puntero. */
+        transform: translate3d(
+            calc(var(--raton-h, 0) * 16px),
+            calc(var(--raton-v, 0) * 11px),
+            0
+        );
         will-change: transform;
     }
 
@@ -572,32 +608,34 @@ const [eventos, informativos, testimonios] = await Promise.all([
 
 <script>
     /*
-     * La fotografía del hero sigue al ratón, unos pocos píxeles.
+     * Lo que sigue al ratón.
      *
-     * Sin librería y sin tocar el diseño: el script solo escribe dos variables
-     * CSS y el `transform` lo compone la hoja de estilos. Así la deriva
-     * constante —que vive en otra capa— y este desplazamiento no se pisan.
+     * Marca un elemento con `data-sigue-raton` y el script le escribe dos
+     * variables CSS —`--raton-h` y `--raton-v`, de −1 a 1— con la posición del
+     * puntero dentro de él. Qué hacer con ellas lo decide la hoja de estilos:
+     * en el hero desplazan la fotografía, y en la banda de marca mueven una luz.
+     * El script no sabe nada del diseño y el diseño no depende del script.
      *
-     * Tres condiciones para que exista siquiera:
+     * Sin librería. Tres condiciones para que exista siquiera:
      *
      *   · `pointer: fine`, o sea que haya un ratón de verdad. En una pantalla
      *     táctil no hay nada que seguir y el oyente solo gastaría batería.
      *   · movimiento no reducido, como el resto de las animaciones del sitio.
-     *   · que el hero esté en la página. Esto es la portada, pero el layout es
-     *     compartido y un `querySelector` nulo no puede tumbar nada.
+     *   · que haya algo marcado. Un `querySelectorAll` vacío no puede tumbar
+     *     nada, pero tampoco hace falta enganchar el oyente.
      *
      * El seguimiento va con interpolación —cada cuadro recorre un 6 % de lo que
      * falta— para que la imagen acompañe al puntero en vez de pegarse a él: un
-     * seguimiento exacto se lee como un defecto, no como profundidad. Y el
-     * bucle se detiene solo cuando ya no queda distancia que recorrer, de modo
-     * que no hay un `requestAnimationFrame` corriendo de fondo para siempre.
+     * seguimiento exacto se lee como un defecto, no como profundidad. Y el bucle
+     * se detiene solo cuando ya no queda distancia que recorrer, de modo que no
+     * hay un `requestAnimationFrame` corriendo de fondo para siempre.
      */
     function seguirAlRaton() {
-        const marco = document.querySelector<HTMLElement>('.hero-marco');
-        const capa = document.querySelector<HTMLElement>('.hero-foto-raton');
+        const zonas = [...document.querySelectorAll<HTMLElement>('[data-sigue-raton]')].filter(
+            (zona) => zona.dataset.siguiendo !== '1'
+        );
 
-        if (!marco || !capa) return;
-        if (capa.dataset.siguiendo === '1') return;
+        if (zonas.length === 0) return;
 
         if (
             !window.matchMedia('(pointer: fine)').matches ||
@@ -606,65 +644,69 @@ const [eventos, informativos, testimonios] = await Promise.all([
             return;
         }
 
-        capa.dataset.siguiendo = '1';
+        const seguidas = zonas.map((zona) => {
+            zona.dataset.siguiendo = '1';
+            return { zona, destinoH: 0, destinoV: 0, h: 0, v: 0 };
+        });
 
-        /** Cuánto se desplaza como máximo, en píxeles. */
-        const ALCANCE_X = 16;
-        const ALCANCE_Y = 11;
-
-        let destinoX = 0;
-        let destinoY = 0;
-        let actualX = 0;
-        let actualY = 0;
         let enMarcha = false;
 
         function acercarse() {
-            actualX += (destinoX - actualX) * 0.06;
-            actualY += (destinoY - actualY) * 0.06;
+            let queda = false;
 
-            capa!.style.setProperty('--raton-x', `${(actualX * ALCANCE_X).toFixed(2)}px`);
-            capa!.style.setProperty('--raton-y', `${(actualY * ALCANCE_Y).toFixed(2)}px`);
+            for (const s of seguidas) {
+                s.h += (s.destinoH - s.h) * 0.06;
+                s.v += (s.destinoV - s.v) * 0.06;
 
-            if (Math.abs(destinoX - actualX) > 0.002 || Math.abs(destinoY - actualY) > 0.002) {
-                requestAnimationFrame(acercarse);
-            } else {
-                enMarcha = false;
+                s.zona.style.setProperty('--raton-h', s.h.toFixed(4));
+                s.zona.style.setProperty('--raton-v', s.v.toFixed(4));
+
+                if (Math.abs(s.destinoH - s.h) > 0.002 || Math.abs(s.destinoV - s.v) > 0.002) {
+                    queda = true;
+                }
             }
+
+            if (queda) requestAnimationFrame(acercarse);
+            else enMarcha = false;
         }
 
-        function apuntar(x: number, y: number) {
-            const caja = marco!.getBoundingClientRect();
-            // De -1 a 1, con el centro del marco en el cero.
-            destinoX = ((x - caja.left) / caja.width - 0.5) * 2;
-            destinoY = ((y - caja.top) / caja.height - 0.5) * 2;
-
-            if (!enMarcha) {
-                enMarcha = true;
-                requestAnimationFrame(acercarse);
-            }
+        function arrancar() {
+            if (enMarcha) return;
+            enMarcha = true;
+            requestAnimationFrame(acercarse);
         }
 
-        // En la ventana y no en el marco: la cabecera y los botones se montan
-        // encima, y escuchando solo al marco la imagen se quedaba clavada cada
+        // En la ventana y no en cada zona: la cabecera y los botones se montan
+        // encima, y escuchando solo a la zona el efecto se quedaba clavado cada
         // vez que el puntero pasaba sobre ellos.
         window.addEventListener(
             'pointermove',
             (evento) => {
                 if (evento.pointerType !== 'mouse') return;
-                apuntar(evento.clientX, evento.clientY);
+
+                for (const s of seguidas) {
+                    const caja = s.zona.getBoundingClientRect();
+                    if (caja.width === 0 || caja.height === 0) continue;
+
+                    // De −1 a 1, con el centro de la zona en el cero.
+                    s.destinoH = ((evento.clientX - caja.left) / caja.width - 0.5) * 2;
+                    s.destinoV = ((evento.clientY - caja.top) / caja.height - 0.5) * 2;
+                }
+
+                arrancar();
             },
             { passive: true }
         );
 
-        // Al salir de la ventana vuelve al centro, que si no se queda torcida.
+        // Al salir de la ventana todo vuelve al centro, que si no se queda
+        // torcido.
         document.addEventListener('pointerleave', () => {
-            destinoX = 0;
-            destinoY = 0;
-
-            if (!enMarcha) {
-                enMarcha = true;
-                requestAnimationFrame(acercarse);
+            for (const s of seguidas) {
+                s.destinoH = 0;
+                s.destinoV = 0;
             }
+
+            arrancar();
         });
     }
 
