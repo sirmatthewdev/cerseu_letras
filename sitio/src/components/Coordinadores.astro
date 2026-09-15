@@ -4,7 +4,7 @@ import FondoSeccion from './FondoSeccion.astro';
 import EnlacesAcademicos from './EnlacesAcademicos.astro';
 import Icono from './Icono.astro';
 import { iconoDeAccion } from '../lib/iconos';
-import { inicialesDePersona } from '../lib/iniciales';
+import RetratoDocente from './RetratoDocente.astro';
 import type { Docente } from '../lib/api';
 
 interface Props {
@@ -14,17 +14,10 @@ interface Props {
 
 const { docentes } = Astro.props;
 
-// Quienes coordinan, que es lo que anunciaba la portada anterior. Sin foto
-// propia —ninguno la tiene todavía— el círculo se pinta con el degradado de
-// marca y las iniciales encima: es exactamente donde el sitio en Blade usaba
-// `linear-gradient(135deg, #103050, #B6A350)`, escrito a mano en tres
-// plantillas.
-//
-// La regla vive en `lib/iniciales`: de aquí salió el monograma que llevan ahora
-// también las tarjetas de programa sin fotografía, y tenerla en dos sitios era
-// garantizar que acabaran diciendo cosas distintas.
-
-const tieneFoto = (url: string) => !url.includes('profesor-default');
+// Quienes coordinan, que es lo que anunciaba la portada anterior. El retrato
+// —o su marcador, si la Unidad todavía no ha subido la foto— lo resuelve
+// `RetratoDocente`, que es el mismo en la portada, en la plana docente y en la
+// ficha.
 ---
 
 {
@@ -54,31 +47,23 @@ const tieneFoto = (url: string) => !url.includes('profesor-default');
                         <li data-revelar class="h-full">
                             <div class="ficha-coordinador group relative flex h-full flex-col gap-4 rounded-2xl bg-linear-to-b from-slate-100 to-white p-4 transition duration-300">
                                 <span class="relative block overflow-hidden rounded-xl bg-white">
-                                    {tieneFoto(docente.foto) ? (
-                                        <img
-                                            src={docente.foto}
-                                            alt=""
-                                            width="274"
-                                            height="274"
-                                            loading="lazy"
-                                            decoding="async"
-                                            /* En gris y a color al pasar, como en el sitio
-                                               anterior: la rejilla se lee como un conjunto
-                                               y no como seis fotos sueltas. */
-                                            class="aspect-square w-full object-cover grayscale transition duration-500 group-hover:grayscale-0 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        /* Sin foto propia, las iniciales sobre el
-                                           degradado de marca. Ocupan el mismo cuadrado,
-                                           así que la rejilla no se descuadra el día que
-                                           la Unidad suba unas cuantas y otras no. */
-                                        <span
-                                            aria-hidden="true"
-                                            class="marca-degradado flex aspect-square w-full items-center justify-center font-serif text-3xl font-bold text-white"
-                                        >
-                                            {inicialesDePersona(docente.nombre)}
-                                        </span>
-                                    )}
+                                    {/* El marcador ocupa el mismo cuadrado que la
+                                        foto, así que la rejilla no se descuadra
+                                        el día que la Unidad suba unas cuantas y
+                                        otras no. El degradado de marca es el que
+                                        usaba el sitio en Blade en este hueco. */}
+                                    <RetratoDocente
+                                        foto={docente.foto}
+                                        fotoPropia={docente.foto_propia}
+                                        clase="aspect-square w-full"
+                                        claseFondo="marca-degradado"
+                                        claseIcono="h-12 w-12"
+                                        /* En gris y a color al pasar, como en el
+                                           sitio anterior: la rejilla se lee como
+                                           un conjunto y no como seis fotos
+                                           sueltas. */
+                                        claseImagen="grayscale transition duration-500 group-hover:grayscale-0 group-hover:scale-105"
+                                    />
 
                                     {/* Sobre la esquina inferior derecha de la
                                         foto: en una tarjeta de seis columnas no

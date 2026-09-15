@@ -1,0 +1,73 @@
+---
+import Icono from './Icono.astro';
+import { faUser } from '@fortawesome/free-solid-svg-icons';
+
+/**
+ * El retrato de un docente, o su marcador.
+ *
+ * Existe porque la misma decisión estaba escrita cuatro veces —la portada, la
+ * plana docente, la ficha del docente— y con ella, cuatro veces, la misma forma
+ * de averiguar si la foto era suya: buscar la cadena «profesor-default» dentro
+ * de la URL. Bastaba renombrar ese archivo para romper las cuatro a la vez sin
+ * que nada avisara. Ahora lo dice la API con `foto_propia` y la decisión vive
+ * en un sitio.
+ *
+ * La forma y el tamaño los pone quien lo usa: aquí no caben, porque en la
+ * portada es un cuadrado con las esquinas redondeadas y en la plana docente un
+ * círculo de 4 rem.
+ */
+interface Props {
+    foto: string;
+    /** Lo dice la API. Sin ella, `foto` trae el marcador y no una fotografía. */
+    fotoPropia: boolean;
+    /** Forma y tamaño del hueco: las mismas clases para la foto y el marcador. */
+    clase?: string;
+    /** Tamaño del icono dentro del marcador. */
+    claseIcono?: string;
+    /**
+     * Clases que solo valen para la fotografía —el gris que se destiñe al pasar
+     * en la rejilla de coordinadores, por ejemplo—. No se aplican al marcador:
+     * poner en gris un icono que ya es plano no hace nada, y el `scale` del
+     * hover sobre una silueta se lee como un salto.
+     */
+    claseImagen?: string;
+    /** Fondo del marcador. */
+    claseFondo?: string;
+    /**
+     * Las que presiden una página se cargan de inmediato; las de una rejilla
+     * larga, cuando toque.
+     */
+    prioritaria?: boolean;
+}
+
+const {
+    foto,
+    fotoPropia,
+    clase = '',
+    claseIcono = 'h-1/3 w-1/3',
+    claseImagen = '',
+    claseFondo = 'bg-unmsm-azul',
+    prioritaria = false,
+} = Astro.props;
+---
+
+{
+    fotoPropia ? (
+        <img
+            src={foto}
+            alt=""
+            loading={prioritaria ? 'eager' : 'lazy'}
+            decoding="async"
+            class:list={['object-cover', clase, claseImagen]}
+        />
+    ) : (
+        /* `aria-hidden`: el nombre del docente va al lado, en texto. Un icono
+           genérico anunciado por un lector de pantalla solo añade ruido. */
+        <span
+            aria-hidden="true"
+            class:list={['flex items-center justify-center text-white/80', claseFondo, clase]}
+        >
+            <Icono icono={faUser} clase={claseIcono} />
+        </span>
+    )
+}

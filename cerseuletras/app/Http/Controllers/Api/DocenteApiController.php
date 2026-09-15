@@ -50,6 +50,18 @@ class DocenteApiController extends Controller
             'grado' => $docente->grado ?: null,
             'foto' => $docente->foto_url,
 
+            /*
+             * Si la de arriba es suya o es el marcador.
+             *
+             * `foto_url` nunca llega vacia: sin foto propia devuelve
+             * `images/profesor-default.jpg`, que ademas NO existe como archivo.
+             * Hasta ahora cada consumidor lo averiguaba buscando ese nombre
+             * dentro de la URL —la misma cadena copiada en tres plantillas del
+             * sitio—, y con renombrar el archivo se rompian las tres a la vez
+             * sin que nada avisara. Lo dice el dato.
+             */
+            'foto_propia' => filled($docente->foto),
+
             // Perfiles academicos publicos, tambien en el listado: la tarjeta de
             // la plana docente los enseña como iconos, y sin ellos aqui habria
             // que pedir las 20 fichas para pintar una rejilla. Son tres cadenas

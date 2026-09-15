@@ -2,7 +2,7 @@
 import EnlacesAcademicos from './EnlacesAcademicos.astro';
 import Paginacion from './Paginacion.astro';
 import type { Docente } from '../lib/api';
-import { inicialesDePersona } from '../lib/iniciales';
+import RetratoDocente from './RetratoDocente.astro';
 
 interface Props {
     /** Los de ESTA pagina. */
@@ -14,12 +14,6 @@ interface Props {
 }
 
 const { docentes, total, paginaActual, totalPaginas } = Astro.props;
-
-// Ninguno tiene foto propia todavía, así que todos comparten el marcador por
-// defecto. Veinte veces la misma silueta se lee como un fallo; unas iniciales
-// sobre el azul institucional se leen como una decisión. Cuando la Unidad
-// suba fotos reales, la condición se apaga sola.
-const tieneFotoPropia = (url: string) => !url.includes('profesor-default');
 
 /* Como en la oferta: `/pagina/N` y no `/N`, para no competir con ninguna ruta
    de ficha. Aqui no habria choque hoy, pero el esquema unico evita tener dos
@@ -42,22 +36,12 @@ const urlDe = (pagina: number) =>
                                 enlace es uno solo y esta en el nombre: repetir
                                 el enlace en la foto haria que un lector de
                                 pantalla anunciara dos veces el mismo destino. */}
-                            {tieneFotoPropia(docente.foto) ? (
-                                <img
-                                    src={docente.foto}
-                                    alt=""
-                                    loading="lazy"
-                                    decoding="async"
-                                    class="h-16 w-16 flex-none rounded-full object-cover"
-                                />
-                            ) : (
-                                <span
-                                    aria-hidden="true"
-                                    class="flex h-16 w-16 flex-none items-center justify-center rounded-full bg-unmsm-azul font-serif text-lg font-bold text-white"
-                                >
-                                    {inicialesDePersona(docente.nombre)}
-                                </span>
-                            )}
+                            <RetratoDocente
+                                foto={docente.foto}
+                                fotoPropia={docente.foto_propia}
+                                clase="h-16 w-16 flex-none rounded-full"
+                                claseIcono="h-7 w-7"
+                            />
 
                             <div class="min-w-0">
                                 <p class="font-serif font-bold leading-snug text-unmsm-azul">

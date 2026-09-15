@@ -294,6 +294,12 @@ export type Docente = {
     nombre_completo: string;
     grado: string | null;
     foto: string;
+    /**
+     * Si `foto` es del docente o el marcador. `foto` nunca llega vacia: sin
+     * retrato propio devuelve `images/profesor-default.jpg`, que ademas ni
+     * existe como archivo.
+     */
+    foto_propia: boolean;
     /** Solo en la ficha. */
     biografia?: string | null;
     lineas_investigacion?: string | null;
