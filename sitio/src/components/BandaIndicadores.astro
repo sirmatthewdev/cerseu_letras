@@ -37,10 +37,20 @@ const cifras = [
 const ultimaSola = cifras.length % 2 === 1;
 ---
 
-{/* Banda oscura pegada al hero, como en Blade: se lee como el pie de la
-    portada y no como una sección aparte. */}
+{/* Banda pegada al hero, como en Blade: se lee como el pie de la portada y no
+    como una sección aparte.
+
+    El fondo es translúcido, no opaco: vive DENTRO del hero y la fotografía de la
+    portada pasa por detrás, así que un color macizo la habría cortado justo
+    donde la banda empieza. Al 82 % la Facultad se intuye detrás de las cifras y
+    los números siguen leyéndose con holgura.
+
+    Lo lleva la banda y no el velo del hero a propósito: el velo tendría que
+    adivinar a qué altura empieza esto, y esa altura cambia con el ancho —aquí
+    son cinco columnas y en un móvil son dos filas—. Puesto en la banda, acierta
+    solo. */}
 <section
-    class="relative isolate bg-linear-to-b from-fondo-hondo to-[#0C1217] text-white"
+    class="banda-sobre-foto relative isolate text-white"
     aria-label="El CERSEU en cifras"
 >
     <div
@@ -100,3 +110,9 @@ const ultimaSola = cifras.length % 2 === 1;
         }
     </dl>
 </section>
+
+<style>
+    .banda-sobre-foto {
+        background-color: color-mix(in oklab, var(--color-fondo-hondo) 82%, transparent);
+    }
+</style>

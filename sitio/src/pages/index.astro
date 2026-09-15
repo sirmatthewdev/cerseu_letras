@@ -163,9 +163,21 @@ const [eventos, informativos, testimonios] = await Promise.all([
                 )}
             </div>
         </div>
+        </div>
 
-        {/* La fotografía, a sangre en todo el marco.
+        {/* Las cifras, dentro del hero y no debajo. Cierran la pantalla de
+            entrada: quien llega ve el nombre, lo que se ofrece, por donde se
+            entra y cuanto hay, sin rodar la rueda. Lo que hay despues empieza
+            al desplazarse. */}
+        <BandaIndicadores tipos={tipos} docentes={portada.docentes ?? docentes.length} />
+
+        {/* La fotografía, a sangre en la sección entera.
             
+            Cuelga de la sección y no del marco de texto: así llega también a la
+            franja que ocupa la cabecera —que va transparente sobre el hero— y a
+            la banda de cifras de abajo. La pantalla de entrada es una sola
+            imagen de principio a fin, no una imagen con dos bordes pegados.
+
             Va DESPUÉS del texto en el marcado y no antes: la posiciona el CSS,
             y dejarla al final mantiene el orden de lectura del documento
             —titular, texto, botones— para quien navega con teclado o lector.
@@ -201,13 +213,6 @@ const [eventos, informativos, testimonios] = await Promise.all([
                 <span aria-hidden="true" class="hero-foto-fundido"></span>
             </div>
         )}
-        </div>
-
-        {/* Las cifras, dentro del hero y no debajo. Cierran la pantalla de
-            entrada: quien llega ve el nombre, lo que se ofrece, por donde se
-            entra y cuanto hay, sin rodar la rueda. Lo que hay despues empieza
-            al desplazarse. */}
-        <BandaIndicadores tipos={tipos} docentes={portada.docentes ?? docentes.length} />
     </section>
 
 
@@ -318,24 +323,17 @@ const [eventos, informativos, testimonios] = await Promise.all([
     }
 
     /*
-     * La fotografia.
+     * La fotografia ocupa la seccion entera, detras de todo lo demas.
      *
-     * En movil es un bloque mas del flujo, debajo de los botones, a todo el
-     * ancho. En escritorio sale del flujo y ocupa la mitad derecha completa.
-     * Es el mismo elemento en los dos casos: duplicarlo habria significado dos
-     * peticiones de la misma imagen o un `display:none` que igual la descarga.
-     */
-    /*
-     * La fotografia ocupa el marco entero, detras del texto.
-     *
-     * Antes vivia en la mitad derecha. A sangre se lee como una portada y no
-     * como dos columnas pegadas, y el contraste del texto lo sostiene el
-     * degradado de la capa de arriba, no el hueco que deje la foto.
+     * `z-index: -1` y no `0`: la seccion aisla con `isolate`, asi que el valor
+     * negativo la deja por detras del texto Y de la banda de cifras sin salirse
+     * de la seccion, y por delante del color de fondo y de la textura de puntos.
+     * Con `0` habria tapado la banda, que va despues en el marcado.
      */
     .hero-foto {
         position: absolute;
         inset: 0;
-        z-index: 0;
+        z-index: -1;
         overflow: hidden;
         pointer-events: none;
     }
@@ -388,12 +386,17 @@ const [eventos, informativos, testimonios] = await Promise.all([
             linear-gradient(
                 to bottom,
                 color-mix(in oklab, var(--color-fondo-hondo) 94%, transparent) 0%,
-                /* Hasta el 56 %, que es donde acaban los botones: por debajo de
-                   eso el parrafo y el boton de contorno caian sobre el camino y
-                   el cesped, que son la parte clara de la fotografia. */
-                color-mix(in oklab, var(--color-fondo-hondo) 90%, transparent) 56%,
-                color-mix(in oklab, var(--color-fondo-hondo) 32%, transparent) 84%,
-                color-mix(in oklab, var(--color-fondo-hondo) 68%, transparent) 100%
+                /* Casi opaco hasta donde acaban los botones; de ahi se abre y
+                   la Facultad se ve. El tramo final ya no tiene que hacer de
+                   fondo de las cifras —eso lo pone la banda— y por eso puede
+                   quedarse a medias en vez de cerrarse. */
+                color-mix(in oklab, var(--color-fondo-hondo) 88%, transparent) 38%,
+                /* A partir de aqui se abre y no se vuelve a cerrar: lo que queda
+                   por debajo es la banda de cifras, que ya pone su propio fondo
+                   al 82 %. Cerrando tambien aqui, las dos capas se sumaban y la
+                   Facultad no se veia en ningun tramo. */
+                color-mix(in oklab, var(--color-fondo-hondo) 26%, transparent) 56%,
+                color-mix(in oklab, var(--color-fondo-hondo) 26%, transparent) 100%
             );
     }
 
@@ -437,10 +440,15 @@ const [eventos, informativos, testimonios] = await Promise.all([
            Facultad; esto la deja verse donde no estorba. */
         .hero-foto-fundido {
             background:
+                /* La cabecera va transparente sobre el hero y ahora la
+                   fotografia llega hasta arriba del todo: sin este tramo,
+                   «Trámites», «Actualidad» y la lupa caen sobre el cielo. El
+                   segundo punto esta a la altura a la que termina la capsula. */
                 linear-gradient(
                     to bottom,
-                    color-mix(in oklab, var(--color-fondo-hondo) 88%, transparent) 0%,
-                    transparent 30%
+                    color-mix(in oklab, var(--color-fondo-hondo) 90%, transparent) 0%,
+                    color-mix(in oklab, var(--color-fondo-hondo) 72%, transparent) 14%,
+                    transparent 34%
                 ),
                 /* El tramo casi opaco llega al 42 %, que es donde termina la
                    columna de texto a 1440 —el titular cerraba justo en el 30 %,
@@ -453,7 +461,11 @@ const [eventos, informativos, testimonios] = await Promise.all([
                     color-mix(in oklab, var(--color-fondo-hondo) 45%, transparent) 64%,
                     transparent 86%
                 ),
-                linear-gradient(to top, var(--color-fondo-hondo) 0%, transparent 22%);
+                /* Un desvanecido corto al llegar a la banda de cifras, nada
+                   mas: el fondo de las cifras lo pone la propia banda, que es
+                   quien sabe donde empieza. Opaco aqui volveria a cortar la
+                   fotografia. */
+                linear-gradient(to top, color-mix(in oklab, var(--color-fondo-hondo) 55%, transparent) 0%, transparent 16%);
         }
 
     }
