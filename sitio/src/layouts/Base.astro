@@ -84,6 +84,20 @@ const enlacesDelPie = [
         <title>{titulo} · {sitio.nombre}</title>
         <meta name="description" content={resumen} />
         <link rel="canonical" href={canonica} />
+
+        {/* El icono de la pestaña.
+            
+            Los archivos viven en `public/` del propio sitio y no se piden a
+            Laravel: el favicon es de lo primero que busca el navegador —y lo
+            pide a la raiz del dominio, antes de ejecutar nada—, asi que hacerlo
+            depender de otro origen es exponer la identidad del sitio a que ese
+            origen tarde o falle. Son 48 kB entre los tres.
+
+            Si la Unidad sube uno desde Configuración, ese manda: es lo que
+            significa tener el campo. Mientras no lo haga, el de la marca. */}
+        <link rel="icon" type="image/png" sizes="32x32" href={sitio.favicon ?? "/favicon-32.png"} />
+        <link rel="icon" type="image/png" sizes="512x512" href={sitio.favicon ?? "/favicon-512.png"} />
+        <link rel="apple-touch-icon" sizes="180x180" href={sitio.favicon ?? "/favicon-180.png"} />
         {/* En vista previa, todas las páginas van sin indexar. El build de
             vista previa sale a un directorio aparte que no se publica nunca, así
             que esto es un cinturón sobre otro: si alguna vez alguien sirviera
