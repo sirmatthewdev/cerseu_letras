@@ -64,12 +64,17 @@ administra desde el panel en `/panel`.
 │   └── migrar_bd_a_cerseu.sh    ← vuelca posgradoletras → cerseuletras
 ├── cerseuletras/            ← Laravel 12: panel y API (ver su propio README)
 │   ├── app/
+│   ├── lang/                ← español del panel y de la sesión
 │   ├── routes/api.php       ← el contrato con el sitio
 │   ├── routes/web.php       ← solo el panel y la sesión
 │   └── ...
 └── sitio/                   ← Astro: el sitio público
+    ├── public/              ← se copia tal cual a la raíz (el favicon)
     ├── src/pages/           ← una página, una ruta
+    ├── src/components/      ← lo que se repite entre páginas
+    ├── src/styles/global.css ← paleta, tipografías y utilidades de marca
     ├── src/lib/api.ts       ← el único sitio que habla con la API
+    ├── src/lib/             ← y las reglas compartidas (ver más abajo)
     ├── e2e/                 ← pruebas de navegador (Playwright)
     ├── herramientas/        ← servicio que reconstruye al publicar
     └── dist/                ← lo que sirve Nginx (no versionado)
@@ -393,6 +398,12 @@ host con PHP 8.5 ni siquiera llega a instalar: `composer install` se detiene en
 Filament —y la aplicación entera caída con «Class "Filament\PanelProvider" not
 found».
 
+**La suite se corre dentro del contenedor, no en el host.** Sobre PHP 8.5
+fallan dos pruebas del optimizador de imágenes —`OptimizacionImagenesTest` y
+`PanelSubidaDeImagenesTest`— y solo en la corrida completa; por separado pasan.
+No es un fallo del código: es el PHP con el que se ejecutan. Dentro de `app`, y
+por tanto sobre el 8.2 de la imagen, la suite está verde.
+
 ## Comandos Útiles
 
 ### Artisan / Composer / NPM
@@ -412,14 +423,17 @@ docker compose run --rm app php artisan test
 # Los componentes del panel (Vitest)
 docker compose run --rm app npm test
 
+# El sitio: las reglas compartidas de `src/lib` (Vitest)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm astro npm test
+
 # El sitio, en un navegador de verdad (Playwright).
 # Corre contra Nginx, así que hay que construir antes.
 docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile e2e run --rm e2e
 ```
 
-**Las tres suites pasan enteras.** Si algo falla, lo has roto tú: no hay
-fallos heredados que haya que aprender a ignorar, y ese es justamente el
-motivo de mantenerlas en verde.
+**Las cuatro pasan enteras.** Si algo falla, lo has roto tú: no hay fallos
+heredados que haya que aprender a ignorar, y ese es justamente el motivo de
+mantenerlas en verde.
 
 La de navegador apunta a Nginx y no al servidor de desarrollo a propósito: lo
 que se publica es el `dist/`, y hay comportamiento que solo existe ahí —los
@@ -499,15 +513,50 @@ plantilla.
 
 ## Identidad visual
 
-- **Azul institucional:** `#143B63`. La escala completa (`unmsm-azul`,
-  `-light`, `-dark`, `-soft`) está en `cerseuletras/tailwind.config.js`.
-- **Dorado UNMSM:** `#B6A350` y `#C9AA36`.
+- **Azul institucional:** `#143B63`, con su escala (`unmsm-azul`, `-light`,
+  `-dark`, `-soft`). **Dorado UNMSM:** `#B6A350` y `#C9AA36`.
+- La paleta está declarada **dos veces, a propósito**: en
+  `cerseuletras/tailwind.config.js` para el panel y en
+  `sitio/src/styles/global.css` para el sitio. El sitio no depende del árbol de
+  Laravel para construirse, y eso incluye sus colores.
+- `--color-fondo-hondo` (`#0F1B26`) es el oscuro con el que abre la portada y
+  sigue la banda de cifras. Lo comparten el hero, esa banda y los degradados de
+  la fotografía: si uno cambia y otro no, aparece una línea horizontal a media
+  página que nadie sabe de dónde sale.
 - El rojo se reserva para lo semántico: errores de validación, botones de
   eliminar, iconos de PDF y la marca de YouTube.
 - El logo se sirve desde `public/images/logo-cerseu.webp`. Va **sin fondo y con
   trazo oscuro**: el navbar y el pie le aplican `brightness-0 invert` para
   pintarlo de blanco sobre fondo oscuro. Un logo con fondo sólido se vería como
   un rectángulo blanco macizo bajo ese filtro.
+- El favicon vive en `sitio/public/` y no se le pide a Laravel: el navegador lo
+  busca en la raíz del dominio antes de ejecutar nada. Si la Unidad sube uno
+  desde Configuración, ese manda.
+
+## Convenciones del sitio
+
+Cinco reglas que no se deducen leyendo una plantilla suelta. Cada una está
+argumentada en el archivo que la implementa; esto es solo el índice.
+
+- **Los iconos nombran la acción, no la dirección** (`src/lib/iconos.ts`). Nada
+  de flechas genéricas: el destino decide el icono, porque la mitad de esas URL
+  las escribe la Unidad desde el panel y elegirlo a mano deja el icono
+  desfasado el día que alguien cambie el enlace.
+- **Nada se oculta desde CSS, nunca** (`src/lib/animacion.ts`). El HTML llega
+  con todo visible y el desvelado al hacer scroll solo toca lo que empieza
+  fuera de la pantalla. Es la regla que este proyecto aprendió a la mala: dos
+  veces se llegó a una sección en blanco por revelar lo que nunca debió
+  esconderse.
+- **Lo que sigue al ratón se marca con `data-sigue-raton`** (el script está en
+  `src/pages/index.astro`). El elemento recibe `--raton-h` y `--raton-v`, de −1
+  a 1, y el CSS decide qué hacer con ellas. El script no sabe nada del diseño.
+- **La API dice si una imagen es propia o es el respaldo** (`imagen_propia` en
+  los programas, `foto_propia` en los docentes). Antes cada plantilla lo
+  averiguaba buscando el nombre del archivo de respaldo dentro de la URL, y
+  bastaba renombrarlo para romperlas todas a la vez sin que nada avisara.
+- **Un estado vacío ofrece a dónde ir** (`src/components/EstadoVacio.astro`).
+  Talleres y Especializaciones llevan meses sin oferta; quien entra ahí tiene
+  que salir con un enlace, no con el pie de página.
 
 ## Solución de Problemas
 

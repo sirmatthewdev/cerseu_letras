@@ -51,13 +51,24 @@ arranque que crea la base de pruebas `<base>_testing`.
 | **db**   | `3307` → `3306`   | MySQL 8.0. El puerto del host se cambia con `DB_PORT` en el `.env` de la raíz; dentro de la red siempre es el 3306 |
 
 ### Estructura de Directorios Clave
-- `app/Http/Controllers`: Lógica de negocio y manejo de peticiones.
-    - `Admin/`: Controladores protegidos para el panel administrativo.
-- `app/Models`: Modelos Eloquent que representan las tablas de la base de datos.
-- `resources/views`: Plantillas Blade.
-    - `layouts/`: Plantillas base (public.blade.php, app.blade.php).
-    - `admin/`: Vistas del panel de administración.
-- `routes/web.php`: Definición de rutas web y grupos de middleware.
+- `app/Filament`: el panel. Recursos, páginas y widgets; aquí vive la
+  administración.
+- `app/Http/Controllers`: lo poco que queda fuera del panel.
+    - `Api/`: el contrato con el sitio público. Es por donde sale el contenido.
+    - `VistaPreviaController`, `ExportacionDeSolicitudesController`: las dos
+      cosas que no caben dentro de un recurso de Filament y viven en `/gestion`.
+- `app/Models`: modelos Eloquent.
+- `lang/`: el español del panel y de la sesión —validación, autenticación,
+  contraseñas—. Sin estos archivos un formulario en blanco responde
+  «validation.required», la clave en crudo.
+- `resources/views`: lo que queda de Blade son la sesión, el perfil y los
+  correos. Las vistas del panel las pone Filament.
+- `routes/web.php`: solo el panel y la sesión. El sitio público no pasa por
+  aquí.
+
+Ya no hay `Controllers/Admin/` ni `resources/views/admin/`: eran el panel
+anterior —19 controladores y 41 vistas— y se retiraron al alcanzar paridad
+Filament.
 
 ---
 
@@ -226,14 +237,22 @@ atributo casteado a enum, y Filament exige una cadena—. Sin registro no hay
 título que resolver, así que nada lo veía.
 
 ### Frontend Público
-El sitio público presenta la información de manera responsiva y optimizada para SEO.
+
+**No lo sirve Laravel.** Es un sitio estático en Astro (`sitio/`) que se
+construye contra `routes/api.php` y que Nginx entrega como ficheros. Laravel
+solo responde HTML en `/panel`, `/login`, `/profile` y `/gestion`. Publicar
+desde el panel encola un trabajo que pide reconstruirlo.
+
+Lo que sigue describe **lo que el sitio pinta con esta API**, no plantillas de
+este repositorio.
 
 #### Secciones Principales:
 1.  **Inicio**: hero, indicadores, oferta destacada con filtro por tipo.
 2.  **Talleres** (`/talleres`), **Cursos** (`/cursos`) y **Especializaciones**
-    (`/especializaciones`): mismo controlador y mismas plantillas para los tres
-    módulos. Cada uno trae listado, ficha (`/{tipo}/{slug}`), admisión
-    (`/{tipo}/admision`) y formulario de solicitud.
+    (`/especializaciones`): una sola plantilla para los tres, que sale de la
+    API y no de una lista escrita a mano —añadir un cuarto tipo en el enum lo
+    publica sin tocar el sitio—. Cada uno trae listado, ficha (`/{tipo}/{slug}`),
+    admisión (`/{tipo}/admision`) y formulario de solicitud.
 3.  **Admisión** (`/admision`): reparte hacia el proceso de cada tipo, que
     es donde vive el de verdad. No describe un proceso propio: las tarjetas
     se generan recorriendo `TipoOferta::cases()` y solo el texto de entrada
