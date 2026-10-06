@@ -34,6 +34,12 @@ administra desde el panel en `/panel`.
 > redirigen con 301 a `/cursos` y `/talleres`, para no romper enlaces ya
 > publicados.
 
+**Si lo que vas a montar es el servidor** y no tu máquina de trabajo, esta
+página no es la tuya: [docs/produccion.md](docs/produccion.md) va de una VM
+vacía a un sitio publicado, con TLS, los servicios levantándose solos en cada
+arranque y los pasos que aquí se dan por sabidos (dominio, certificado, copias
+de seguridad). Lo de abajo es la instalación de desarrollo.
+
 ## Requisitos
 
 - Docker Desktop instalado
@@ -59,6 +65,8 @@ administra desde el panel en `/panel`.
 ├── docker-compose.dev.yml   ← capa de desarrollo (sin TLS, debug on)
 ├── .env.example             ← variables de Compose (BD y su usuario)
 ├── .gitattributes           ← fuerza LF en los ficheros que ejecuta Linux
+├── docs/
+│   └── produccion.md        ← de una VM vacía al sitio publicado
 ├── scripts/
 │   ├── check_ssl_expiry.sh      ← días que le quedan al certificado
 │   └── migrar_bd_a_cerseu.sh    ← vuelca posgradoletras → cerseuletras
@@ -200,6 +208,13 @@ docker compose run --rm astro npm install
 docker compose run --rm -e CERSEU_API=http://web/api/v1 astro npm run build
 ```
 
+El servicio `astro` es el de la capa de desarrollo. Si levantaste sin ella
+—producción—, el que construye el sitio se llama `build`:
+
+```bash
+docker compose run --rm build sh -c "npm ci && npm run build"
+```
+
 `http://web` es el nombre del servicio de Nginx dentro de la red de Docker.
 No sirve `localhost`: ahí dentro sería el propio contenedor de Astro.
 
@@ -262,11 +277,17 @@ El de :4321 recarga al guardar y es con el que se trabaja; el del puerto 80 es
 lo que se publica, y solo cambia al construir. Cuando algo se vea distinto en
 uno y otro, el que manda es el del 80.
 
-Los seeders crean un administrador con contraseña de desarrollo —la verás
-impresa al sembrar—: **cámbiala antes de exponer el sitio**, porque está
-escrita en `database/seeders/UserSeeder.php`.
+Los seeders crean `admin@cerseuletras.unmsm.edu.pe` con la contraseña de
+`ADMIN_PASSWORD`; si la dejaste vacía, generan una y **la imprimen una sola
+vez**. Anótala en ese momento: no vuelve a mostrarse.
 
 ## Desplegar en una VM Linux
+
+> Para una puesta en producción de verdad —VM vacía, dominio, certificado,
+> arranque automático, copias de seguridad— el recorrido completo y en orden
+> está en **[docs/produccion.md](docs/produccion.md)**. Lo que sigue son las
+> diferencias respecto a la instalación de arriba, que es de lo que esa guía
+> parte.
 
 Lo anterior está verificado clonando el repositorio en limpio y siguiendo estos
 pasos uno a uno. Al llevarlo a una VM hay cuatro diferencias:
@@ -325,8 +346,10 @@ docker compose run --rm app composer install --no-dev --optimize-autoloader
 # Assets del panel compilados para producción (no `npm run dev`)
 docker compose run --rm app npm run build
 
-# El sitio público, contra la API ya sembrada
-docker compose run --rm -e CERSEU_API=http://web/api/v1 astro npm run build
+# El sitio público, contra la API ya sembrada.
+# El servicio es `build`: `astro` solo existe en la capa de desarrollo, y en un
+# servidor un `run --rm astro` contesta «no such service: astro».
+docker compose run --rm build sh -c "npm ci && npm run build"
 
 # Migraciones sin la confirmación interactiva
 docker compose run --rm app php artisan migrate --force

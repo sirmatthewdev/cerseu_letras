@@ -1,5 +1,5 @@
-version: '3.8'
-
+# Compose v2 ya no lee `version`: estaba declarado como '3.8' y lo unico que
+# hacia era imprimir un aviso en cada comando, en el servidor tambien.
 services:
   # PHP-FPM Application
   app:
@@ -14,6 +14,15 @@ services:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
     container_name: cerseuletras_app
+    # Como los otros cinco. Era el unico servicio sin politica, y resulta que el
+    # peor para no tenerla: tras un reinicio de la maquina volvian nginx, la
+    # base, redis, las colas y el build —y no PHP—, de modo que el sitio
+    # parecia levantado y cada peticion al panel y a la API daba 502. Un fallo
+    # que no da la cara hasta que alguien intenta entrar.
+    #
+    # `unless-stopped` y no `always`, igual que el resto: si alguien lo para a
+    # mano para operar, no quiere que vuelva solo en el proximo arranque.
+    restart: unless-stopped
     working_dir: /var/www/html
     volumes:
       - ./cerseuletras:/var/www/html
@@ -157,7 +166,15 @@ services:
       MYSQL_USER: ${DB_USERNAME:-cerseu_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-user_password}
     ports:
-      - "${DB_PORT:-3307}:3306"
+      # Al bucle local y no a todas las interfaces. Publicar un puerto en
+      # Docker abre un agujero en el cortafuegos del sistema —las reglas de
+      # ufw se evaluan DESPUES de las de Docker y no lo tapan—, asi que
+      # "3307:3306" dejaba MySQL escuchando en la IP publica de la maquina
+      # con la contrasenia del .env como unica defensa. Desde el host sigue
+      # siendo 127.0.0.1:3307 para un cliente de base de datos o un volcado,
+      # y dentro de la red de Docker nada de esto hace falta: los servicios
+      # hablan con `db:3306`.
+      - "127.0.0.1:${DB_PORT:-3307}:3306"
     volumes:
       - db-data:/var/lib/mysql
     networks:
