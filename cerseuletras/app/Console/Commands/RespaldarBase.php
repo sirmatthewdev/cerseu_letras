@@ -95,7 +95,11 @@ class RespaldarBase extends Command
         array_map('fclose', $tubos);
 
         if (proc_close($proceso) !== 0) {
+            // La redirección del shell crea el fichero antes de que mysqldump
+            // arranque: si falla, queda uno vacío que parece un respaldo.
+            @unlink($destino);
             $this->error('mysqldump falló: ' . trim($error));
+            $this->line('En Docker, la imagen de PHP no trae mysqldump: usa scripts/respaldo_bd.sh.');
 
             return self::FAILURE;
         }

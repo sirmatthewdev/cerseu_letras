@@ -656,22 +656,48 @@ ya vive en la base, editado desde el panel.
 ### Copias de seguridad
 
 ```bash
-docker compose run --rm app php artisan db:respaldar
+scripts/respaldo_bd.sh
 ```
 
-Deja el volcado en `storage/app/` (o donde diga `--destino`). **Guárdalo fuera
-del servidor**: una copia que vive en la máquina que se puede perder no es una
-copia. Una entrada diaria en el cron del usuario, y el fichero sincronizado a
-otro sitio.
+Vuelca la base desde el contenedor `db` a
+`~/respaldos/cerseuletras/cerseuletras_<fecha>.sql.gz` y borra las copias de
+más de 14 días (`DESTINO` y `DIAS` lo cambian). `php artisan db:respaldar` no
+sirve aquí: la imagen de PHP no trae `mysqldump`.
+
+**Guárdalo fuera del servidor**: una copia que vive en la máquina que se puede
+perder no es una copia. Hay que sincronizar `~/respaldos/cerseuletras` con otro
+sitio.
+
+Para restaurar una:
+
+```bash
+zcat ~/respaldos/cerseuletras/cerseuletras_<fecha>.sql.gz \
+  | docker compose exec -T db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot "$MYSQL_DATABASE"'
+```
 
 ### El certificado
 
 ```bash
-scripts/check_ssl_expiry.sh      # días que le quedan; sirve para un cron
+scripts/check_ssl_expiry.sh      # días que le quedan; sale con 2 si son menos de 30
 ```
 
 Un certificado caducado no degrada el sitio: lo cierra, con una pantalla de
 advertencia del navegador. Vigilarlo cuesta una línea de cron.
+
+### El cron
+
+Las dos cosas de arriba, programadas. `crontab -e` con el usuario del
+despliegue (tiene que estar en el grupo `docker`):
+
+```cron
+MAILTO=""
+# Respaldo de la base, cada noche a las 02:30
+30 2 * * * $HOME/cerseu_letras/scripts/respaldo_bd.sh >> $HOME/respaldos/respaldo.log 2>&1 || logger -t cerseu -p user.err "Respaldo de la base FALLIDO; ver ~/respaldos/respaldo.log"
+# Caducidad del certificado, los lunes a las 08:00
+0 8 * * 1 $HOME/cerseu_letras/scripts/check_ssl_expiry.sh >> $HOME/respaldos/certificado.log 2>&1 || logger -t cerseu -p user.warning "El certificado TLS caduca en menos de 30 dias; ver ~/respaldos/certificado.log"
+```
+
+Los fallos quedan en el journal: `journalctl -t cerseu`.
 
 ### Cambiar la contraseña del administrador
 

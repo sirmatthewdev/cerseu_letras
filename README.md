@@ -69,6 +69,7 @@ de seguridad). Lo de abajo es la instalación de desarrollo.
 │   └── produccion.md        ← de una VM vacía al sitio publicado
 ├── scripts/
 │   ├── check_ssl_expiry.sh      ← días que le quedan al certificado
+│   ├── respaldo_bd.sh           ← copia diaria de la base, para el cron
 │   └── migrar_bd_a_cerseu.sh    ← vuelca posgradoletras → cerseuletras
 ├── cerseuletras/            ← Laravel 12: panel y API (ver su propio README)
 │   ├── app/
@@ -409,9 +410,10 @@ $u->save();
 ```
 
 Para vigilar el certificado, `scripts/check_ssl_expiry.sh` dice los días que le
-quedan; sirve para un cron. Si vas a traerte los datos del sitio anterior,
-`scripts/migrar_bd_a_cerseu.sh` vuelca `posgradoletras` a `cerseuletras` sin
-tocar la base de origen.
+quedan, y `scripts/respaldo_bd.sh` guarda una copia de la base; los dos están
+pensados para el cron que describe `docs/produccion.md` (paso 10). Si vas a
+traerte los datos del sitio anterior, `scripts/migrar_bd_a_cerseu.sh` vuelca
+`posgradoletras` a `cerseuletras` sin tocar la base de origen.
 
 ## Desarrollo sin Docker
 
