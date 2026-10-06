@@ -22,6 +22,13 @@ COPY my.cnf /etc/mysql/conf.d/cerseu.cnf
 # un contenedor recreado sobre datos existentes no lo vuelve a correr.
 COPY docker-entrypoint-initdb.d/ /docker-entrypoint-initdb.d/
 
+# Ejecutable a proposito: un .sh sin el bit de ejecucion el entrypoint lo carga
+# con `source`, dentro de su propio proceso, y el `set -euo pipefail` del script
+# se queda activo para el resto del arranque. En la primera instalacion eso
+# tumbo MySQL una vez. Ejecutable, corre en un proceso aparte. Se fija aqui y no
+# en git porque al clonar en Windows el bit de ejecucion se pierde.
+RUN chmod 0555 /docker-entrypoint-initdb.d/*.sh
+
 # La imagen base copia los ficheros con los permisos del contexto de build, y
 # MySQL ignora en silencio cualquier .cnf que sea escribible por el grupo.
 RUN chmod 0444 /etc/mysql/conf.d/cerseu.cnf
