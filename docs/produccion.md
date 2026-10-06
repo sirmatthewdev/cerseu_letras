@@ -75,18 +75,45 @@ no estén etiquetados para contenedores**. El síntoma es «Permission denied»
 sobre ficheros cuyos permisos son correctos, y se pierde un buen rato buscando
 el error en `chmod`.
 
-No hay nada que hacer: **los bind mounts del compose ya llevan `:z`**, que es lo
-que hace que Docker los etiquete al arrancar y los mantenga etiquetados. En
-minúscula a propósito: `./cerseuletras` lo comparten `app`, `web` y `queue`, y
-`:Z` lo marcaría como privado de un contenedor dejando a los otros dos fuera. En
-Docker Desktop la bandera se ignora, así que no hay dos configuraciones que
-mantener.
+Los bind mounts del compose ya llevan `:z`, que es lo que hace que Docker los
+etiquete al arrancar y los mantenga etiquetados. En minúscula a propósito:
+`./cerseuletras` lo comparten `app`, `web` y `queue`, y `:Z` lo marcaría como
+privado de un contenedor dejando a los otros dos fuera. En Docker Desktop la
+bandera se ignora, así que no hay dos configuraciones que mantener.
+
+**Pero `:z` no hace nada si el demonio de Docker no tiene SELinux activado, y en
+Rocky el paquete `docker-ce` lo trae desactivado.** Es la peor combinación
+posible porque no falla: Docker ignora la bandera en silencio, los ficheros se
+quedan con su etiqueta original —`user_home_t` si el clon está en `/home`—, los
+contenedores corren **sin confinar**, y todo funciona. Parece que SELinux está
+protegiendo algo y no protege nada.
+
+```bash
+docker info --format '{{.SecurityOptions}}'    # tiene que aparecer selinux
+```
+
+Si no aparece:
+
+```bash
+echo '{ "selinux-enabled": true }' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+Eso reinicia los contenedores que estuvieran levantados. Si ya habías hecho el
+`up -d`, recréalos para que el etiquetado se aplique:
+
+```bash
+docker compose up -d --force-recreate
+ls -Z cerseuletras | head        # container_file_t, no user_home_t
+```
+
+Lo mejor es hacerlo **antes** del paso 4, y entonces no hay nada que recrear.
 
 Lo que **no** hay que hacer, y es la tentación: poner SELinux en permisivo. Es
 desactivar una protección del sistema entero para un problema que se resuelve
-con una bandera de dos caracteres. Etiquetar a mano con `chcon` también
-funciona, pero se pierde en el primer `restorecon` y entonces el sitio se cae
-sin que nadie haya tocado el proyecto.
+con una bandera de dos caracteres y una línea de configuración del demonio.
+Etiquetar a mano con `chcon` también funciona, pero se pierde en el primer
+`restorecon` y entonces el sitio se cae sin que nadie haya tocado el proyecto.
 
 Si aun así aparece un «Permission denied» en los registros, el diagnóstico es
 `ls -Z` sobre el fichero —la etiqueta debe ser `container_file_t`— y
@@ -712,7 +739,7 @@ tail -f cerseuletras/storage/logs/laravel.log
 | «Connection refused» a la base | MySQL aún inicializaba. Repetir el comando |
 | «Access denied for user» | Los `DB_*` de los dos `.env` no coinciden. Si la base ya se creó con los viejos, cambiar la contraseña dentro de MySQL o rehacer el volumen `db-data` |
 | No puede escribir en `storage/` | El `UID`/`GID` del `.env` no es el dueño de los ficheros. Corregirlo y **reconstruir** (es un argumento de construcción) |
-| «Permission denied» con permisos correctos | SELinux. Los montajes llevan `:z`; comprobar con `ls -Z` que la etiqueta es `container_file_t` y `sudo ausearch -m avc -ts recent` (paso 0.1) |
+| «Permission denied» con permisos correctos | SELinux. Comprobar que el demonio lo tiene activado (`docker info` → `selinux`) y que `ls -Z` dice `container_file_t`; si no, paso 0.1 |
 | `docker` responde «permission denied» sobre el socket | Falta salir y volver a entrar tras el `usermod -aG docker` |
 | El dominio no responde desde fuera, pero sí desde la VM | Cortafuegos: `firewall-cmd --list-services` (paso 0.3), y si ahí está bien, el de la red institucional |
 | La configuración nueva no tiene efecto | `config:cache`. `php artisan config:clear` |

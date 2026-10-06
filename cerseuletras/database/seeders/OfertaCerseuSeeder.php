@@ -19,7 +19,11 @@ use Illuminate\Support\Str;
  * convocatorias, que van al cronograma de admisión del módulo de Cursos.
  *
  * Los datos viven en data/oferta-cerseu-2026.json para poder regenerarlos
- * desde la hoja de cálculo sin tocar este archivo.
+ * desde la hoja de cálculo sin tocar este archivo. **Siete de las sumillas de
+ * ese fichero son el texto oficial de la Unidad** y no la línea generada a
+ * partir de las horas y la modalidad: si se regenera desde la hoja, hay que
+ * volver a traerlas de las migraciones `2026_09_07_100000` y `110000`, que son
+ * de donde salieron.
  */
 class OfertaCerseuSeeder extends Seeder
 {
@@ -30,8 +34,32 @@ class OfertaCerseuSeeder extends Seeder
             true
         );
 
-        if (Programa::deTipo(TipoOferta::Curso)->exists()) {
-            $this->command?->warn('Ya hay cursos cargados; no se toca la oferta.');
+        /*
+         * La guarda pregunta si YA ESTA CARGADA ESTA OFERTA, no si existe algun
+         * curso.
+         *
+         * Preguntaba lo segundo —`deTipo(Curso)->exists()`— y en una instalacion
+         * limpia eso se cumplia sin que nadie hubiera sembrado nada: la
+         * migracion de las sumillas oficiales de 2026 crea cinco cursos en
+         * borrador, y las migraciones corren ANTES que los seeders. El seeder
+         * avisaba «ya hay cursos cargados», se iba, y la instalacion quedaba con
+         * 5 cursos en borrador en lugar de los 39 publicados: el sitio se
+         * construia con 17 paginas en vez de 80, sin un solo error en ningun
+         * registro. Se encontro desplegando en la VM, no aqui.
+         *
+         * Comparar contra los nombres del propio fichero de datos acierta en los
+         * dos casos que importan: no duplica la oferta si alguien vuelve a
+         * sembrar, y no se cree cargada por cursos que vinieron de otro sitio
+         * —de esa migracion, o creados a mano desde el panel.
+         *
+         * Si la oferta esta a medias porque alguien borro parte, esto no la
+         * completa: se detiene igual. Rellenar huecos a ciegas sobre contenido
+         * que la Unidad pudo editar es peor que no tocar nada.
+         */
+        $nombres = array_column($datos['cursos'], 'nombre');
+
+        if (Programa::deTipo(TipoOferta::Curso)->whereIn('nombre', $nombres)->exists()) {
+            $this->command?->warn('La oferta del CERSEU ya está cargada; no se toca.');
 
             return;
         }

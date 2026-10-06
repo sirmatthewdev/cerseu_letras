@@ -27,6 +27,14 @@ use Tests\TestCase;
  * Si falla, lo que hay que quitar es el contenido, no la prueba. Un texto
  * legítimo del CERSEU no dice «bachiller» ni «diplomado»: su oferta está abierta
  * a toda la comunidad y no exige un grado previo.
+ *
+ * **Y también comprueba lo contrario: que el contenido propio sí llega.** Esta
+ * clase montaba la base como un despliegue nuevo y solo buscaba vocabulario
+ * ajeno, así que pasaba en verde sobre una instalación a la que le faltaban los
+ * 39 cursos enteros. El fallo se encontró desplegando en la VM —el sitio se
+ * construyó con 17 páginas en vez de 80—, y las pruebas de abajo son las que
+ * tendrían que haberlo visto antes: una instalación vacía de contenido propio es
+ * tan defectuosa como una instalación con contenido de otra unidad.
  */
 class InstalacionLimpiaTest extends TestCase
 {
@@ -145,5 +153,78 @@ class InstalacionLimpiaTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.titulo', 'Admisión · Talleres')
             ->assertJsonPath('data.convocatorias', []);
+    }
+
+    /**
+     * Los cursos que la migración de sumillas crea en borrador, y que durante un
+     * tiempo hicieron creer al seeder de la oferta que ya estaba cargada.
+     */
+    private const BORRADORES_DE_LA_MIGRACION = 5;
+
+    /** Las siete fichas con sumilla oficial de la Unidad. */
+    private const CON_SUMILLA_OFICIAL = [
+        'Curso-taller de elaboración de preguntas de opción múltiple',
+        'Redacción y Ortografía I',
+        'Oratoria y Teatro I',
+        'Didática do Português como Língua Pluricêntrica na Formação Docente',
+        'Curso-taller: APA sin clichés: más allá de la norma en la producción investigativa',
+        'Introducción a la Política de Aristóteles',
+        'Investigación cuantitativa, cualitativa y mixta',
+    ];
+
+    public function test_una_instalacion_limpia_trae_la_oferta_entera(): void
+    {
+        // Antes de sembrar ya hay cursos: los cinco borradores que crea la
+        // migración de sumillas. Es la situación exacta en la que el seeder se
+        // creía cargado y se iba sin hacer nada.
+        $this->assertSame(
+            self::BORRADORES_DE_LA_MIGRACION,
+            \App\Models\Programa::deTipo(TipoOferta::Curso)->count(),
+            'Las migraciones ya no dejan los borradores que esta prueba vigila: '
+                . 'revisa si la guarda del seeder sigue teniendo sentido.'
+        );
+
+        $this->seed();
+
+        $publicados = \App\Models\Programa::deTipo(TipoOferta::Curso)
+            ->where('estado', \App\Models\Programa::ESTADO_PUBLICADO)
+            ->count();
+
+        $this->assertSame(39, $publicados, 'La programación 2026 no se cargó entera.');
+        $this->assertSame(47, \App\Models\AdmisionCronogramaItem::count(), 'Faltan convocatorias.');
+        $this->assertGreaterThanOrEqual(20, \App\Models\Docente::where('estado', 1)->count());
+    }
+
+    public function test_las_sumillas_oficiales_llegan_a_una_instalacion_limpia(): void
+    {
+        $this->seed(\Database\Seeders\OfertaCerseuSeeder::class);
+
+        foreach (self::CON_SUMILLA_OFICIAL as $nombre) {
+            $curso = \App\Models\Programa::where('nombre', $nombre)->first();
+
+            $this->assertNotNull($curso, "No se sembró «{$nombre}».");
+
+            // El texto que la Unidad entregó, y no la línea que se generaba a
+            // partir de las horas y la modalidad. Esas sumillas llegaban por una
+            // migración que en una instalación limpia no tiene ninguna ficha que
+            // actualizar, así que viven también en el fichero de datos.
+            $this->assertDoesNotMatchRegularExpression(
+                '/^Curso de \d+ horas académicas en modalidad/',
+                (string) $curso->sumilla,
+                "«{$nombre}» se quedó con la sumilla generada en vez de la oficial."
+            );
+            $this->assertGreaterThan(300, mb_strlen((string) $curso->sumilla));
+        }
+    }
+
+    public function test_sembrar_la_oferta_dos_veces_no_la_duplica(): void
+    {
+        $this->seed(\Database\Seeders\OfertaCerseuSeeder::class);
+        $this->seed(\Database\Seeders\OfertaCerseuSeeder::class);
+
+        $this->assertSame(39, \App\Models\Programa::deTipo(TipoOferta::Curso)
+            ->where('estado', \App\Models\Programa::ESTADO_PUBLICADO)
+            ->count());
+        $this->assertSame(47, \App\Models\AdmisionCronogramaItem::count());
     }
 }

@@ -96,7 +96,7 @@
             "modalidad": "Híbrida",
             "horas_academicas": 10,
             "docente": "Luis Alberto Mamani Quispe",
-            "sumilla": "Curso de 10 horas académicas en modalidad híbrida, a cargo de Luis Alberto Mamani Quispe (Escuela de Lingüística)."
+            "sumilla": "Este curso, de modalidad semipresencial, tiene como objetivo que el participante desarrolle la capacidad de elaborar preguntas de opción múltiple en distintos formatos y niveles de complejidad. Se abordan los principios para diseñar ítems que permitan evaluar habilidades en diversos niveles cognitivos, las fases de su construcción y la variedad de formatos disponibles, brindando una formación integral en la elaboración de instrumentos de evaluación."
         },
         {
             "nombre": "Redacción y Ortografía I",
@@ -104,7 +104,7 @@
             "modalidad": "Virtual",
             "horas_academicas": 12,
             "docente": "Agustín Prado",
-            "sumilla": "Curso de 12 horas académicas en modalidad virtual, a cargo de Agustín Prado (Escuela de Literatura)."
+            "sumilla": "En el curso se revisan puntualmente las normas ortográficas (uso de letras, acentuación y puntuación), el uso de conectores, el cuidado léxico para evitar las imprecisiones y la escritura de párrafos según la normativa de la RAE. Se redactan textos expositivos y argumentativos que son la base para la escritura de textos académicos como artículos, ensayos o documentos institucionales."
         },
         {
             "nombre": "Seminario: Las novelas históricas de Mario Vargas Llosa (una lectura desde las utopías)",
@@ -256,7 +256,7 @@
             "modalidad": "Presencial",
             "horas_academicas": 15,
             "docente": "Leonardo Chihuán",
-            "sumilla": "Curso de 15 horas académicas en modalidad presencial, a cargo de Leonardo Chihuán (Escuela de Filosofía)."
+            "sumilla": "Dictado por el Campeón Mundial y Nacional de Oratoria, Leonardo Chihuán, con 13 años de experiencia docente. El curso busca que los alumnos superen el miedo a hablar en público y desarrollen técnicas de comunicación oral para impactar en exposiciones académicas, laborales, sociales y cotidianas. Se emplea el teatro como herramienta de expresión escénica y artística, y se enseña a argumentar con profundidad para lograr discursos persuasivos. Al finalizar, los estudiantes participan en una ceremonia de graduación donde pueden mostrar sus habilidades ante familiares y amigos."
         },
         {
             "nombre": "Normas APA I",
@@ -280,7 +280,7 @@
             "modalidad": "Virtual",
             "horas_academicas": 15,
             "docente": "Marco Lovón",
-            "sumilla": "Curso de 15 horas académicas en modalidad virtual, a cargo de Marco Lovón (Escuela de Lingüística)."
+            "sumilla": "Este taller, organizado por el Centro de Responsabilidad Social y Extensión Universitaria (CERSEU-FLCH) y el Instituto de Investigaciones de Lingüística Aplicada (CILA), aborda los principios teóricos y prácticos para la enseñanza del portugués desde una perspectiva pluricéntrica, considerando la diversidad de normas y variedades presentes en Portugal, Brasil y los países africanos lusófonos. Se orienta a futuros y actuales docentes, brindando herramientas didácticas para trabajar la variación lingüística, la interculturalidad y la mediación comunicativa en el aula. A través de actividades comparativas, análisis de materiales auténticos y prácticas pedagógicas, el curso desarrolla competencias para enseñar un portugués inclusivo, contextualizado y alineado con las demandas contemporáneas de la educación en lenguas."
         },
         {
             "nombre": "Curso: Literatura tusán y nikkei",
@@ -312,7 +312,7 @@
             "modalidad": "Virtual",
             "horas_academicas": 20,
             "docente": "Rolando Rocha",
-            "sumilla": "Curso de 20 horas académicas en modalidad virtual, a cargo de Rolando Rocha (Escuela de Lingüística)."
+            "sumilla": "Curso orientado al manejo actualizado de la normativa APA (7.ª edición) y la redacción académica, abordando sus innovaciones y su aplicación adecuada en trabajos de investigación. Contenidos principales: fundamentos del estilo APA y tipos de textos académicos, accesibilidad y formato en documentos académicos, redacción y estructura de artículos científicos, citación y paráfrasis sin plagio, normas de estilo y gramática en español, y elaboración de tablas, figuras y referencias."
         },
         {
             "nombre": "Introducción a la Política de Aristóteles",
@@ -320,7 +320,7 @@
             "modalidad": "Virtual",
             "horas_academicas": 12,
             "docente": "Dante Dávila",
-            "sumilla": "Curso de 12 horas académicas en modalidad virtual, a cargo de Dante Dávila (Escuela de Filosofía)."
+            "sumilla": "El seminario es una iniciación en el estudio de una de las obras clásicas de la filosofía política y la filosofía práctica, la «Política» de Aristóteles. Por ello, busca brindar una visión de conjunto de la obra: a partir del estudio de algunos pasajes seleccionados, se estudiarán los problemas centrales del texto, se discutirá la consistencia de sus planteamientos y se pondrá de manifiesto su sorprendente actualidad. El seminario recorre los principales libros de la obra y esclarece conceptos como: la comunidad política y la comunidad familiar, el problema de la esclavitud, la teoría de las constituciones y las formas de gobierno, las causas de las revoluciones y la ciudad ideal, entre otros."
         },
         {
             "nombre": "Investigación cuantitativa, cualitativa y mixta",
@@ -328,7 +328,7 @@
             "modalidad": "Virtual",
             "horas_academicas": 24,
             "docente": "Roberto Katayama",
-            "sumilla": "Curso de 24 horas académicas en modalidad virtual, a cargo de Roberto Katayama (Escuela de Filosofía)."
+            "sumilla": "Este curso fortalece las competencias de estudiantes de últimos ciclos, egresados y docentes en la elaboración de trabajos de suficiencia profesional y tesis de pregrado bajo los estándares de la investigación científica. Enfoques abordados: cuantitativo, cualitativo y mixto. Contenidos principales: selección del tema, formulación del problema, diseño metodológico, elaboración de instrumentos, análisis de resultados y redacción del informe final. Áreas de aplicación: ciencias humanas, ciencias sociales, ciencias jurídicas, educación, administrativas y psicología. Los participantes obtendrán una base metodológica sólida para desarrollar y asesorar investigaciones académicas con rigor científico."
         },
         {
             "nombre": "Práctica de la Enseñanza del Inglés I",

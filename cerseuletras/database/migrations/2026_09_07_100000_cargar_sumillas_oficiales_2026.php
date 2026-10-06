@@ -16,6 +16,20 @@ use Illuminate\Database\Migrations\Migration;
  * seeder se ejecuta en cada instalación limpia y compite con el que ya siembra
  * los 39 programas. Aquí se aplica una vez y queda registrada.
  *
+ * **En una instalación limpia esto no aplica ninguna sumilla**, y es correcto:
+ * las migraciones corren antes que los seeders, así que no hay ninguna ficha
+ * que actualizar y el bucle pasa de largo. Para que el texto oficial llegue
+ * igual a una instalación nueva, las siete sumillas están también en
+ * `database/seeders/data/oferta-cerseu-2026.json`, que es de donde las toma
+ * `OfertaCerseuSeeder`. Son el mismo texto en dos sitios a propósito: aquí para
+ * las instalaciones que ya existían, allí para las que empiezan de cero. Si se
+ * corrige una, hay que corregir la otra.
+ *
+ * Los cinco cursos de `NUEVOS` sí se crean siempre, y en una instalación limpia
+ * son los únicos que esta migración deja: cinco borradores que el seeder de la
+ * oferta debe ignorar. Durante un tiempo no los ignoró —se creía cargado al ver
+ * cualquier curso— y la instalación se quedaba sin los 39.
+ *
  * **El emparejamiento se hizo por expositor, no por título.** Los títulos del
  * documento no son literales —«Ortografía y Redacción General» frente a
  * «Redacción y Ortografía I»— y emparejar por parecido habría publicado la
