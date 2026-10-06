@@ -353,10 +353,17 @@ Y revisar en `cerseuletras/.env`:
 - Las contraseñas de base de datos: que no sean las de plantilla, y que
   coincidan con las del `.env` de la raíz.
 
-**Cambia la contraseña del administrador.** Los seeders crean
-`admin@cerseuletras.unmsm.edu.pe` con `admin123`, que está escrita en
-`database/seeders/UserSeeder.php` y por tanto es pública. Desde el propio panel,
-en el perfil del usuario, o por consola:
+- `ADMIN_PASSWORD` con la contraseña del administrador inicial, **antes** de
+  sembrar. Si se deja vacía, el seeder genera una y la imprime una sola vez: si
+  no la anotas en ese momento, se pierde y hay que ponerla a mano.
+
+Los seeders crean `admin@cerseuletras.unmsm.edu.pe`. La contraseña ya no está
+escrita en el repositorio —lo estuvo, y era «admin123»: en un repositorio, una
+contraseña escrita es una contraseña publicada—. Si el usuario ya existe, el
+seeder no se la toca.
+
+Para cambiarla después, desde el propio panel en el perfil del usuario, o por
+consola:
 
 ```bash
 docker compose run --rm app php artisan tinker
@@ -364,7 +371,8 @@ docker compose run --rm app php artisan tinker
 
 ```php
 $u = App\Models\User::where('email', 'admin@cerseuletras.unmsm.edu.pe')->first();
-$u->password = Hash::make('la-nueva-contrasena');
+// El modelo castea `password` a `hashed`: se cifra al guardar, sin `Hash::make`.
+$u->password = 'la-nueva-contrasena';
 $u->save();
 ```
 
