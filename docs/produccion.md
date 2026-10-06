@@ -33,8 +33,9 @@ configuración de nginx **sin TLS**. En un servidor no se usa nunca.
 Nada de esto está en el repositorio, y sin ello la instalación se queda a
 medias:
 
-- **El certificado TLS**: `fullchain.pem` y `privkey.pem`, emitidos para el
-  dominio. Sin ellos el contenedor de nginx no arranca (paso 3).
+- **El certificado TLS** del dominio. En esta VM los oficiales ya están en la
+  máquina: el paso 3 es localizarlos y colocarlos, no conseguirlos. Sin ellos el
+  contenedor de nginx no arranca.
 - **El registro DNS** del dominio apuntando a la IP de la VM, y los puertos
   **80** y **443** abiertos en el cortafuegos de la máquina y en el de la red
   institucional.
@@ -180,29 +181,118 @@ Ninguno de los dos ficheros se versiona.
 
 ## 3. El certificado
 
-Dos ficheros, con estos nombres exactos, en `docker/nginx/ssl_sectigo/`:
+Los oficiales **ya están en la VM**. El trabajo aquí no es conseguirlos: es
+localizarlos, comprobar que son los del dominio, dejarlos donde la plantilla de
+nginx los busca y asegurarse de que nadie más está usando los puertos.
+
+### 3.1 Localizarlos
 
 ```bash
-sudo install -m 644 fullchain.pem docker/nginx/ssl_sectigo/fullchain.pem
-sudo install -m 600 privkey.pem   docker/nginx/ssl_sectigo/privkey.pem
+sudo ls -l /etc/ssl/certs /etc/ssl/private /etc/pki/tls 2>/dev/null
+sudo find /etc -xdev -name '*.crt' -o -name '*.pem' -o -name '*.ca-bundle' 2>/dev/null
 ```
 
-La plantilla de producción los busca ahí por ruta fija. Si falta uno, nginx no
-arranca —no sirve a medias: no arranca— y el contenedor `web` se queda en bucle
-de reinicio. `docker compose logs web` lo dice en la primera línea.
+Y si en la máquina ya había un servidor web sirviendo con ellos, él mismo dice
+qué ficheros usa —que es la respuesta más fiable:
 
-`fullchain.pem` es la cadena **completa**: el certificado del servidor seguido
-de los intermedios. Con solo el certificado del servidor, los navegadores de
-escritorio suelen apañárselas y los clientes de móvil y las APIs no: el fallo
-aparece en unos sitios y no en otros, que es la forma más incómoda de que
-aparezca.
+```bash
+sudo grep -rn 'ssl_certificate' /etc/nginx/ 2>/dev/null
+sudo grep -rni 'SSLCertificate' /etc/apache2/ /etc/httpd/ 2>/dev/null
+```
 
-### Si el certificado es de Let's Encrypt
+### 3.2 Comprobar que son los correctos
 
-Hay un problema de orden que conviene conocer antes de chocar con él: la
-validación por `--webroot` necesita que algo sirva el puerto 80, y nginx no
-arranca sin el certificado que se va a validar. Se rompe el círculo emitiendo el
-primero en modo autónomo, con nginx todavía parado:
+Antes de copiar nada. Un certificado que no cubre el dominio, o una clave que no
+es la suya, se manifiesta como «nginx no arranca» y se tarda un rato en atribuir
+la causa:
+
+```bash
+sudo openssl x509 -in <el.crt> -noout -subject -ext subjectAltName -dates
+
+# ¿La clave es la de este certificado? Las dos líneas deben coincidir.
+sudo openssl x509 -in <el.crt> -noout -pubkey | openssl md5
+sudo openssl pkey -in <la.key> -pubout | openssl md5
+```
+
+El `subjectAltName` tiene que cubrir **todos** los nombres de
+`NGINX_SERVER_NAMES` (paso 2). Si el certificado no incluye `www.`, quita ese
+nombre de la variable en lugar de dejar a nginx pidiendo un certificado que no
+existe.
+
+Y si la clave está protegida con contraseña, nginx la pedirá por consola al
+arrancar y nadie se la va a teclear: `sudo openssl pkey -in <la.key> -noout`; si
+la pide, se quita con `openssl rsa -in <la.key> -out privkey.pem`.
+
+### 3.3 Dejarlos en su sitio
+
+Dos ficheros, con estos nombres exactos:
+
+```bash
+sudo install -m 644 -o "$(id -u)" -g "$(id -g)" <el.crt>  docker/nginx/ssl_sectigo/fullchain.pem
+sudo install -m 600 -o "$(id -u)" -g "$(id -g)" <la.key>  docker/nginx/ssl_sectigo/privkey.pem
+```
+
+La carpeta viene con el clon, y viene por una razón menor que conviene saber:
+Git no versiona carpetas vacías, así que lleva dentro un `LEEME.md` para
+existir. Sin ese fichero no estaría, y el bind mount del compose la crearía como
+`root` al levantar — con lo que el error ya no sería «falta el certificado» sino
+«no puedo escribir aquí».
+
+**`fullchain.pem` es la cadena completa**: el certificado del servidor seguido de
+los intermedios. Los certificados institucionales suelen entregarse como `.crt`
+más un `.ca-bundle` aparte, y entonces `fullchain.pem` no es ninguno de los dos,
+sino la concatenación —**el del servidor primero**:
+
+```bash
+cat cerseuletras_unmsm_edu_pe.crt bundle.ca-bundle > docker/nginx/ssl_sectigo/fullchain.pem
+grep -c 'BEGIN CERTIFICATE' docker/nginx/ssl_sectigo/fullchain.pem   # 2 o más
+```
+
+Si sale `1`, falta la cadena. Con solo el certificado del servidor los
+navegadores de escritorio suelen apañárselas y los clientes de móvil y las APIs
+no: el fallo aparece en unos sitios y no en otros, que es la forma más incómoda
+de que aparezca.
+
+Más detalle, en la propia carpeta:
+[docker/nginx/ssl_sectigo/LEEME.md](../docker/nginx/ssl_sectigo/LEEME.md).
+
+### 3.4 Copiar y no montar la ruta del sistema
+
+Se copian, aunque haya la tentación de montar `/etc/ssl/...` directamente en el
+contenedor. Montar la ruta del sistema entrega la clave privada a un contenedor
+y ata el despliegue a la organización de ficheros de *esta* máquina; copiar deja
+el certificado donde el proyecto lo declara, con el dueño correcto, y la
+renovación es volver a copiar y recargar:
+
+```bash
+docker compose exec web nginx -t && docker compose exec web nginx -s reload
+```
+
+`nginx -t` primero, siempre: valida la configuración y los certificados sin
+tocar el servidor en marcha. Un `reload` con un `.pem` mal copiado tira el
+sitio; un `-t` que falla no hace nada.
+
+### 3.5 Quién tiene los puertos 80 y 443
+
+Si esos certificados los estaba usando un nginx o un Apache **del sistema**, ese
+servidor tiene los puertos, y el contenedor `web` no podrá arrancar: el fallo es
+`address already in use` en el paso 4. Hay que apartarlo antes:
+
+```bash
+sudo ss -ltnp '( sport = :80 or sport = :443 )'
+sudo systemctl disable --now nginx apache2 2>/dev/null
+```
+
+`disable` y no solo `stop`: con `stop` a secas, el servicio del sistema vuelve en
+el siguiente arranque de la máquina y se adelanta a Docker. El sitio quedaría
+caído tras un reinicio, que es justo lo que el paso 7 viene a evitar.
+
+### Si en algún momento hay que emitir uno con Let's Encrypt
+
+No es el caso aquí, pero conviene que esté escrito porque tiene un orden que
+sorprende: la validación por `--webroot` necesita que algo sirva el puerto 80, y
+nginx no arranca sin el certificado que se va a validar. Se rompe el círculo
+emitiendo el primero en modo autónomo, con nginx todavía parado:
 
 ```bash
 sudo certbot certonly --standalone -d cerseuletras.unmsm.edu.pe
@@ -211,11 +301,8 @@ sudo cp /etc/letsencrypt/live/cerseuletras.unmsm.edu.pe/privkey.pem   docker/ngi
 ```
 
 Las renovaciones posteriores ya pueden ir por `--webroot`: la plantilla deja
-abierta `/.well-known/acme-challenge/` sobre `cerseuletras/public`, y hay que
-copiar los `.pem` otra vez y recargar nginx (`docker compose exec web nginx -s
-reload`). Si el certificado lo emite la universidad —lo habitual aquí, de ahí el
-nombre de la carpeta—, esto no aplica: se copian los dos ficheros que entreguen
-y se vigila la caducidad (paso 10).
+abierta `/.well-known/acme-challenge/` sobre `cerseuletras/public`. Hay que
+copiar los `.pem` otra vez y recargar nginx, como en 3.4.
 
 ---
 
@@ -522,6 +609,8 @@ tail -f cerseuletras/storage/logs/laravel.log
 | Síntoma | Causa casi siempre |
 |---|---|
 | `web` en bucle de reinicio | Falta `fullchain.pem` o `privkey.pem`, o el certificado no cubre un nombre de `NGINX_SERVER_NAMES`. `docker compose logs web` |
+| `address already in use` al levantar | Un nginx o Apache del sistema tiene el 80 y el 443. `sudo ss -ltnp '( sport = :80 or sport = :443 )'` y paso 3.5 |
+| El navegador avisa de cadena incompleta, y el móvil no entra | `fullchain.pem` lleva solo el certificado del servidor: falta concatenar el `.ca-bundle` (paso 3.3) |
 | El dominio responde 404, pero `/panel` funciona | `sitio/dist/` está vacío: falta el paso 6 |
 | 502 en `/panel` y `/api`, el sitio se ve | `app` no está arriba. `docker compose ps` y `docker compose logs app` |
 | «Connection refused» a la base | MySQL aún inicializaba. Repetir el comando |
