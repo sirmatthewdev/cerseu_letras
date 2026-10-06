@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Models\SiteSetting;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -58,6 +59,10 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::hex('#B6A350'),
             ])
             ->brandName('CERSEU Letras')
+            // Sin esto el navegador pedia /favicon.ico, que esta vacio, y la
+            // pestaña del panel salia sin icono. Closure para que se lea al
+            // pintar, no al registrar el panel (ver SiteSetting::faviconUrl).
+            ->favicon(fn (): string => SiteSetting::faviconUrl())
             ->font('Inter')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

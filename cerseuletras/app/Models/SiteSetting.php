@@ -128,6 +128,20 @@ class SiteSetting extends Model
     }
 
     /**
+     * El icono de la pestaña para las páginas que sirve Laravel: el panel,
+     * /login y /profile. La misma regla que el sitio de Astro —manda el que
+     * suba la Unidad desde Configuración y, mientras no suba ninguno, el de la
+     * marca, que nginx sirve desde el `dist/`—, para que las dos mitades del
+     * dominio no enseñen iconos distintos.
+     */
+    public static function faviconUrl(): string
+    {
+        $ruta = self::get()?->favicon_path;
+
+        return filled($ruta) ? asset('storage/' . $ruta) : asset('favicon-32.png');
+    }
+
+    /**
      * Enlace de WhatsApp derivado del teléfono para no mantener dos campos que
      * puedan contradecirse. Asume prefijo peruano cuando el número es local.
      */
