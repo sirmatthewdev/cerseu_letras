@@ -60,8 +60,8 @@ class SiteSettingsSeeder extends Seeder
             'linkedin' => null,
             'youtube' => null,
             'tiktok' => 'https://www.tiktok.com/@cerseu.letras.unm',
-            'web_facultad' => 'https://letras.universidad.edu.pe',
-            'directorio_facultad' => 'https://letras.universidad.edu.pe/directorio',
+            'web_facultad' => 'https://letras.unmsm.edu.pe/',
+            'directorio_facultad' => 'https://cerseuletras.unmsm.edu.pe/directorio',
         ];
 
         $settings ? $settings->update($datos) : SiteSetting::create($datos);
