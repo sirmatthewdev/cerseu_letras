@@ -24,8 +24,18 @@ services:
     # mano para operar, no quiere que vuelva solo en el proximo arranque.
     restart: unless-stopped
     working_dir: /var/www/html
+    # Los bind mounts llevan `:z` por SELinux. En Rocky, RHEL y Fedora —y la VM
+    # de produccion es Rocky 9— SELinux esta en Enforcing y un contenedor no
+    # puede leer ficheros del host que no esten etiquetados para contenedores:
+    # el fallo es «Permission denied» sobre ficheros con permisos
+    # aparentemente correctos, y desconcierta. `:z` hace que Docker los
+    # etiquete al arrancar y los mantenga etiquetados; en minuscula porque
+    # `./cerseuletras` lo COMPARTEN `app`, `web` y `queue` —`:Z` lo marcaria
+    # como privado de un contenedor y los otros dos se quedarian fuera—. En
+    # Docker Desktop (Windows, macOS) la bandera se ignora, asi que no hay dos
+    # configuraciones que mantener.
     volumes:
-      - ./cerseuletras:/var/www/html
+      - ./cerseuletras:/var/www/html:z
     depends_on:
       - db
     networks:
@@ -46,21 +56,21 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./cerseuletras:/var/www/html
+      - ./cerseuletras:/var/www/html:z
       # La conf va como PLANTILLA: el entrypoint de nginx sustituye las
       # variables y escribe el resultado en /etc/nginx/conf.d/. Antes el
       # dominio estaba escrito a mano dentro del .conf, de modo que
       # levantar el sistema en otro dominio exigia editar codigo.
-      - ./docker/nginx/templates/default-ssl.conf.template:/etc/nginx/templates/default.conf.template
-      - ./docker/nginx/ssl_sectigo:/etc/nginx/ssl_sectigo
-      - ./docker/nginx/compression.conf:/etc/nginx/compression.conf
+      - ./docker/nginx/templates/default-ssl.conf.template:/etc/nginx/templates/default.conf.template:z
+      - ./docker/nginx/ssl_sectigo:/etc/nginx/ssl_sectigo:z
+      - ./docker/nginx/compression.conf:/etc/nginx/compression.conf:z
       # El reparto entre el sitio estatico y Laravel, compartido por las dos
       # plantillas. No va como plantilla porque no lleva variables: envsubst
       # solo procesa /etc/nginx/templates/.
-      - ./docker/nginx/sitio.conf:/etc/nginx/sitio.conf
+      - ./docker/nginx/sitio.conf:/etc/nginx/sitio.conf:z
       # El sitio publico: el `dist/` que genera Astro. Nginx lo sirve tal cual,
       # sin pasar por PHP.
-      - ./sitio/dist:/var/www/sitio:ro
+      - ./sitio/dist:/var/www/sitio:ro,z
     depends_on:
       - app
     networks:
@@ -105,7 +115,7 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
-      - ./cerseuletras:/var/www/html
+      - ./cerseuletras:/var/www/html:z
     depends_on:
       - db
       - redis
@@ -145,7 +155,7 @@ services:
       - CERSEU_VISTA_PREVIA_TOKEN=${CERSEU_VISTA_PREVIA_TOKEN:-}
       - PUERTO_BUILD=4322
     volumes:
-      - ./sitio:/app
+      - ./sitio:/app:z
       # node_modules en volumen nombrado, por lo mismo que vendor/ en la app.
       - node-modules-build:/app/node_modules
     depends_on:

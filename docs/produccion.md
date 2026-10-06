@@ -28,6 +28,25 @@ configuración de nginx **sin TLS**. En un servidor no se usa nunca.
 | RAM | 4 GB | MySQL, Redis, PHP-FPM, el trabajador de colas y Node a la vez |
 | Disco | 20 GB | Las imágenes de Docker pesan ~2,5 GB; el resto son la base, las imágenes subidas desde el panel y dos árboles de `node_modules` |
 
+**La VM de producción es Rocky Linux 9**, y eso cambia tres cosas respecto a lo
+que suele estar escrito en cualquier guía de Docker: el instalador, el nombre
+del Apache del sistema (`httpd`, no `apache2`) y el cortafuegos (`firewalld`, no
+`ufw`). Van dichas donde toca, pero si copias comandos de otro sitio, es ahí
+donde fallarán.
+
+Y hay **SELinux**, que es la diferencia que de verdad muerde: ver 0.1.
+
+Si la máquina se queda por debajo de los 4 GB, lo que sufre es la construcción
+del sitio —Node con 80 páginas— compitiendo con MySQL y PHP. Con ~3,5 GB sale,
+pero conviene no construir mientras se hace otra cosa, y añadir intercambio
+cubre el pico sin pedir más memoria a nadie:
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
 ### Lo que hay que tener a mano
 
 Nada de esto está en el repositorio, y sin ello la instalación se queda a
@@ -45,18 +64,83 @@ medias:
 - **La contraseña del primer administrador**, decidida por la Unidad. Se pone en
   el `.env` antes de sembrar.
 
-### Docker
+### 0.1 SELinux
 
-Docker **Engine** con el plugin de Compose, no Docker Desktop. En Ubuntu o
-Debian:
+```bash
+getenforce        # en Rocky, Enforcing
+```
+
+Con SELinux en `Enforcing`, **un contenedor no puede leer ficheros del host que
+no estén etiquetados para contenedores**. El síntoma es «Permission denied»
+sobre ficheros cuyos permisos son correctos, y se pierde un buen rato buscando
+el error en `chmod`.
+
+No hay nada que hacer: **los bind mounts del compose ya llevan `:z`**, que es lo
+que hace que Docker los etiquete al arrancar y los mantenga etiquetados. En
+minúscula a propósito: `./cerseuletras` lo comparten `app`, `web` y `queue`, y
+`:Z` lo marcaría como privado de un contenedor dejando a los otros dos fuera. En
+Docker Desktop la bandera se ignora, así que no hay dos configuraciones que
+mantener.
+
+Lo que **no** hay que hacer, y es la tentación: poner SELinux en permisivo. Es
+desactivar una protección del sistema entero para un problema que se resuelve
+con una bandera de dos caracteres. Etiquetar a mano con `chcon` también
+funciona, pero se pierde en el primer `restorecon` y entonces el sitio se cae
+sin que nadie haya tocado el proyecto.
+
+Si aun así aparece un «Permission denied» en los registros, el diagnóstico es
+`ls -Z` sobre el fichero —la etiqueta debe ser `container_file_t`— y
+`sudo ausearch -m avc -ts recent`.
+
+### 0.2 Docker
+
+Docker **Engine** con el plugin de Compose, no Docker Desktop.
+
+En **Rocky, RHEL o Alma** —el caso de esta VM—, desde el repositorio oficial de
+Docker y no desde el de la distribución, que trae `podman-docker`:
+
+```bash
+sudo dnf -y install dnf-plugins-core
+sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+En **Ubuntu o Debian**:
 
 ```bash
 curl -fsSL https://get.docker.com | sudo sh
+```
+
+Y en los dos:
+
+```bash
 sudo usermod -aG docker "$USER"   # cerrar la sesión SSH y volver a entrar
 docker compose version            # debe responder v2.x
 ```
 
-Y lo que de verdad decide que esto sea permanente:
+El `usermod` no tiene efecto en la sesión donde se ejecuta: hay que salir y
+volver a entrar, o `docker` seguirá contestando «permission denied» sobre el
+socket.
+
+### 0.3 El cortafuegos
+
+En Rocky y RHEL hay `firewalld` activo, y los puertos 80 y 443 están cerrados:
+
+```bash
+sudo firewall-cmd --permanent --add-service=http --add-service=https
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-services        # http y https entre ellos
+```
+
+En Ubuntu, `sudo ufw allow 80,443/tcp` si `ufw` está activo.
+
+Esto es el cortafuegos de la máquina. El de la red institucional es otro y no se
+abre por SSH: si el dominio no responde desde fuera con los puertos locales
+abiertos y el contenedor sirviendo, es ahí donde hay que preguntar.
+
+### 0.4 Docker en el arranque
+
+Lo que de verdad decide que esto sea permanente:
 
 ```bash
 sudo systemctl enable --now docker
@@ -123,16 +207,22 @@ DB_ROOT_PASSWORD=<otra distinta>
 UID=1000                 # el id -u de arriba
 GID=1000                 # el id -g de arriba
 
-NGINX_SERVER_NAMES=cerseuletras.unmsm.edu.pe www.cerseuletras.unmsm.edu.pe
+NGINX_SERVER_NAMES=cerseuletras.unmsm.edu.pe
 CERSEU_SITE=https://cerseuletras.unmsm.edu.pe
 CERSEU_BUILD_TOKEN=<un secreto largo, el mismo que en el otro .env>
 ```
 
-`NGINX_SERVER_NAMES` lleva **todos** los dominios separados por espacios, y deja
-fuera `www.` si no existe ese registro DNS: nginx no arranca pidiendo un
-certificado para un nombre que el certificado no cubre. El dominio no está
-escrito en ninguna `.conf` —son plantillas que el entrypoint de nginx rellena al
-arrancar—, así que cambiar de dominio es cambiar esta variable.
+`NGINX_SERVER_NAMES` lleva **todos** los dominios separados por espacios. El
+dominio no está escrito en ninguna `.conf` —son plantillas que el entrypoint de
+nginx rellena al arrancar—, así que cambiar de dominio es cambiar esta variable.
+
+**Sin `www.`**, y por dos razones que es mejor no descubrir en producción: no hay
+registro DNS para ese nombre, y el certificado de la universidad es un comodín
+`*.unmsm.edu.pe`, que cubre `cerseuletras.unmsm.edu.pe` pero **no**
+`www.cerseuletras.unmsm.edu.pe` —un comodín vale para un solo nivel—. Ponerlo no
+impide que nginx arranque: lo que hace es que quien entre por ese nombre reciba
+una advertencia de seguridad del navegador, que es bastante peor que un nombre
+que simplemente no responde.
 
 `CERSEU_SITE` es otra cosa y hace falta igual: de ahí salen el sitemap y las URL
 canónicas que Astro escribe al construir. Sin barra final.
@@ -215,9 +305,11 @@ sudo openssl pkey -in <la.key> -pubout | openssl md5
 ```
 
 El `subjectAltName` tiene que cubrir **todos** los nombres de
-`NGINX_SERVER_NAMES` (paso 2). Si el certificado no incluye `www.`, quita ese
-nombre de la variable en lugar de dejar a nginx pidiendo un certificado que no
-existe.
+`NGINX_SERVER_NAMES` (paso 2). El de la universidad es un comodín
+`*.unmsm.edu.pe`: cubre `cerseuletras.unmsm.edu.pe` y **no**
+`www.cerseuletras.unmsm.edu.pe`, porque un comodín vale para un solo nivel. Lo
+que se quita entonces es el nombre de la variable —nginx arrancará igual con él,
+y lo que se lleva quien entre por ahí es una advertencia del navegador.
 
 Y si la clave está protegida con contraseña, nginx la pedirá por consola al
 arrancar y nadie se la va a teclear: `sudo openssl pkey -in <la.key> -noout`; si
@@ -280,8 +372,12 @@ servidor tiene los puertos, y el contenedor `web` no podrá arrancar: el fallo e
 
 ```bash
 sudo ss -ltnp '( sport = :80 or sport = :443 )'
-sudo systemctl disable --now nginx apache2 2>/dev/null
+sudo systemctl disable --now nginx httpd 2>/dev/null     # Rocky, RHEL
+sudo systemctl disable --now nginx apache2 2>/dev/null   # Debian, Ubuntu
 ```
+
+El Apache del sistema se llama `httpd` en Rocky y `apache2` en Debian. Si
+`ss` no muestra nada escuchando en esos puertos, no hay nada que apartar.
 
 `disable` y no solo `stop`: con `stop` a secas, el servicio del sistema vuelve en
 el siguiente arranque de la máquina y se adelanta a Docker. El sitio quedaría
@@ -616,6 +712,9 @@ tail -f cerseuletras/storage/logs/laravel.log
 | «Connection refused» a la base | MySQL aún inicializaba. Repetir el comando |
 | «Access denied for user» | Los `DB_*` de los dos `.env` no coinciden. Si la base ya se creó con los viejos, cambiar la contraseña dentro de MySQL o rehacer el volumen `db-data` |
 | No puede escribir en `storage/` | El `UID`/`GID` del `.env` no es el dueño de los ficheros. Corregirlo y **reconstruir** (es un argumento de construcción) |
+| «Permission denied» con permisos correctos | SELinux. Los montajes llevan `:z`; comprobar con `ls -Z` que la etiqueta es `container_file_t` y `sudo ausearch -m avc -ts recent` (paso 0.1) |
+| `docker` responde «permission denied» sobre el socket | Falta salir y volver a entrar tras el `usermod -aG docker` |
+| El dominio no responde desde fuera, pero sí desde la VM | Cortafuegos: `firewall-cmd --list-services` (paso 0.3), y si ahí está bien, el de la red institucional |
 | La configuración nueva no tiene efecto | `config:cache`. `php artisan config:clear` |
 | Publicar en el panel no actualiza el sitio | El `CERSEU_BUILD_TOKEN` no coincide en los dos `.env`. `docker compose logs build` |
 | Los avisos de solicitudes no llegan | `MAIL_*`, o el trabajador caído. Quedan registrados en `leads.aviso_error`; `php artisan correo:probar` |

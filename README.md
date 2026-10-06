@@ -290,7 +290,16 @@ vez**. Anótala en ese momento: no vuelve a mostrarse.
 > parte.
 
 Lo anterior está verificado clonando el repositorio en limpio y siguiendo estos
-pasos uno a uno. Al llevarlo a una VM hay cuatro diferencias:
+pasos uno a uno. Al llevarlo a una VM hay cinco diferencias:
+
+0. **SELinux**, en Rocky, RHEL y Fedora. Con SELinux en `Enforcing` un
+   contenedor no puede leer ficheros del host que no estén etiquetados para
+   contenedores, y el síntoma es «Permission denied» sobre ficheros cuyos
+   permisos son correctos. Por eso los bind mounts del compose llevan `:z`
+   —minúscula: `./cerseuletras` lo comparten `app`, `web` y `queue`, y `:Z` lo
+   marcaría como privado de uno—. En Docker Desktop la bandera se ignora, así
+   que no hay dos configuraciones que mantener. No pongas SELinux en permisivo.
+
 
 1. **`UID`/`GID`** (paso 4). Es el fallo más común y no se manifiesta en
    Windows, porque allí Docker Desktop presenta todo el bind mount como `root`

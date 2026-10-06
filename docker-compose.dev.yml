@@ -44,7 +44,7 @@ services:
   # de las solicitudes se quedan en la cola sin que nadie lo note.
   queue:
     volumes:
-      - ./cerseuletras:/var/www/html
+      - ./cerseuletras:/var/www/html:z
       - vendor-data:/var/www/html/vendor
 
   web:
@@ -57,7 +57,7 @@ services:
       # que en desarrollo se sirve la variante sin TLS por el puerto 80.
       # Compose fusiona los volúmenes por ruta de destino, de modo que esta
       # línea sustituye a la del compose base en lugar de sumarse.
-      - ./docker/nginx/templates/default.conf.template:/etc/nginx/templates/default.conf.template
+      - ./docker/nginx/templates/default.conf.template:/etc/nginx/templates/default.conf.template:z
 
 
   # Sitio publico en Astro. Vive aparte del monolito: consume la API de
@@ -82,7 +82,7 @@ services:
     ports:
       - "4321:4321"
     volumes:
-      - ./sitio:/app
+      - ./sitio:/app:z
       # node_modules en volumen nombrado, por lo mismo que vendor/ en la app:
       # sobre el bind mount de Docker Desktop readdir() trunca los
       # directorios grandes.
@@ -125,7 +125,7 @@ services:
       # sitio tiene que estar construido antes de lanzar las pruebas.
       - CERSEU_E2E=http://web
     volumes:
-      - ./sitio:/app
+      - ./sitio:/app:z
       - e2e-node-modules:/app/node_modules
     depends_on:
       - astro
