@@ -1,4 +1,27 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
+
+const TIPOS = ['talleres', 'cursos', 'especializaciones'] as const;
+
+/**
+ * Cuántas fichas publicadas tiene cada tipo, leído del índice del buscador.
+ *
+ * Las pruebas de estado vacío daban por hecho que no había talleres, y dejaron
+ * de pasar el día que el CERSEU publicó el primero. La oferta la decide el
+ * panel, no la prueba: se pregunta al sitio qué hay.
+ */
+async function publicadosPorTipo(request: APIRequestContext): Promise<Record<string, number>> {
+    const indice: { url: string }[] = await (await request.get('/indice-busqueda.json')).json();
+    const cuentas: Record<string, number> = Object.fromEntries(TIPOS.map((t) => [t, 0]));
+
+    for (const { url } of indice) {
+        const [, tipo, slug] = url.split('/');
+        if (tipo in cuentas && slug && slug !== 'admision' && slug !== 'pagina') {
+            cuentas[tipo]++;
+        }
+    }
+
+    return cuentas;
+}
 
 /**
  * El fallo que motiva este fichero: los 39 cursos existían en el HTML, la
@@ -26,8 +49,13 @@ test.describe('La oferta se ve, no solo existe', () => {
         await expect(page.getByRole('article')).not.toHaveCount(0);
     });
 
-    test('un tipo sin oferta explica que está vacío en vez de quedarse en blanco', async ({ page }) => {
-        await page.goto('/talleres');
+    test('un tipo sin oferta explica que está vacío en vez de quedarse en blanco', async ({ page, request }) => {
+        const cuentas = await publicadosPorTipo(request);
+        const vacio = TIPOS.find((t) => cuentas[t] === 0);
+
+        test.skip(vacio === undefined, 'Todos los tipos tienen oferta publicada.');
+
+        await page.goto(`/${vacio}`);
         await expect(page.getByText('Próximamente')).toBeVisible();
     });
 
@@ -100,26 +128,37 @@ test.describe('La oferta se ve, no solo existe', () => {
      * pestaña cambie las tarjetas— y que un tipo sin oferta explique el hueco
      * en vez de dejar el panel en blanco.
      */
-    test('el filtro de la portada tiene los cuatro botones y filtra', async ({ page }) => {
+    test('el filtro de la portada tiene los cuatro botones y filtra', async ({ page, request }) => {
+        const cuentas = await publicadosPorTipo(request);
+
         await page.goto('/');
 
         const pestanas = page.getByRole('tab');
         await expect(pestanas).toHaveCount(4);
 
         // Arranca en el primer tipo CON oferta, no en el primero a secas: el
-        // sitio anterior abría en Talleres y lo primero que se veía era que no
-        // hay ninguno.
-        await expect(page.getByRole('tab', { name: /Cursos/ })).toHaveAttribute(
-            'aria-selected',
-            'true'
-        );
+        // sitio anterior abría en Talleres cuando no había ninguno, y lo
+        // primero que se veía era el aviso de que no hay nada.
+        const inicial = TIPOS.find((t) => cuentas[t] > 0) ?? 'todos';
+        await expect(page.locator(`#filtro-${inicial}`)).toHaveAttribute('aria-selected', 'true');
+        await expect(page.locator(`#panel-${inicial}`).getByRole('article').first()).toBeVisible();
 
-        const panelCursos = page.locator('#panel-cursos');
-        await expect(panelCursos.getByRole('article').first()).toBeVisible();
+        // Cada pestaña cambia el panel: con oferta enseña tarjetas, sin ella
+        // explica el hueco en vez de dejarlo en blanco.
+        for (const tipo of TIPOS) {
+            await page.locator(`#filtro-${tipo}`).click();
+            const panel = page.locator(`#panel-${tipo}`);
 
-        await page.getByRole('tab', { name: /Talleres/ }).click();
-        await expect(page.locator('#panel-talleres')).toContainText('Todavía no hay talleres');
-        await expect(panelCursos).toBeHidden();
+            if (cuentas[tipo] > 0) {
+                await expect(panel.getByRole('article').first()).toBeVisible();
+            } else {
+                await expect(panel).toContainText('Todavía no hay');
+            }
+
+            for (const otro of TIPOS.filter((t) => t !== tipo)) {
+                await expect(page.locator(`#panel-${otro}`)).toBeHidden();
+            }
+        }
 
         await page.getByRole('tab', { name: /Todos/ }).click();
         await expect(page.locator('#panel-todos').getByRole('article').first()).toBeVisible();
