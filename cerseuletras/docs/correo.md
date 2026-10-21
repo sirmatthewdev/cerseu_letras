@@ -1,18 +1,26 @@
-# Correo: qué falta para que funcione
+# Correo
 
-Diagnóstico a 2 de agosto de 2026. **No se ha tocado ninguna credencial**: este
-documento solo explica qué hay que rellenar y dónde.
+**En funcionamiento desde el 21 de octubre de 2026.** Producción envía por
+`smtp.gmail.com:587` con una contraseña de aplicación de la cuenta
+`cerseu.letras@unmsm.edu.pe` (aplicación «Informatica» en la cuenta de Google).
+`php artisan correo:probar` la entregó, y los dos avisos que se habían quedado
+en modo `log` (solicitudes del 12 y del 15 de octubre) se reenviaron.
 
-## Estado actual
+Si la contraseña de aplicación se revoca, o cambia la contraseña de la cuenta,
+Google la invalida y los avisos vuelven a fallar. Se ven en *Solicitudes* con la
+etiqueta «Aviso no enviado». Basta con generar otra, ponerla en `MAIL_PASSWORD`
+y seguir los pasos de abajo.
+
+Lo que sigue es el diagnóstico original, del 2 de agosto de 2026, cuando el
+correo estaba en `MAIL_MAILER=log` y no salía nada. Se conserva porque explica
+qué hace falta si hay que configurarlo de nuevo.
+
+## Estado al 2 de agosto
 
 `MAIL_MAILER=log`, tanto en `.env` como en `.env.example`. Con ese valor Laravel
 **no envía nada**: escribe el mensaje completo en `storage/logs/laravel.log` y
 devuelve éxito. Por eso nada falla de forma visible — y por eso tampoco llega
 nada.
-
-Comprobado: `Mail::raw(...)` no lanza excepción y el remitente configurado es
-`hello@example.com` con nombre `Laravel`, los valores que trae Laravel de
-fábrica.
 
 ## Qué depende de esto
 
@@ -106,8 +114,10 @@ cuenta.
 DKIM** al DNS de `unmsm.edu.pe`, o los correos acaban en spam: también pasa por
 él, así que no evita la gestión.
 
-En los cuatro casos, tras cambiarlo: `php artisan config:clear` y
-`php artisan correo:probar`.
+En los cuatro casos, tras cambiarlo: `php artisan config:cache` (producción
+tiene la configuración en caché), `docker restart cerseuletras_queue` —el
+worker de la cola es el que envía y conserva la configuración vieja hasta que
+se reinicia— y `php artisan correo:probar`.
 
 ### El panel avisa de los correos que no salieron
 
@@ -189,8 +199,6 @@ fijado y una tanda de tests corrió contra la base de datos de desarrollo.
 
 ## Pendiente de decidir
 
-- **Notificar los fallos de envío.** Hoy el `catch` solo escribe en el log.
-  Podría marcarse el lead como «aviso no enviado» y mostrarlo en el panel.
 - **Verificación de correo al crear usuarios.** Las rutas de verificación no
   están publicadas (los tests de Breeze que fallan son justo por eso). No hace
   falta mientras las cuentas las cree un administrador a mano.
