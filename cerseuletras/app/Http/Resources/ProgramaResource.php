@@ -10,9 +10,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Contrato público de un programa hacia el sitio en Astro.
  *
  * Se declara campo a campo a propósito, sin `$this->resource->toArray()`: la
- * tabla `programas` arrastra columnas de la etapa de Posgrado —`creditos`,
- * `costo_por_credito`, `semestres_inversion`— que no pintan nada en la oferta
- * del CERSEU. Volcar el modelo entero las publicaría en la API y ataría el
+ * tabla `programas` arrastra columnas de la etapa de Posgrado —como
+ * `creditos`— que no pintan nada en la oferta del CERSEU. Volcar el modelo entero las publicaría en la API y ataría el
  * frontend a un esquema que queremos poder limpiar.
  *
  * El resto del contenido largo —objetivos, plan de estudios, perfiles, los
@@ -145,10 +144,7 @@ class ProgramaResource extends JsonResource
         };
 
         $bloque = [
-            // Del accesor y no del array en crudo: prioriza el importe cerrado
-            // que carga el panel y, si no lo hay, lo calcula desde las tarifas.
-            // Leerlo de `inversion_economica` dejaba sin total a los programas
-            // que lo tienen calculado.
+            // Precio general.
             'costo_total' => $this->resource->costo_total !== null
                 ? (float) $this->resource->costo_total
                 : null,
@@ -165,8 +161,8 @@ class ProgramaResource extends JsonResource
         ];
 
         // Se decide sobre los valores ya resueltos y no sobre el array en
-        // crudo: hay programas sin `inversion_economica` cuyo total sale del
-        // calculo por creditos, y devolver null los dejaba sin bloque.
+        // crudo: un array con todas las claves vacías —lo que guarda el panel
+        // al abrir la pestaña sin rellenarla— no es inversión que mostrar.
         $hayAlgo = collect($bloque)->contains(
             fn ($valor) => $valor !== null && $valor !== []
         );

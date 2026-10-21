@@ -248,64 +248,31 @@ class ObservacionesPosgradoTest extends TestCase
         $this->assertNull($programa->brochure_link);
     }
 
-    /** Inversión: los importes salen del panel y hay un único cálculo. */
-    public function test_la_inversion_se_calcula_desde_los_datos_del_programa(): void
-    {
-        $programa = Programa::create([
-            'grado' => 'Curso', 'nombre' => 'Maestría con Tarifas',
-            'modalidad' => 'Presencial', 'duracion' => 4, 'creditos' => 30,
-            'estado' => Programa::ESTADO_PUBLICADO,
-            'costo_por_credito' => 100,
-            'semestres_inversion' => [
-                ['matricula' => 300, 'creditos' => 10],
-                ['matricula' => 400, 'creditos' => 20],
-            ],
-        ]);
-
-        $filas = $programa->semestres_calculados;
-        $this->assertCount(2, $filas);
-        $this->assertSame(1000, $filas[0]['costo_semestre']);   // 10 créditos × 100
-        $this->assertSame(250.0, $filas[0]['cuota_mensual']);   // dividido en 4
-        // Total = (300 + 1000) + (400 + 2000)
-        $this->assertSame(3700, $programa->costo_total);
-
-        // La ficha recibe ese mismo total ya calculado, sin rehacerlo por su
-        // cuenta: la regla vive en el modelo y no puede duplicarse en el sitio.
-        $this->assertEquals(
-            3700,
-            $this->getJson('/api/v1/programas/' . $programa->slug)->json('data.inversion.costo_total'),
-        );
-    }
-
-    /** Inversión: un importe cerrado (caso diplomados) tiene prioridad. */
-    public function test_el_costo_total_cerrado_manda_sobre_el_calculo(): void
+    /** Inversión: el precio general es el importe que carga el panel. */
+    public function test_el_precio_general_es_el_importe_del_panel(): void
     {
         $programa = Programa::create([
             'grado' => 'Taller', 'nombre' => 'Diplomado con Precio Cerrado',
             'modalidad' => 'Virtual', 'duracion' => 2, 'creditos' => 12,
             'estado' => Programa::ESTADO_PUBLICADO,
-            'costo_por_credito' => 120,
-            'semestres_inversion' => [['matricula' => 200, 'creditos' => 12]],
             'inversion_economica' => ['costo_total' => 3280],
         ]);
 
         $this->assertSame(3280, $programa->costo_total);
     }
 
-    /** Inversión: sin tarifas cargadas se avisa en vez de mostrar ceros. */
-    public function test_sin_tarifas_la_ficha_dice_por_definir(): void
+    /** Inversión: sin importes cargados no se muestran ceros. */
+    public function test_sin_importes_no_hay_bloque_de_inversion(): void
     {
         $programa = Programa::create([
-            'grado' => 'Curso', 'nombre' => 'Maestría sin Tarifas',
+            'grado' => 'Curso', 'nombre' => 'Curso sin Importes',
             'modalidad' => 'Presencial', 'duracion' => 4, 'creditos' => 30,
             'estado' => Programa::ESTADO_PUBLICADO,
-            'costo_por_credito' => null,
-            'semestres_inversion' => [],
         ]);
 
         $this->assertNull($programa->costo_total);
 
-        // Sin tarifas no llega bloque de inversión: la ficha lo omite en vez
+        // Sin importes no llega bloque de inversión: la ficha lo omite en vez
         // de pintar ceros o un «por definir» que no dice nada.
         $this->assertNull(
             $this->getJson('/api/v1/programas/' . $programa->slug)->json('data.inversion'),

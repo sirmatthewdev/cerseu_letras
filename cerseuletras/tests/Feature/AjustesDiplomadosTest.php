@@ -646,8 +646,6 @@ class AjustesDiplomadosTest extends TestCase
             'estado' => Programa::ESTADO_PUBLICADO,
             'grado_otorga_label' => 'Grado que otorga',
             'grado_otorga' => 'Magíster en Lingüística',
-            'costo_por_credito' => 160,
-            'semestres_inversion' => [['matricula' => 310, 'creditos' => 14]],
         ]);
 
         $ficha = $this->getJson('/api/v1/programas/' . $programa->slug)->assertOk()->json('data');

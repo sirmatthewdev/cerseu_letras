@@ -34,8 +34,6 @@ class Programa extends Model
         'horas_academicas',
         'fecha_limite_inscripcion',
         'inversion_economica',
-        'costo_por_credito',
-        'semestres_inversion',
         'por_que_text',
         'sumilla',
         'plan_estudios',
@@ -92,8 +90,6 @@ class Programa extends Model
         'perfil_ingresante' => 'array',
         'perfil_graduado' => 'array',
         'inversion_economica' => 'array',
-        'costo_por_credito' => 'integer',
-        'semestres_inversion' => 'array',
     ];
 
     // Relaciones
@@ -338,64 +334,14 @@ class Programa extends Model
     // Inversión económica
 
     /**
-     * Semestres (o módulos) con sus importes ya calculados.
-     *
-     * Punto único del cálculo: antes vivía repetido en las tres plantillas de
-     * inversión y otra vez en programas/show, con el riesgo de que dejaran de
-     * coincidir entre sí.
-     *
-     * @return array<int, array{numero:int, matricula:int, creditos:int, costo_semestre:int, cuota_mensual:float}>
-     */
-    public function getSemestresCalculadosAttribute(): array
-    {
-        $costoCredito = (int) ($this->costo_por_credito ?? 0);
-        $filas = [];
-
-        foreach ((array) ($this->semestres_inversion ?? []) as $i => $sem) {
-            $matricula = (int) ($sem['matricula'] ?? 0);
-            $creditos = (int) ($sem['creditos'] ?? 0);
-            $costoSemestre = $creditos * $costoCredito;
-
-            $filas[] = [
-                'numero' => $i + 1,
-                'matricula' => $matricula,
-                'creditos' => $creditos,
-                'costo_semestre' => $costoSemestre,
-                // Referencia orientativa: el semestre se fracciona en 4 pagos.
-                // Se fuerza a float: en PHP la división exacta devuelve int, y
-                // el tipo cambiaría según los importes de cada programa.
-                'cuota_mensual' => (float) ($costoSemestre / 4),
-            ];
-        }
-
-        return $filas;
-    }
-
-    /**
-     * Costo total del programa.
-     *
-     * Prioriza el importe cerrado que se haya cargado en `inversion_economica`
-     * (así lo tienen los diplomados) y, si no existe, lo calcula sumando
-     * matrículas y créditos.
+     * Precio general del programa: el importe que carga el panel en
+     * `inversion_economica.costo_total`, o null si no lo tiene.
      */
     public function getCostoTotalAttribute(): ?int
     {
         $cerrado = $this->inversion_economica['costo_total'] ?? null;
 
-        if (is_numeric($cerrado)) {
-            return (int) $cerrado;
-        }
-
-        $filas = $this->semestres_calculados;
-
-        if (empty($filas)) {
-            return null;
-        }
-
-        return (int) array_sum(array_map(
-            fn ($f) => $f['matricula'] + $f['costo_semestre'],
-            $filas
-        ));
+        return is_numeric($cerrado) ? (int) $cerrado : null;
     }
 
     /**
