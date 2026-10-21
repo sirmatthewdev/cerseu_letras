@@ -59,8 +59,12 @@ export type Programa = {
      * mantener esa regla dos veces, en dos lenguajes.
      */
     inversion: {
+        /** Precio general. */
         costo_total: number | null;
+        precio_sanmarquino: number | null;
+        /** Costo de la constancia (la clave viene de Posgrado). */
         costo_diploma: number | null;
+        costo_modulo: number | null;
         costo_matricula: number | null;
         derecho_inscripcion: {
             bachiller_unmsm?: number;

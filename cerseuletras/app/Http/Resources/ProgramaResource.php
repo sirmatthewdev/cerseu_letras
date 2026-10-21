@@ -152,7 +152,9 @@ class ProgramaResource extends JsonResource
             'costo_total' => $this->resource->costo_total !== null
                 ? (float) $this->resource->costo_total
                 : null,
+            'precio_sanmarquino' => $importe('precio_sanmarquino'),
             'costo_diploma' => $importe('costo_diploma'),
+            'costo_modulo' => $importe('costo_modulo'),
             'costo_matricula' => $importe('costo_matricula'),
             'derecho_inscripcion' => array_filter([
                 'bachiller_unmsm' => $importe('derecho_inscripcion.bachiller_unmsm'),

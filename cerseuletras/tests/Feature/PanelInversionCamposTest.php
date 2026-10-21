@@ -60,7 +60,9 @@ class PanelInversionCamposTest extends TestCase
             'inversion_economica.derecho_inscripcion.bachiller_unmsm',
             'inversion_economica.derecho_inscripcion.otras_universidades',
             'inversion_economica.costo_total',
+            'inversion_economica.precio_sanmarquino',
             'inversion_economica.costo_diploma',
+            'inversion_economica.costo_modulo',
             'inversion_economica.costo_matricula',
         ] as $campo) {
             $this->assertContains($campo, $campos, "Falta el campo {$campo}");

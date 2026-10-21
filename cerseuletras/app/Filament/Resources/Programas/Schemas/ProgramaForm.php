@@ -194,24 +194,36 @@ class ProgramaForm
             Section::make('Importes')
                 ->columns(2)
                 ->schema([
+                    // Se guarda bajo `costo_total` para no migrar los importes
+                    // ya cargados: es el mismo dato con el rótulo que usa el
+                    // CERSEU, que publica siempre dos precios por curso.
                     TextInput::make('inversion_economica.costo_total')
-                        ->label('Costo total')
+                        ->label('Precio general')
                         ->numeric()
-                        ->prefix('S/')
-                        ->helperText('Si se deja vacío se calcula desde las tarifas por crédito.'),
+                        ->prefix('S/'),
+
+                    TextInput::make('inversion_economica.precio_sanmarquino')
+                        ->label('Precio comunidad sanmarquina')
+                        ->numeric()
+                        ->prefix('S/'),
 
                     TextInput::make('inversion_economica.costo_matricula')
                         ->label('Matrícula')
                         ->numeric()
                         ->prefix('S/'),
 
+                    // La clave conserva el nombre de Posgrado; lo que el CERSEU
+                    // entrega es una constancia.
                     TextInput::make('inversion_economica.costo_diploma')
-                        ->label('Diploma')
+                        ->label('Constancia')
                         ->numeric()
                         ->prefix('S/'),
 
-                    TextInput::make('costo_por_credito')
-                        ->label('Costo por crédito')
+                    // Sustituye a «Costo por crédito», que no se publicaba:
+                    // solo alimentaba el cálculo por créditos de Posgrado, y
+                    // ningún curso lo usa.
+                    TextInput::make('inversion_economica.costo_modulo')
+                        ->label('Costo por módulo')
                         ->numeric()
                         ->prefix('S/'),
                 ]),

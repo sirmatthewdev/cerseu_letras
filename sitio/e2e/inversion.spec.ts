@@ -32,14 +32,15 @@ test('los bloques de inversión van en el orden que pidió la Unidad', async ({ 
 
     const titulos = await page
         .locator('h3')
-        .filter({ hasText: /Costo total|Modalidades de pago|Pago de diploma|Costo por matrícula|Condiciones de pago/ })
+        .filter({ hasText: /Precio|Modalidades de pago|Pago de constancia|Costo por matrícula|Costo por módulo|Condiciones de pago/ })
         .allTextContents();
 
     const esperado = [
-        'Costo total',
+        'Precio',
         'Modalidades de pago',
-        'Pago de diploma',
+        'Pago de constancia',
         'Costo por matrícula',
+        'Costo por módulo',
         'Condiciones de pago',
     ].filter((bloque) => titulos.some((t) => t.includes(bloque)));
 

@@ -177,6 +177,33 @@ class AjustesDiplomadosTest extends TestCase
         $this->assertContains('Descuento por pago adelantado.', $inversion['condiciones']);
     }
 
+    public function test_los_dos_precios_y_el_costo_por_modulo_llegan_a_la_api(): void
+    {
+        $programa = $this->diplomado([
+            'inversion_economica' => [
+                'costo_total' => 300,
+                'precio_sanmarquino' => 250,
+                'costo_modulo' => 100,
+            ],
+        ]);
+
+        $inversion = $this->getJson('/api/v1/programas/' . $programa->slug)->assertOk()->json('data')['inversion'];
+
+        $this->assertEquals(300, $inversion['costo_total']);
+        $this->assertEquals(250, $inversion['precio_sanmarquino']);
+        $this->assertEquals(100, $inversion['costo_modulo']);
+    }
+
+    public function test_solo_el_precio_sanmarquino_basta_para_mostrar_la_inversion(): void
+    {
+        $programa = $this->diplomado(['inversion_economica' => ['precio_sanmarquino' => 250]]);
+
+        $inversion = $this->getJson('/api/v1/programas/' . $programa->slug)->assertOk()->json('data')['inversion'];
+
+        $this->assertNotNull($inversion);
+        $this->assertEquals(250, $inversion['precio_sanmarquino']);
+    }
+
     public function test_el_costo_total_lleva_la_nota_de_lo_que_incluye(): void
     {
         $programa = $this->diplomado(['inversion_economica' => ['costo_total' => 3650]]);
