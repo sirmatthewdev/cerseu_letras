@@ -50,7 +50,7 @@ class SiteSettingsSeeder extends Seeder
             'footer_text' => '© 2026 CERSEU de Letras y Ciencias Humanas. Todos los derechos reservados.',
             'email' => 'cerseu.letras@unmsm.edu.pe',
             'email_admision' => 'cerseu.letras@unmsm.edu.pe',
-            'telefono' => '914 033 129',
+            'telefono' => '994 706 417',
             'anexo' => '2808',
             'direccion' => 'Av. Universitaria 1801, San Miguel, Lima 15088',
             'horario_atencion' => 'Lunes a Viernes: 9:00 AM - 5:00 PM',
