@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -76,16 +77,18 @@ class ProgramaForm
                         ->options(array_combine(TipoOferta::grados(), TipoOferta::grados()))
                         ->native(false),
 
-                    Select::make('estado')
-                        ->required()
-                        ->default(Programa::ESTADO_BORRADOR)
-                        ->native(false)
-                        ->options([
-                            Programa::ESTADO_PUBLICADO => 'Publicado',
-                            Programa::ESTADO_PROXIMAMENTE => 'Próximamente',
-                            Programa::ESTADO_BORRADOR => 'Borrador',
-                        ])
-                        ->helperText('Un borrador no sale en el sitio; se puede ver con «Vista previa».'),
+                    // Visible o no, como la plana docente: es lo único que se
+                    // decide a diario —hay cursos que van por temporadas—.
+                    // Por dentro sigue siendo `estado` (publicado / borrador),
+                    // que es lo que leen la API y el sitio.
+                    Toggle::make('estado')
+                        ->label('Visible en el sitio')
+                        ->default(false)
+                        ->formatStateUsing(fn (?string $state): bool => $state === Programa::ESTADO_PUBLICADO)
+                        ->dehydrateStateUsing(fn (?bool $state): string => $state
+                            ? Programa::ESTADO_PUBLICADO
+                            : Programa::ESTADO_BORRADOR)
+                        ->helperText('Apágalo para ocultarlo, por ejemplo fuera de temporada: la ficha se conserva tal cual y se puede revisar con «Vista previa».'),
 
                     TextInput::make('modalidad')
                         ->maxLength(100)

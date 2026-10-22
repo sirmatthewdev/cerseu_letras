@@ -13,11 +13,12 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * Lo primero que se ve al entrar al panel.
  *
  * Cuatro cifras, elegidas por lo que responden y no por lo que se puede contar:
- * cuánto hay publicado, cuánto está a medias, quién enseña y cuántas solicitudes
- * han llegado. El escritorio vacío que trae Filament de fábrica no dice nada.
+ * cuánto se ve en el sitio, cuánto está oculto, quién enseña y cuántas
+ * solicitudes han llegado. El escritorio vacío que trae Filament de fábrica no
+ * dice nada.
  *
- * Los borradores llevan color de aviso cuando los hay: son trabajo empezado que
- * nadie ve, y es justo lo que conviene recordar al entrar.
+ * «No visibles» va en gris y no en color de aviso: con cursos que van por
+ * temporadas, tener fichas ocultas es lo normal, no algo pendiente.
  */
 class ResumenDelSitio extends StatsOverviewWidget
 {
@@ -25,18 +26,17 @@ class ResumenDelSitio extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $publicados = Programa::where('estado', Programa::ESTADO_PUBLICADO)->count();
-        $borradores = Programa::where('estado', Programa::ESTADO_BORRADOR)->count();
-        $proximamente = Programa::where('estado', Programa::ESTADO_PROXIMAMENTE)->count();
+        $visibles = Programa::where('estado', Programa::ESTADO_PUBLICADO)->count();
+        $noVisibles = Programa::where('estado', '!=', Programa::ESTADO_PUBLICADO)->count();
 
         return [
-            Stat::make('Programas publicados', $publicados)
-                ->description($proximamente > 0 ? "{$proximamente} anunciados como próximamente" : 'En el sitio ahora mismo')
+            Stat::make('Programas visibles', $visibles)
+                ->description('En el sitio ahora mismo')
                 ->color('success'),
 
-            Stat::make('Borradores', $borradores)
-                ->description($borradores > 0 ? 'Sin publicar; se pueden ver con «Vista previa»' : 'Nada a medias')
-                ->color($borradores > 0 ? 'warning' : 'gray'),
+            Stat::make('No visibles', $noVisibles)
+                ->description('Ocultos del sitio; se pueden revisar con «Vista previa»')
+                ->color('gray'),
 
             Stat::make('Docentes', Docente::count())
                 ->description(Evento::count() . ' eventos cargados')

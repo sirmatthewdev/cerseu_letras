@@ -331,8 +331,8 @@ class PanelFilamentTest extends TestCase
         $this->actingAs($this->admin());
 
         Livewire::test(ResumenDelSitio::class)
-            ->assertSee('Programas publicados')
-            ->assertSee('Borradores')
+            ->assertSee('Programas visibles')
+            ->assertSee('No visibles')
             // Y que las cifras sean las de verdad, no un cero de adorno.
             ->assertSee('1');
 

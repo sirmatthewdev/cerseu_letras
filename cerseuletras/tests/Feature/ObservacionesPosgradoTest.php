@@ -353,7 +353,7 @@ class ObservacionesPosgradoTest extends TestCase
         $this->get($programa->url)->assertNotFound();
     }
 
-    /** Estados: el atajo del panel alterna entre publicado y borrador. */
+    /** Estados: el interruptor «Visible» del panel alterna entre publicado y borrador. */
     public function test_el_panel_alterna_publicado_y_borrador(): void
     {
         $programa = Programa::create([
@@ -365,11 +365,11 @@ class ObservacionesPosgradoTest extends TestCase
         $this->actingAs($this->admin());
 
         Livewire::test(ListProgramas::class)
-            ->callTableAction('publicar', $programa);
+            ->call('updateTableColumnState', 'estado', (string) $programa->getKey(), false);
         $this->assertSame(Programa::ESTADO_BORRADOR, $programa->fresh()->estado);
 
         Livewire::test(ListProgramas::class)
-            ->callTableAction('publicar', $programa);
+            ->call('updateTableColumnState', 'estado', (string) $programa->getKey(), true);
         $this->assertSame(Programa::ESTADO_PUBLICADO, $programa->fresh()->estado);
     }
 

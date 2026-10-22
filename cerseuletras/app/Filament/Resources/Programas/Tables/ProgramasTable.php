@@ -5,18 +5,24 @@ namespace App\Filament\Resources\Programas\Tables;
 use App\Models\Programa;
 use App\Models\TipoOferta;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Filament\Tables\Table;
 
 /**
  * Listado de programas.
  *
- * La columna que más importa es el estado: con 39 fichas, lo que se viene a
- * mirar es qué está publicado y qué no.
+ * La columna que más importa es «Visible»: con decenas de fichas, lo que se
+ * viene a mirar —y a cambiar, cada temporada— es qué sale en el sitio y qué
+ * no. Es un interruptor en la propia fila, como en la plana docente.
  */
 class ProgramasTable
 {
@@ -48,20 +54,13 @@ class ProgramasTable
                     ->placeholder('—')
                     ->toggleable(),
 
-                TextColumn::make('estado')
-                    ->badge()
+                ToggleColumn::make('estado')
+                    ->label('Visible')
                     ->sortable()
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        Programa::ESTADO_PUBLICADO => 'Publicado',
-                        Programa::ESTADO_PROXIMAMENTE => 'Próximamente',
-                        Programa::ESTADO_BORRADOR => 'Borrador',
-                        default => (string) $state,
-                    })
-                    ->color(fn (?string $state): string => match ($state) {
-                        Programa::ESTADO_PUBLICADO => 'success',
-                        Programa::ESTADO_PROXIMAMENTE => 'warning',
-                        default => 'gray',
-                    }),
+                    ->getStateUsing(fn (Programa $r): bool => $r->estado === Programa::ESTADO_PUBLICADO)
+                    ->updateStateUsing(fn (Programa $r, ?bool $state) => $r->update([
+                        'estado' => $state ? Programa::ESTADO_PUBLICADO : Programa::ESTADO_BORRADOR,
+                    ])),
 
                 TextColumn::make('docentes_count')
                     ->label('Docentes')
@@ -76,12 +75,14 @@ class ProgramasTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('estado')
-                    ->options([
-                        Programa::ESTADO_PUBLICADO => 'Publicado',
-                        Programa::ESTADO_PROXIMAMENTE => 'Próximamente',
-                        Programa::ESTADO_BORRADOR => 'Borrador',
-                    ]),
+                TernaryFilter::make('estado')
+                    ->label('Visible')
+                    ->trueLabel('Solo visibles')
+                    ->falseLabel('Solo no visibles')
+                    ->queries(
+                        true: fn (Builder $q) => $q->where('estado', Programa::ESTADO_PUBLICADO),
+                        false: fn (Builder $q) => $q->where('estado', '!=', Programa::ESTADO_PUBLICADO),
+                    ),
 
                 SelectFilter::make('grado')
                     ->label('Tipo de oferta')
@@ -109,36 +110,28 @@ class ProgramasTable
                     ->url(fn (Programa $r): ?string => $r->url)
                     ->openUrlInNewTab(),
 
-                /*
-                 * Publicar y despublicar de un clic, como en el panel anterior.
-                 * `estado` se puede cambiar entrando a la ficha, pero con 39
-                 * programas esto es lo que se hace a diario: obligar a abrir el
-                 * formulario entero para mover un interruptor es la clase de
-                 * roce que acaba con fichas sin publicar.
-                 */
-                Action::make('publicar')
-                    ->label(fn (Programa $r): string => $r->estado === Programa::ESTADO_PUBLICADO
-                        ? 'Pasar a borrador'
-                        : 'Publicar')
-                    ->icon(fn (Programa $r): string => $r->estado === Programa::ESTADO_PUBLICADO
-                        ? 'heroicon-o-arrow-uturn-left'
-                        : 'heroicon-o-check-circle')
-                    ->color(fn (Programa $r): string => $r->estado === Programa::ESTADO_PUBLICADO
-                        ? 'gray'
-                        : 'success')
-                    ->requiresConfirmation()
-                    ->action(function (Programa $r): void {
-                        $r->update([
-                            'estado' => $r->estado === Programa::ESTADO_PUBLICADO
-                                ? Programa::ESTADO_BORRADOR
-                                : Programa::ESTADO_PUBLICADO,
-                        ]);
-                    }),
-
                 EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    // Al cambiar de temporada se encienden o apagan varios
+                    // cursos a la vez: uno a uno serían decenas de clics.
+                    BulkAction::make('hacer_visibles')
+                        ->label('Hacer visibles')
+                        ->icon('heroicon-o-eye')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(fn (Collection $programas) => $programas->each->update(['estado' => Programa::ESTADO_PUBLICADO]))
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('ocultar')
+                        ->label('Ocultar del sitio')
+                        ->icon('heroicon-o-eye-slash')
+                        ->color('gray')
+                        ->requiresConfirmation()
+                        ->action(fn (Collection $programas) => $programas->each->update(['estado' => Programa::ESTADO_BORRADOR]))
+                        ->deselectRecordsAfterCompletion(),
+
                     DeleteBulkAction::make(),
                 ]),
             ]);
