@@ -30,9 +30,13 @@ class InformativoForm
                     ->maxLength(255)
                     ->columnSpanFull(),
 
+                // Obligatoria y de 100 como la columna: sin esto el panel la
+                // dejaba vacía, la base la rechazaba al guardar y quien subía
+                // un PDF perdía el registro con el fichero ya subido.
                 TextInput::make('categoria')
                     ->label('Categoría')
-                    ->maxLength(255)
+                    ->required()
+                    ->maxLength(100)
                     ->datalist(fn () => \App\Models\Informativo::query()
                         ->whereNotNull('categoria')
                         ->distinct()
