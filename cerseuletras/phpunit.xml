@@ -31,5 +31,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- El panel consulta el servicio de build en cada página (aviso de
+             publicación): las pruebas que lo necesitan ponen la URL y lo simulan. -->
+        <env name="CERSEU_BUILD_URL" value=""/>
     </php>
 </phpunit>

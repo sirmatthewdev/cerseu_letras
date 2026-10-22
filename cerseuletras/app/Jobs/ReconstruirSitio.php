@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Support\EstadoDePublicacion;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -50,6 +51,7 @@ class ReconstruirSitio implements ShouldQueue, ShouldBeUnique
 
         if (blank($token)) {
             Log::warning('Reconstrucción del sitio: falta CERSEU_BUILD_TOKEN, no se pide.');
+            EstadoDePublicacion::encargoFallido('Falta CERSEU_BUILD_TOKEN en el .env: el sitio no se puede reconstruir.');
 
             return;
         }
@@ -69,5 +71,13 @@ class ReconstruirSitio implements ShouldQueue, ShouldBeUnique
                 'El servicio de build respondió ' . $respuesta->status() . ': ' . $respuesta->body()
             );
         }
+
+        EstadoDePublicacion::encargoAceptado();
+    }
+
+    /** Agotados los reintentos: que el panel lo diga en vez de callarlo. */
+    public function failed(?\Throwable $error): void
+    {
+        EstadoDePublicacion::encargoFallido($error?->getMessage() ?: 'El servicio de build no aceptó el encargo.');
     }
 }

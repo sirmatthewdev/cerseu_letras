@@ -11,6 +11,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -71,8 +72,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                \App\Filament\Widgets\PublicacionDelSitio::class,
                 \App\Filament\Widgets\ResumenDelSitio::class,
             ])
+            // Si publicar falla, que se vea en cualquier página del panel y no
+            // solo en el escritorio (ver EstadoDePublicacion).
+            ->renderHook(
+                PanelsRenderHook::CONTENT_START,
+                fn (): string => view('filament.aviso-de-publicacion')->render(),
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

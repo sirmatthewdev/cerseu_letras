@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Jobs\ReconstruirSitio;
+use App\Support\EstadoDePublicacion;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -39,6 +40,8 @@ class PublicacionObserver
         if (app()->runningUnitTests() || app()->runningInConsole()) {
             return;
         }
+
+        EstadoDePublicacion::marcarPendiente();
 
         ReconstruirSitio::dispatch()
             ->delay(now()->addSeconds(config('sitio.reconstruccion.espera_segundos')));
