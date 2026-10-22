@@ -90,4 +90,16 @@ class ProgramasVisiblesTest extends TestCase
         $this->assertSame(Programa::ESTADO_PUBLICADO, $uno->fresh()->estado);
         $this->assertSame(Programa::ESTADO_PUBLICADO, $dos->fresh()->estado);
     }
+
+    public function test_la_fecha_limite_es_texto_libre_y_no_rompe_la_api(): void
+    {
+        // Lo que se escribio en el Curso de Ballet Clasico y dejo la API en 500.
+        $programa = $this->programa(Programa::ESTADO_PUBLICADO);
+        $programa->update(['fecha_limite_inscripcion' => 'Lunes 02 de noviembre']);
+
+        $this->getJson('/api/v1/programas?tipo=talleres')->assertOk();
+        $this->getJson('/api/v1/programas/' . $programa->slug)
+            ->assertOk()
+            ->assertJsonPath('data.fecha_limite', 'Lunes 02 de noviembre');
+    }
 }

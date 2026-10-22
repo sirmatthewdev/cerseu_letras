@@ -66,8 +66,12 @@ class ProgramaResource extends JsonResource
             // ficha omita el dato en vez de dejar una etiqueta suelta.
             'grado_otorga' => $this->resource->denominacion_otorga['texto'] ?? null,
             'grado_otorga_label' => $this->resource->denominacion_otorga['label'] ?? null,
-            'fecha_limite' => $this->resource->fecha_limite_inscripcion
-                ? $this->resource->fecha_limite_inscripcion->toDateString()
+            // Texto libre y no una fecha: el panel la deja escribir como se
+            // publica («Lunes 02 de noviembre»). Tratarla como fecha tumbaba
+            // la API entera —y con ella cada build del sitio— en cuanto
+            // alguien la rellenaba.
+            'fecha_limite' => filled($this->resource->fecha_limite_inscripcion)
+                ? (string) $this->resource->fecha_limite_inscripcion
                 : null,
 
             // Documentos descargables, tal como los sube el panel.
