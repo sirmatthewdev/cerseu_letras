@@ -102,4 +102,24 @@ class ProgramasVisiblesTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.fecha_limite', 'Lunes 02 de noviembre');
     }
+
+    public function test_la_ficha_abre_con_el_interruptor_como_esta_el_programa(): void
+    {
+        // Abrir un programa visible lo mostraba como «no visible», y guardar
+        // sin tocar nada lo ocultaba del sitio.
+        $visible = $this->programa(Programa::ESTADO_PUBLICADO, 'Visible');
+        $oculto = $this->programa(Programa::ESTADO_BORRADOR, 'Oculto');
+
+        Livewire::test(EditPrograma::class, ['record' => $visible->getRouteKey()])
+            ->assertSchemaStateSet(['estado' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+        $this->assertSame(Programa::ESTADO_PUBLICADO, $visible->fresh()->estado);
+
+        Livewire::test(EditPrograma::class, ['record' => $oculto->getRouteKey()])
+            ->assertSchemaStateSet(['estado' => false])
+            ->call('save')
+            ->assertHasNoFormErrors();
+        $this->assertSame(Programa::ESTADO_BORRADOR, $oculto->fresh()->estado);
+    }
 }

@@ -84,7 +84,12 @@ class ProgramaForm
                     Toggle::make('estado')
                         ->label('Visible en el sitio')
                         ->default(false)
-                        ->formatStateUsing(fn (?string $state): bool => $state === Programa::ESTADO_PUBLICADO)
+                        // Del registro y no de `$state`: el Toggle convierte
+                        // el valor a booleano antes de llegar aquí, y «borrador»
+                        // y «publicado» valen los dos `true`. Comparando el
+                        // estado ya convertido, toda ficha abría como «no
+                        // visible» y guardarla sin tocar nada la ocultaba.
+                        ->formatStateUsing(fn (?Programa $record): bool => $record?->estado === Programa::ESTADO_PUBLICADO)
                         ->dehydrateStateUsing(fn (?bool $state): string => $state
                             ? Programa::ESTADO_PUBLICADO
                             : Programa::ESTADO_BORRADOR)
