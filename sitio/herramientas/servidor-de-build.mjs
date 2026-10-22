@@ -19,10 +19,17 @@
  * 3. Las peticiones que llegan mientras hay un build en marcha NO encolan otro
  *    build cada una: marcan que hace falta repetirlo al terminar. Un editor
  *    que guarda diez cosas seguidas provoca dos builds, no diez.
+ *
+ * 4. No construye sobre `dist/`. Astro vacía el directorio de salida al
+ *    empezar, y `dist/` es lo que sirve Nginx: cada publicación dejaba el
+ *    sitio entero en 404 los segundos que duraba el build —medido: cinco—, y
+ *    un build fallido lo dejaba roto hasta el siguiente. Ahora construye en
+ *    `dist-nuevo/` y, solo si termina bien, mueve los ficheros a `dist/` (ver
+ *    `publicar`).
  */
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, rmdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const PUERTO = Number(process.env.PUERTO_BUILD ?? 4322);
@@ -38,6 +45,16 @@ const TOKEN = process.env.CERSEU_BUILD_TOKEN ?? '';
  */
 const TOKEN_VISTA_PREVIA = process.env.CERSEU_VISTA_PREVIA_TOKEN ?? '';
 const DIR_VISTA_PREVIA = path.resolve('/app', 'dist-vista-previa');
+
+const DIR_PUBLICADO = path.resolve('/app', 'dist');
+const DIR_NUEVO = path.resolve('/app', 'dist-nuevo');
+
+/**
+ * Los ficheros con hash que deja de usar un build se guardan unos días: quien
+ * cargó la página justo antes de publicar todavía los pide, y borrarlos al
+ * momento le rompería los estilos o el JavaScript a media visita.
+ */
+const DIAS_CONSERVANDO_ASSETS = 7;
 
 let construyendo = false;
 let repetirAlTerminar = false;
@@ -66,9 +83,7 @@ function construir(vistaPrevia = false) {
     const inicio = Date.now();
     log(vistaPrevia ? 'vista previa: empieza' : 'build: empieza');
 
-    const argumentos = vistaPrevia
-        ? ['run', 'build', '--', '--outDir', 'dist-vista-previa']
-        : ['run', 'build'];
+    const argumentos = ['run', 'build', '--', '--outDir', vistaPrevia ? 'dist-vista-previa' : 'dist-nuevo'];
 
     const proceso = spawn('npm', argumentos, {
         cwd: '/app',
@@ -91,14 +106,29 @@ function construir(vistaPrevia = false) {
     proceso.stdout.on('data', recoger);
     proceso.stderr.on('data', recoger);
 
-    proceso.on('close', (codigo) => {
+    proceso.on('close', async (codigo) => {
+        let salida = codigo === 0 ? null : cola.trim();
+
+        // `construyendo` sigue en true mientras se publica: otro build que
+        // arrancara ahora escribiría en `dist-nuevo/` mientras se vacía.
+        if (!vistaPrevia) {
+            try {
+                if (codigo === 0) await publicar();
+            } catch (e) {
+                codigo = 1;
+                salida = `El build terminó pero no se pudo publicar: ${e.message}`;
+            } finally {
+                await rm(DIR_NUEVO, { recursive: true, force: true }).catch(() => {});
+            }
+        }
+
         const duracionMs = Date.now() - inicio;
         construyendo = false;
         const resultado = {
             estado: codigo === 0 ? 'correcto' : 'fallido',
             terminado: new Date().toISOString(),
             duracionMs,
-            salida: codigo === 0 ? null : cola.trim(),
+            salida,
         };
 
         if (vistaPrevia) ultimaVistaPrevia = resultado;
@@ -125,6 +155,75 @@ function construir(vistaPrevia = false) {
         else ultimo = resultado;
         log('build: no se pudo lanzar —', e.message);
     });
+}
+
+/** Rutas relativas de todos los ficheros bajo `dir`. */
+async function ficheros(dir, base = dir) {
+    const entradas = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    const listas = await Promise.all(
+        entradas.map((e) => {
+            const ruta = path.join(dir, e.name);
+            return e.isDirectory() ? ficheros(ruta, base) : [path.relative(base, ruta)];
+        })
+    );
+    return listas.flat();
+}
+
+/**
+ * Pasa el build recién terminado de `dist-nuevo/` a `dist/` sin dejar huecos.
+ *
+ * Fichero a fichero con `rename`, que en el mismo disco es atómico: quien pida
+ * una página en mitad del cambio recibe la vieja o la nueva, nunca un 404 ni
+ * un fichero a medio escribir. No se cambia el directorio entero de una vez
+ * porque Nginx tiene montado `dist/` en sí mismo, y un directorio renombrado
+ * por encima no lo vería.
+ *
+ * El orden importa: primero lo que no es HTML —los assets con hash, que llevan
+ * nombre nuevo y no pisan nada—, y después el HTML que los referencia. Así
+ * ninguna página nueva apunta a un fichero que aún no está.
+ */
+async function publicar() {
+    const nuevos = await ficheros(DIR_NUEVO);
+    if (!nuevos.includes('index.html')) {
+        throw new Error('el build no generó index.html; se mantiene el sitio anterior');
+    }
+
+    const esHtml = (f) => f.endsWith('.html');
+    const mover = async (relativa) => {
+        const destino = path.join(DIR_PUBLICADO, relativa);
+        await mkdir(path.dirname(destino), { recursive: true });
+        await rename(path.join(DIR_NUEVO, relativa), destino);
+    };
+
+    for (const f of nuevos.filter((f) => !esHtml(f))) await mover(f);
+    for (const f of nuevos.filter(esHtml)) await mover(f);
+
+    // Lo que el build nuevo ya no tiene: páginas de programas retirados,
+    // assets de versiones anteriores. Los assets, solo pasados unos días.
+    const vigentes = new Set(nuevos);
+    const limite = Date.now() - DIAS_CONSERVANDO_ASSETS * 86_400_000;
+
+    for (const f of await ficheros(DIR_PUBLICADO)) {
+        if (vigentes.has(f)) continue;
+
+        const ruta = path.join(DIR_PUBLICADO, f);
+        if (f.startsWith('_astro' + path.sep) && (await stat(ruta)).mtimeMs > limite) continue;
+
+        await rm(ruta, { force: true });
+        await borrarDirectoriosVacios(path.dirname(ruta));
+    }
+}
+
+async function borrarDirectoriosVacios(dir) {
+    while (dir.startsWith(DIR_PUBLICADO + path.sep)) {
+        // `rmdir` solo borra si está vacío: si falla, hay algo y se para.
+        try {
+            await rmdir(dir);
+        } catch {
+            return;
+        }
+        dir = path.dirname(dir);
+    }
 }
 
 /**

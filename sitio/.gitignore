@@ -4,3 +4,4 @@ dist/
 
 # Render de vista previa: contenido sin publicar, se regenera a demanda.
 dist-vista-previa/
+dist-nuevo/

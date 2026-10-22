@@ -106,8 +106,15 @@ export async function revelar(selector = '[data-revelar]'): Promise<void> {
          * Hacerlo aqui no viola la regla de no esconder nada: esto corre
          * DESPUES de que GSAP haya cargado. Si no carga, no se llega a esta
          * linea y la pagina se ve entera.
+         *
+         * `transition: none` mientras dura: las tarjetas llevan la `transition`
+         * de Tailwind para el hover, que incluye `opacity` y `transform`, y el
+         * navegador suavizaba cada fotograma de GSAP con otros 300 ms propios.
+         * La tarjeta iba siempre por detras de la animacion: medido en la
+         * portada, 750 ms en verse entera en vez de 500. Al terminar se
+         * devuelve, para que el hover siga suave.
          */
-        gsap.set(hijos, { opacity: 0, y: 24 });
+        gsap.set(hijos, { opacity: 0, y: 24, transition: 'none' });
 
         gsap.fromTo(
             hijos,
@@ -128,7 +135,10 @@ export async function revelar(selector = '[data-revelar]'): Promise<void> {
                 // Marca los que están animándose, para que la red de seguridad
                 // sepa a cuáles debe vigilar.
                 onStart: () => hijos.forEach((h) => (h.dataset.revelando = '1')),
-                onComplete: () => hijos.forEach((h) => delete h.dataset.revelando),
+                onComplete: () => {
+                    hijos.forEach((h) => delete h.dataset.revelando);
+                    gsap.set(hijos, { clearProps: 'transition' });
+                },
                 scrollTrigger: {
                     trigger: hijos[0]!,
                     start: 'top 90%',
@@ -163,7 +173,7 @@ export async function revelar(selector = '[data-revelar]'): Promise<void> {
             const enPantalla = caja.top < window.innerHeight && caja.bottom > 0;
 
             if (enPantalla && Number(getComputedStyle(el).opacity) < 1 && !el.dataset.revelando) {
-                gsap.set(el, { opacity: 1, y: 0, clearProps: 'transform' });
+                gsap.set(el, { opacity: 1, y: 0, clearProps: 'transform,transition' });
             }
         });
     };
